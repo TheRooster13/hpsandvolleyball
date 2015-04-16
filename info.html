@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Info{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Rules</h1>
+</div>
+
+{% if vball_type == 'elite' %}
+<div class="panel panel-default">
+  <div class="panel-heading"><h4 class="panel-title">Rules</h4></div>
+  <div class="panel-body">Indoor rules mostly, no open handed dinks unless 6 players per side..</div>
+</div>
+{% endif %}
+
+{% if vball_type == 'grass' %}
+<div class="panel panel-default">
+  <div class="panel-heading"><h4 class="panel-title">Setting</h4></div>
+  <div class="panel-body">Hand sets must be clean (no rotation).</div>
+</div>
+{% endif %}
+
+<div class="page-header">
+  <h1>FAQ</h1>
+</div>
+
+{% if vball_type == 'elite' %}
+<div class="panel panel-default">
+  <div class="panel-heading"><h4 class="panel-title">Where do you play?</h4></div>
+  <div class="panel-body">Five Mile LDS church across the street from HP.</div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading"><h4 class="panel-title">When do games start?</h4></div>
+  <div class="panel-body">We setup the nets at 11:40.</div>
+</div>
+{% endif %}
+
+{% if vball_type == 'grass' %}
+<div class="panel panel-default">
+  <div class="panel-heading"><h4 class="panel-title">Where do you play?</h4></div>
+  <div class="panel-body">On the grass in the east park.</div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading"><h4 class="panel-title">When do games start?</h4></div>
+  <div class="panel-body">We setup the nets at 11:30.</div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading"><h4 class="panel-title">Where are the nets/balls stored?</h4></div>
+  <div class="panel-body">In building 7, in a cabinet near the small batrhoom in the shipping area.</div>
+</div>
+{% endif %}
+
+{% endblock %}

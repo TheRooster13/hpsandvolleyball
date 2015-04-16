@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Log{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Log</h1>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <span class="badge">{{ entries|length }}</span> 
+        History
+      </div>
+      <table class="table table-hover">
+        <tr>
+          <th class="text-center">#</th>
+          <th>Player</th>
+          <th>Comment</th>
+          <th>Date</th>
+        </tr>
+        {% for entry in entries %}
+          <tr>
+            <td class="text-center">{{ loop.index }}</td>
+            <td><a href="mailto:{{ entry.player.email }}">{{ entry.player.name }}</a></td>
+            <td>{{ entry.comment }}</td>
+            <td>{{ entry.date }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
