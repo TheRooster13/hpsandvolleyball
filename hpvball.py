@@ -145,7 +145,7 @@ class MainPage(webapp2.RequestHandler):
         entries_t = qry_t.fetch(1000)
         entries_p = []
         for entry in entries_t:
-           entries_p.append(ChatEntryLocal(entry))
+            entries_p.append(ChatEntryLocal(entry))
 
         # See if user is logged in and signed up
         login_info = get_login_info(self)
