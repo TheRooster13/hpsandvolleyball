@@ -2,26 +2,31 @@
 {% block title %}Signups{% endblock %}
 {% block content %}
 
-<div class="page-header">
-  <h1>Signups</h1>
-  <p>{{ date }} ({{ vball_type }})</p>
+<div class="col-md-2">
 </div>
 
-<div class="row">
-  <div class="col-md-2">
-  </div>
-  <div class="col-sm-12 col-md-8">
+<div class="col-sm-12 col-md-8"> <!-- center col -->
+
+  <div class="row">
+
+    <div class="page-header">
+      <h2>{{ vball_type.title() }} Signups: <small>{{ date }}</small></h2>
+    </div>
+
     <div class="panel panel-success">
       <div class="panel-heading">
         <span class="badge">{{ entries_c|length }}</span> 
         Committed Players
       </div>
       <table class="table table-hover">
+        <thead>
         <tr>
           <th class="text-center">#</th>
           <th>Player</th>
           <th>Comment</th>
         </tr>
+        </thead>
+        <tbody>
         {% for entry in entries_c %}
           <tr>
             <td class="text-center">{{ loop.index }}</td>
@@ -29,50 +34,47 @@
             <td>{{ entry.comment }}</td>
           </tr>
         {% endfor %}
+        </tbody>
       </table>
     </div>
-  </div>
-  <div class="col-md-2">
-  </div>
-</div>
 
-<div class="row">
-  <div class="col-md-2">
-  </div>
-  <div class="col-sm-12 col-md-8">
+  </div> <!-- row -->
+
+  <div class="row">
+
     <div class="panel panel-warning">
       <div class="panel-heading">
         <span class="badge">{{ entries_m|length }}</span> 
         Maybe Players
       </div>
       <table class="table table-hover">
+        <thead>
         <tr>
           <th class="text-center">#</th>
           <th>Player</th>
           <th>Comment</th>
         </tr>
+        </thead>
+        <tbody>
         {% for entry in entries_m %}
           <tr>
             <td class="text-center">{{ loop.index }}</td>
             <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
             <td>{{ entry.comment }}</td>
           </tr>
+        </tbody>
         {% endfor %}
       </table>
     </div>
-  </div>
-  <div class="col-md-2">
-  </div>
-</div>
+
+  </div> <!-- row -->
 
 {% if login.logged_in %}
 {% if is_signed_up %}
 
 <!-- Unsignup Form -->
-<div class="row">
-  <div class="col-md-2">
-  </div>
-  <div class="col-sm-12 col-md-8">
+  <div class="row">
+
     <form class="form-horizontal" action="{{ vball_type }}/unsignup" method="post">
       <div class="btn-group btn-group-justified" role="group">
         <div class="btn-group" role="group">
@@ -86,19 +88,15 @@
           <input id="unsignup" name="action" type="submit" class="btn btn-danger" value="Unsignup">
         </div>
       </div>
-  </form>
-  </div>
-  <div class="col-md-2">
-  </div>
-</div>
+    </form>
+
+  </div> <!-- row -->
 
 {% else %}
 
-<!-- Signup Form -->
-<div class="row">
-  <div class="col-md-2">
-  </div>
-  <div class="col-sm-12 col-md-8">
+  <!-- Signup Form -->
+  <div class="row">
+
     <form class="form-horizontal" action="{{ vball_type }}/signup" method="post">
       <div class="well">
          <input id="comment" name="comment" type="text" class="form-control" placeholder="Snarky and/or informative comment">
@@ -111,26 +109,60 @@
             <input id="maybe"  name="action" type="submit" class="btn btn-warning" value="Maybe" >
         </div>
       </div>
-  </form>
-  </div>
-  <div class="col-md-2">
-  </div>
-</div>
+    </form>
+
+  </div> <!-- row -->
 
 {% endif %}
 {% else %}
 
-<!-- Login Form -->
-<div class="row">
-  <div class="col-md-2">
-  </div>
-  <div class="col-sm-12 col-md-8">
+  <!-- Login Form -->
+  <div class="row">
     <a role="button" class="btn btn-primary btn-block" href="{{ login.url }}">Login to sign up</a> 
-  </div>
-  <div class="col-md-2">
-  </div>
-</div>
+  </div> <!-- row -->
 
 {% endif %}
+
+  <div class="row">
+    <h3>Comments</h3>
+    {% for post in entries_p %}
+    <div class="panel panel-default container-fluid">
+      <div class="panel-heading row">
+        <div class="col-xs-8">
+          <span class="glyphicon glyphicon-user" aria-hidden="true"></span>
+          <a href="mailto:{{ post.email }}">{{post.name}}</a>
+        </div>
+        <div class="col-xs-4 text-right">
+          <span class="glyphicon glyphicon-time" aria-hidden="true"></span>
+          {{ post.date }}
+        </div>
+      </div>
+      <div class="panel-body">
+        {{ post.comment }}
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+
+{% if login.logged_in %}
+  <div class="row">
+    <form class="form" action="{{ vball_type }}/chat" method="post">
+      <div class="form-group">
+        <textarea class="form-control" id="comment" name="comment" rows="2" placeholder="Post a comment..."></textarea>
+        <div class="btn-group btn-group-justified" role="group">
+          <div class="btn-group" role="group">
+            <input id="chat" name="chat" type="submit" class="btn btn-success" value="Post">
+          </div>
+        </div>
+      </div>
+    </form>
+  </div> <!-- row -->
+{% endif %}
+
+</div> <!-- center col -->
+
+<div class="col-md-2">
+</div>
 
 {% endblock %}

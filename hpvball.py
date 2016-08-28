@@ -2,6 +2,8 @@ import os
 import urllib
 import datetime
 import logging
+# This is needed for timezone conversion (but not part of standard lib)
+#import dateutil
 
 from google.appengine.api import users
 from google.appengine.ext import ndb
@@ -20,6 +22,13 @@ def db_key(db_name):
     We use the list name as the key.
     """
     return ndb.Key("Entries", db_name)
+
+def chat_db_key(db_name):
+    """
+    Constructs a Datastore key for a chat comment list.
+    We use the list name as the key.
+    """
+    return ndb.Key("ChatEntries", db_name)
 
 def get_login_info(h):
     user = users.get_current_user()
@@ -48,17 +57,62 @@ class Player(ndb.Model):
     Sub model for representing a player.
     """
     identity = ndb.StringProperty(indexed=False)
-    email = ndb.StringProperty(indexed=False)
-    name = ndb.StringProperty(indexed=False)
+    email    = ndb.StringProperty(indexed=False)
+    name     = ndb.StringProperty(indexed=False)
 
 class Entry(ndb.Model):
     """
     A main model for representing an individual player entry.
     """
-    player = ndb.StructuredProperty(Player)
-    comment = ndb.StringProperty(indexed=False)
+    player    = ndb.StructuredProperty(Player)
+    comment   = ndb.StringProperty(indexed=False)
     committed = ndb.BooleanProperty(indexed=True)
-    date = ndb.DateTimeProperty(auto_now_add=True)
+    date      = ndb.DateTimeProperty(auto_now_add=True)
+
+class ChatEntry(ndb.Model):
+    """
+    Model for representing an chat comment.
+    """
+    identity = ndb.StringProperty(indexed=False)
+    email    = ndb.StringProperty(indexed=False)
+    name     = ndb.StringProperty(indexed=False)
+    comment  = ndb.StringProperty(indexed=False)
+    date     = ndb.DateTimeProperty(auto_now_add=True)
+
+class ChatEntryLocal(object):
+    """
+    To covert datetime to local timezone
+    """
+
+    def __init__(self, entry):
+        self.identity = entry.identity
+        self.email    = entry.email
+        self.name     = entry.name
+        self.comment  = entry.comment
+        self.date     = self.utc_to_local(entry.date)
+
+    def utc_to_local(self, utc_dt):
+        # Becase GAE doesn't have dateutil
+        utc_offset = 6 # Through testing - not sure about DST
+        hour = int(utc_dt.strftime("%H")) - utc_offset
+        min  = int(utc_dt.strftime("%M"))
+        sec  = int(utc_dt.strftime("%S"))
+        if (hour > 11):
+            ampm = "PM"
+        else:
+            ampm = "AM"
+        if hour > 12:
+            hour = hour - 12
+        return "%d:%02d:%02d %s" % (hour, min, sec, ampm)
+        
+        ## Define zones
+        #utc_zone = dateutil.tz.gettz('UTC')
+        #mtn_zone = dateutil.tz.gettz('America/Boise')
+        ## Tell the datetime object that it's in UTC time zone since 
+        ## datetime objects are 'naive' by default
+        #utc_dt = utc_dt.replace(tzinfo=utc_zone)
+        ## Convert time zone to mountain
+        #return utc_dt.astimezone(mtn_zone)
 
 class MainPage(webapp2.RequestHandler):
     """
@@ -84,7 +138,16 @@ class MainPage(webapp2.RequestHandler):
         qry_m = qry_m.order(Entry.date)
         entries_m = qry_m.fetch(100)
 
-        # See if use is logged in and signed up
+        # Get chat messages (posts) - convert timestamps too
+        qry_t = ChatEntry.query(ancestor=chat_db_key(vball_type))
+        qry_t = qry_t.filter(ChatEntry.date >= today)
+        qry_t = qry_t.order(ChatEntry.date)
+        entries_t = qry_t.fetch(1000)
+        entries_p = []
+        for entry in entries_t:
+           entries_p.append(ChatEntryLocal(entry))
+
+        # See if user is logged in and signed up
         login_info = get_login_info(self)
         user = users.get_current_user()
         is_signed_up = False
@@ -101,6 +164,7 @@ class MainPage(webapp2.RequestHandler):
             'user': user,
             'entries_c': entries_c,
             'entries_m': entries_m,
+            'entries_p': entries_p,
             'date': today.strftime("%m-%d-%Y"),
             'is_signed_up': is_signed_up,
             'signed_up_entry': signed_up_entry,
@@ -110,6 +174,22 @@ class MainPage(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('signup.html')
         self.response.write(template.render(template_values))
 
+class Chat(webapp2.RequestHandler):
+    """
+    Manages adding a chat message.
+    """
+    def post(self):
+        vball_type = get_vball_type(self)
+        user = users.get_current_user()
+        if user:
+            entry = ChatEntry(parent=chat_db_key(vball_type))
+            entry.identity = user.user_id()
+            entry.email    = user.email()
+            entry.name     = user.nickname()
+            entry.comment  = self.request.get('comment')
+            entry.put()
+            self.redirect('/%s' % vball_type)
+
 class Signup(webapp2.RequestHandler):
     """
     Manages adding a new player to the signup list for today.
@@ -117,7 +197,7 @@ class Signup(webapp2.RequestHandler):
     def post(self):
         vball_type = get_vball_type(self)
         user = users.get_current_user()
-        if users:
+        if user:
             entry = Entry(parent=db_key(vball_type))
             entry.player = Player(identity=user.user_id(), email=user.email(), name=user.nickname())
             entry.comment = self.request.get('comment')
@@ -199,9 +279,11 @@ app = webapp2.WSGIApplication([
     ('/grass/unsignup', Unsignup),
     ('/grass/info',     Info),
     ('/grass/log',      Log),
+    ('/grass/chat',     Chat),
     ('/elite',          MainPage),
     ('/elite/signup',   Signup),
     ('/elite/unsignup', Unsignup),
     ('/elite/info',     Info),
     ('/elite/log',      Log),
+    ('/elite/chat',     Chat),
 ], debug=True)
