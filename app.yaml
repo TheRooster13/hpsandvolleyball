@@ -4,13 +4,15 @@ api_version: 1
 threadsafe: true
 
 handlers:
-- url: /favicon\.ico
-  static_files: favicon.ico
-  upload: favicon\.ico
+- url: /favicon\.png
+  static_files: favicon.png
+  upload: favicon\.png
 - url: /android
   static_dir: android
 - url: /ios
   static_dir: ios
+- url: /imessenger
+  static_dir: imessenger
 - url: /.*
   script: hpvball.app
 
