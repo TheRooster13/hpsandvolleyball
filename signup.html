@@ -18,6 +18,7 @@
         <span class="badge">{{ entries_c|length }}</span> 
         Committed Players
       </div>
+      {% if entries_c|length %}
       <table class="table table-hover">
         <thead>
         <tr>
@@ -36,6 +37,11 @@
         {% endfor %}
         </tbody>
       </table>
+      {% else %}
+      <div class="panel-body">
+        <i>No committed players</i>
+      </div>
+      {% endif %}
     </div>
 
   </div> <!-- row -->
@@ -47,6 +53,7 @@
         <span class="badge">{{ entries_m|length }}</span> 
         Maybe Players
       </div>
+      {% if entries_m|length %}
       <table class="table table-hover">
         <thead>
         <tr>
@@ -62,9 +69,14 @@
             <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
             <td>{{ entry.comment }}</td>
           </tr>
-        </tbody>
         {% endfor %}
+        </tbody>
       </table>
+      {% else %}
+      <div class="panel-body">
+        <i>No maybe players</i>
+      </div>
+      {% endif %}
     </div>
 
   </div> <!-- row -->
