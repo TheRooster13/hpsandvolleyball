@@ -3,7 +3,9 @@
 <html lang="en">
 
   <head>
+
     {% block head %}
+
     <title>HP Volleyball :: {% block title %}{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
@@ -27,18 +29,26 @@
     <link rel="stylesheet" href="https://bootswatch.com/united/bootstrap.css">
     <link rel="stylesheet" href="https://bootswatch.com/yeti/bootstrap.css">
     -->
+
     <style>
       body {
         padding-top: 30px; /* to make the container go all the way to the bottom of the topbar */
       }
     </style>
+
+    <!-- JQuery must appear before bootstrap javascript -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon"                 href="ios/AppIcon.appiconset/Icon-60@2x.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="ios/AppIcon.appiconset/Icon-60@3x.png" />
     <link rel="apple-touch-icon" sizes="76x76"   href="ios/AppIcon.appiconset/Icon-76.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="ios/AppIcon.appiconset/Icon-76@2x.png" />
     <link rel="apple-touch-icon" sizes="58x58"   href="ios/AppIcon.appiconset/Icon-Small@2x.png" />
+
     {% endblock %}
+
   </head>
 
   <body>
@@ -85,9 +95,6 @@
     {% block content %}{% endblock %}
     </div>
 
-    <!-- Placed at end of page to load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 
   </body>
 
