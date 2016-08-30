@@ -13,130 +13,115 @@
       <h2>{{ vball_type.title() }} Signups: <small>{{ date }}</small></h2>
     </div>
 
+  </div> <!-- row -->
+
+  <div class="row">
+
+  {% if is_signed_up %}
+  <form class="form-horizontal" action="{{ vball_type }}/unsignup" method="post">
+  {% else %}
+  <form class="form-horizontal" action="{{ vball_type }}/signup" method="post">
+  {% endif %}
+  <div class="col-md-6">
+
+    <!-- Committed -->
     <div class="panel panel-success">
       <div class="panel-heading">
-        <span class="badge">{{ entries_c|length }}</span> 
         Committed Players
+        <span class="badge">{{ entries_c|length }}</span> 
       </div>
-      {% if entries_c|length %}
       <table class="table table-hover">
-        <thead>
-        <tr>
-          <th class="text-center">#</th>
-          <th>Player</th>
-          <th>Comment</th>
-        </tr>
-        </thead>
-        <tbody>
+      {% if entries_c|length %}
         {% for entry in entries_c %}
           <tr>
             <td class="text-center">{{ loop.index }}</td>
             <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
-            <td>{{ entry.comment }}</td>
           </tr>
         {% endfor %}
-        </tbody>
-      </table>
       {% else %}
-      <div class="panel-body">
-        <i>No committed players</i>
+        <tr>
+          <td class="text-center" colspan="2"><i>None</i></td>
+        </tr>
+      {% endif %}
+      </table>
+      {% if login.logged_in %}
+      <div class="panel-footer">
+        <div class="btn-group btn-group-justified" role="group">
+          <div class="btn-group" role="group">
+            {% if is_signed_up %}
+              {% if signed_up_entry.committed %}
+                <button id="commit" name="action" type="submit" class="btn btn-danger" value="Commit">
+                  <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
+                </button>
+              {% else %}
+                <button id="commit" name="action" type="submit" class="btn btn-success disabled">
+                  <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
+                </button>
+              {% endif %}
+            {% else %}
+              <button id="commit" name="action" type="submit" class="btn btn-success" value="Commit">
+                <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
+              </button>
+            {% endif %}
+          </div>
+        </div>
       </div>
       {% endif %}
     </div>
 
-  </div> <!-- row -->
+  </div>
+  <div class="col-md-6">
 
-  <div class="row">
-
+    <!-- Maybe -->
     <div class="panel panel-default">
       <div class="panel-heading">
-        <span class="badge">{{ entries_m|length }}</span> 
         Maybe Players
+        <span class="badge">{{ entries_m|length }}</span> 
       </div>
-      {% if entries_m|length %}
       <table class="table table-hover">
-        <thead>
-        <tr>
-          <th class="text-center">#</th>
-          <th>Player</th>
-          <th>Comment</th>
-        </tr>
-        </thead>
-        <tbody>
+      {% if entries_m|length %}
         {% for entry in entries_m %}
           <tr>
             <td class="text-center">{{ loop.index }}</td>
             <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
-            <td>{{ entry.comment }}</td>
           </tr>
         {% endfor %}
-        </tbody>
-      </table>
       {% else %}
-      <div class="panel-body">
-        <i>No maybe players</i>
+          <tr>
+            <td class="text-center" colspan="2"><i>None</i></td>
+          </tr>
+      {% endif %}
+      </table>
+      {% if login.logged_in %}
+      <div class="panel-footer">
+        <div class="btn-group btn-group-justified" role="group">
+          <div class="btn-group" role="group">
+            {% if is_signed_up %}
+              {% if not signed_up_entry.committed %}
+                <button id="maybe" name="action" type="submit" class="btn btn-danger" value="Maybe">
+                  <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
+                </button>
+              {% else %}
+                <button id="maybe" name="action" type="submit" class="btn btn-default disabled">
+                  <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
+                </button>
+              {% endif %}
+            {% else %}
+              <button id="maybe" name="action" type="submit" class="btn btn-default" value="Maybe">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
+              </button>
+            {% endif %}
+          </div>
+        </div>
       </div>
       {% endif %}
     </div>
 
+  </div>
+  </form>
   </div> <!-- row -->
 
-{% if login.logged_in %}
-{% if is_signed_up %}
-
-<!-- Unsignup Form -->
-  <div class="row">
-
-    <form class="form-horizontal" action="{{ vball_type }}/unsignup" method="post">
-      <div class="btn-group btn-group-justified" role="group">
-        <div class="btn-group" role="group">
-          {% if signed_up_entry.committed %}
-            <button id="commit" name="action" type="submit" class="btn btn-success disabled">
-              <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Committed
-            </button>
-          {% else %}
-            <button id="maybe" name="action" type="submit" class="btn btn-default disabled">
-              <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
-            </button>
-          {% endif %}
-        </div>
-        <div class="btn-group" role="group">
-          <button id="unsignup" name="action" type="submit" class="btn btn-danger">
-            <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
-          </button>
-        </div>
-      </div>
-    </form>
-
-  </div> <!-- row -->
-
-{% else %}
-
-  <!-- Signup Form -->
-  <div class="row">
-
-    <form class="form-horizontal" action="{{ vball_type }}/signup" method="post">
-      <div class="well">
-         <input id="comment" name="comment" type="text" class="form-control" placeholder="Snarky and/or informative comment">
-      </div>
-      <div class="btn-group btn-group-justified" role="group">
-        <div class="btn-group" role="group">
-          <button id="maybe" name="action" type="submit" class="btn btn-default" value="Maybe">
-            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
-          </button>
-        </div>
-        <div class="btn-group" role="group">
-          <button id="commit" name="action" type="submit" class="btn btn-success" value="Commit">
-            <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
-          </button>
-        </div>
-      </div>
-    </form>
-
-  </div> <!-- row -->
-
-{% endif %}
-{% else %}
+{% if not login.logged_in %}
 
   <!-- Login Form -->
   <div class="row">
@@ -146,7 +131,10 @@
 {% endif %}
 
   <div class="row">
-    <h3>Comments</h3>
+    <h3>Comments ({{ entries_p|length }})</h3>
+    <div class="col-md-2">
+    </div>
+    <div class="col-md-8">
     {% for post in entries_p %}
     <div class="panel panel-default container-fluid">
       <div class="panel-heading row">
@@ -164,15 +152,20 @@
       </div>
     </div>
     {% endfor %}
-
-  </div>
+    </div>
+    <div class="col-md-2">
+    </div>
+  </div> <!-- row -->
 
 {% if login.logged_in %}
   <div class="row">
+    <div class="col-md-2">
+    </div>
+    <div class="col-md-8">
     <form class="form" action="{{ vball_type }}/chat" method="post">
       <div class="form-group">
         <div class="well">
-          <textarea class="form-control" id="comment" name="comment" rows="2" placeholder="Post a comment..."></textarea>
+          <textarea class="form-control" id="comment" name="comment" rows="2" placeholder="Snarky and/or informative comment..."></textarea>
         </div>
         <div class="btn-group pull-right" role="group">
          <button id="chat" name="chat" type="submit" class="btn btn-default">
@@ -181,6 +174,9 @@
         </div>
       </div>
     </form>
+    </div>
+    <div class="col-md-2">
+    </div>
   </div> <!-- row -->
 {% endif %}
 

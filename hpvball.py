@@ -47,6 +47,10 @@ def get_login_info(h):
     }
     return info
 
+def get_year_string():
+    now = datetime.datetime.utcnow()
+    return now.strftime("%Y")
+
 def get_vball_type(h):
     comps = h.request.path.split("/")
     logging.info("comps: %s" % comps)
@@ -96,14 +100,13 @@ class ChatEntryLocal(object):
         utc_offset = 6 # Through testing - not sure about DST
         hour = int(utc_dt.strftime("%H")) - utc_offset
         min  = int(utc_dt.strftime("%M"))
-        sec  = int(utc_dt.strftime("%S"))
         if (hour > 11):
             ampm = "PM"
         else:
             ampm = "AM"
         if hour > 12:
             hour = hour - 12
-        return "%d:%02d:%02d %s" % (hour, min, sec, ampm)
+        return "%d:%02d %s" % (hour, min, ampm)
         
         ## Define zones
         #utc_zone = dateutil.tz.gettz('UTC')
@@ -160,6 +163,7 @@ class MainPage(webapp2.RequestHandler):
 
         template_values = {
             'vball_type': vball_type,
+            'year': get_year_string(),
             'page': 'signup',
             'user': user,
             'entries_c': entries_c,
@@ -200,8 +204,7 @@ class Signup(webapp2.RequestHandler):
         if user:
             entry = Entry(parent=db_key(vball_type))
             entry.player = Player(identity=user.user_id(), email=user.email(), name=user.nickname())
-            entry.comment = self.request.get('comment')
-            logging.info("signup action = %s" % self.request.get('action'))
+            entry.comment = ""
             if self.request.get('action') == "Commit":
                 entry.committed = True
             else:
@@ -239,6 +242,7 @@ class Info(webapp2.RequestHandler):
         login_info = get_login_info(self)
         template_values = { 
             'vball_type': vball_type, 
+            'year': get_year_string(),
             'page' : 'info', 
             'login': login_info 
         }
@@ -259,6 +263,7 @@ class Log(webapp2.RequestHandler):
         login_info = get_login_info(self)
         template_values = {
             'vball_type': vball_type, 
+            'year': get_year_string(),
             'page': 'log', 
             'login': login_info, 
             'entries': entries,
