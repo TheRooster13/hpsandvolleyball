@@ -201,6 +201,7 @@ class Signup(webapp2.RequestHandler):
             entry = Entry(parent=db_key(vball_type))
             entry.player = Player(identity=user.user_id(), email=user.email(), name=user.nickname())
             entry.comment = self.request.get('comment')
+            logging.info("signup action = %s" % self.request.get('action'))
             if self.request.get('action') == "Commit":
                 entry.committed = True
             else:

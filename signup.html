@@ -48,7 +48,7 @@
 
   <div class="row">
 
-    <div class="panel panel-warning">
+    <div class="panel panel-default">
       <div class="panel-heading">
         <span class="badge">{{ entries_m|length }}</span> 
         Maybe Players
@@ -91,13 +91,19 @@
       <div class="btn-group btn-group-justified" role="group">
         <div class="btn-group" role="group">
           {% if signed_up_entry.committed %}
-            <input id="commit" name="action" type="submit" class="btn btn-success" value="Committed" disabled="disabled">
+            <button id="commit" name="action" type="submit" class="btn btn-success disabled">
+              <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Committed
+            </button>
           {% else %}
-            <input id="maybe"  name="action" type="submit" class="btn btn-warning" value="Maybe"     disabled="disabled">
+            <button id="maybe" name="action" type="submit" class="btn btn-default disabled">
+              <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
+            </button>
           {% endif %}
         </div>
         <div class="btn-group" role="group">
-          <input id="unsignup" name="action" type="submit" class="btn btn-danger" value="Unsignup">
+          <button id="unsignup" name="action" type="submit" class="btn btn-danger">
+            <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
+          </button>
         </div>
       </div>
     </form>
@@ -115,10 +121,14 @@
       </div>
       <div class="btn-group btn-group-justified" role="group">
         <div class="btn-group" role="group">
-            <input id="commit" name="action" type="submit" class="btn btn-success" value="Commit">
+          <button id="maybe" name="action" type="submit" class="btn btn-default" value="Maybe">
+            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
+          </button>
         </div>
         <div class="btn-group" role="group">
-            <input id="maybe"  name="action" type="submit" class="btn btn-warning" value="Maybe" >
+          <button id="commit" name="action" type="submit" class="btn btn-success" value="Commit">
+            <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
+          </button>
         </div>
       </div>
     </form>
@@ -164,10 +174,10 @@
         <div class="well">
           <textarea class="form-control" id="comment" name="comment" rows="2" placeholder="Post a comment..."></textarea>
         </div>
-        <div class="btn-group btn-group-justified" role="group">
-          <div class="btn-group" role="group">
-            <input id="chat" name="chat" type="submit" class="btn btn-success" value="Post">
-          </div>
+        <div class="btn-group pull-right" role="group">
+         <button id="chat" name="chat" type="submit" class="btn btn-default">
+            <span class="glyphicon glyphicon-share" aria-hidden="true"></span> Post Comment
+         </button>
         </div>
       </div>
     </form>
