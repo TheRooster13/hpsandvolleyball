@@ -10,7 +10,7 @@
   <div class="row">
 
     <div class="page-header">
-      <h2>{{ vball_type.title() }} Signups: <small>{{ date }}</small></h2>
+      <h2>{{ vball_type.title() }} <small>{{ date }}</small></h2>
     </div>
 
   </div> <!-- row -->
@@ -28,7 +28,7 @@
     <div class="panel panel-success">
       <div class="panel-heading">
         Committed Players
-        <span class="badge">{{ entries_c|length }}</span> 
+        <span class="badge pull-right">{{ entries_c|length }}</span> 
       </div>
       <table class="table table-hover">
       {% if entries_c|length %}
@@ -39,9 +39,9 @@
           </tr>
         {% endfor %}
       {% else %}
-        <tr>
-          <td class="text-center" colspan="2"><i>None</i></td>
-        </tr>
+          <tr>
+            <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
+          </tr>
       {% endif %}
       </table>
       {% if login.logged_in %}
@@ -76,7 +76,7 @@
     <div class="panel panel-default">
       <div class="panel-heading">
         Maybe Players
-        <span class="badge">{{ entries_m|length }}</span> 
+        <span class="badge pull-right">{{ entries_m|length }}</span> 
       </div>
       <table class="table table-hover">
       {% if entries_m|length %}
@@ -87,9 +87,9 @@
           </tr>
         {% endfor %}
       {% else %}
-          <tr>
-            <td class="text-center" colspan="2"><i>None</i></td>
-          </tr>
+        <tr>
+          <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
+        </tr>
       {% endif %}
       </table>
       {% if login.logged_in %}
@@ -137,7 +137,12 @@
 {% endif %}
 
   <div class="row">
-    <h3>Comments ({{ entries_p|length }})</h3>
+    <div class="page-header">
+      <h3>Comments ({{ entries_p|length }})</h3>
+    </div>
+  </div> <!-- row -->
+
+  <div class="row">
     <div class="col-md-2">
     </div>
     <div class="col-md-8">
@@ -164,6 +169,7 @@
   </div> <!-- row -->
 
 {% if login.logged_in %}
+
   <div class="row">
     <div class="col-md-2">
     </div>
@@ -184,6 +190,7 @@
     <div class="col-md-2">
     </div>
   </div> <!-- row -->
+
 {% endif %}
 
 </div> <!-- center col -->

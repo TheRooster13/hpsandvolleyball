@@ -98,12 +98,11 @@ class ChatEntryLocal(object):
     def utc_to_local(self, utc_dt):
         # Becase GAE doesn't have dateutil
         utc_offset = 6 # Through testing - not sure about DST
-        hour = int(utc_dt.strftime("%H")) - utc_offset
+        hour = int(utc_dt.strftime("%H"))
         min  = int(utc_dt.strftime("%M"))
-        if (hour > 11):
-            ampm = "PM"
-        else:
-            ampm = "AM"
+        if hour > utc_offset:
+            hour = hour - utc_offset
+        ampm = "PM" if (hour > 11) else "AM"
         if hour > 12:
             hour = hour - 12
         return "%d:%02d %s" % (hour, min, ampm)
