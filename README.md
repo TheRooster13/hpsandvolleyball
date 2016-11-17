@@ -1,4 +1,4 @@
-# HP volleyball
+# HP Volleyball
 
 Simple pickup volleyball signup page (Google App Engine).
 
@@ -19,5 +19,13 @@ The `Info` tab provides general information (rules, location, etc.)
 The Google App Engine (GAE) is used for this application.  The `update.bat`
 file is used to push the changes to the GAE server.  Use the `runserver.bat`
 file to run a local server and test changes prior to updating.
+
+#### Links
+
+* [Google Developers Console](https://console.developers.google.com/iam-admin/projects)
+* [Python API](https://cloud.google.com/appengine/docs/python/)
+* [Dashboard](https://console.cloud.google.com/appengine?src=ac&project=hpvball&serviceId=default&duration=PT1H)
+* [Live Application](http://hpvball.appspot.com)
+
 
 
