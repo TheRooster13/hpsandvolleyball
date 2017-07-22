@@ -262,7 +262,7 @@ class Store(webapp2.RequestHandler):
             'login': login_info 
         }
         template = JINJA_ENVIRONMENT.get_template('store.html')
-        self.response.write(template.render(template_values))
+        self.response.write(Gtemplate.render(template_values))
 
 class Log(webapp2.RequestHandler):
     """
@@ -306,6 +306,7 @@ app = webapp2.WSGIApplication([
     ('/elite/signup',   Signup),
     ('/elite/unsignup', Unsignup),
     ('/elite/info',     Info),
+    ('/elite/store',    Store),
     ('/elite/log',      Log),
     ('/elite/chat',     Chat),
 ], debug=True)
