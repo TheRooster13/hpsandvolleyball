@@ -85,6 +85,11 @@
             {% else %}
             <li><a href="/{{ vball_type }}/info">Info</a></li>
             {% endif %}
+            {% if page == "store" %}
+            <li class="active"><a href="#">Store<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/{{ vball_type }}/store">Store</a></li>
+            {% endif %}
           </ul>
           <ul class="nav navbar-nav navbar-right">
             <li><a href="{{ login.url }}">{{ login.linktext }}</a></li>

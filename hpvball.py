@@ -248,6 +248,22 @@ class Info(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('info.html')
         self.response.write(template.render(template_values))
 
+class Store(webapp2.RequestHandler):
+    """
+    Renders Store page
+    """
+    def get(self):
+        vball_type = get_vball_type(self)
+        login_info = get_login_info(self)
+        template_values = { 
+            'vball_type': vball_type, 
+            'year': get_year_string(),
+            'page' : 'store', 
+            'login': login_info 
+        }
+        template = JINJA_ENVIRONMENT.get_template('store.html')
+        self.response.write(template.render(template_values))
+
 class Log(webapp2.RequestHandler):
     """
     Renders Log page (hidden)
@@ -283,6 +299,7 @@ app = webapp2.WSGIApplication([
     ('/grass/signup',   Signup),
     ('/grass/unsignup', Unsignup),
     ('/grass/info',     Info),
+    ('/grass/store',    Store),
     ('/grass/log',      Log),
     ('/grass/chat',     Chat),
     ('/elite',          MainPage),
