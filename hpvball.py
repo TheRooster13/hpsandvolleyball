@@ -262,7 +262,7 @@ class Store(webapp2.RequestHandler):
             'login': login_info 
         }
         template = JINJA_ENVIRONMENT.get_template('store.html')
-        self.response.write(Gtemplate.render(template_values))
+        self.response.write(template.render(template_values))
 
 class Log(webapp2.RequestHandler):
     """
