@@ -100,8 +100,7 @@ class ChatEntryLocal(object):
         utc_offset = 6 # Through testing - not sure about DST
         hour = int(utc_dt.strftime("%H"))
         min  = int(utc_dt.strftime("%M"))
-        if hour > utc_offset:
-            hour = hour - utc_offset
+        hour = (25 + hour - utc_offset) % 24 - 1
         ampm = "PM" if (hour > 11) else "AM"
         if hour > 12:
             hour = hour - 12
@@ -121,28 +120,24 @@ class MainPage(webapp2.RequestHandler):
     Reads the database and creates the data for rendering the signup list
     """
     def get(self):
-        vball_type = get_vball_type(self)
-        # Filter for today only
+        # Filter for this year only
         now = datetime.datetime.today()
-        today = datetime.datetime(now.year, now.month, now.day)
+        thisYear = datetime.datetime(now.year)
 
         # Get committed entries list
-        qry_c = Entry.query(ancestor=db_key(vball_type))
-        qry_c = qry_c.filter(Entry.date >= today)
+		qry_c = Entry.quesry(ancestor=db_key(thisYear))
         qry_c = qry_c.filter(Entry.committed == True)
         qry_c = qry_c.order(Entry.date)
         entries_c = qry_c.fetch(100)
 
         # Get maybe entries list
-        qry_m = Entry.query(ancestor=db_key(vball_type))
-        qry_m = qry_m.filter(Entry.date >= today)
+		qry_m = Entry.quesry(ancestor=db_key(thisYear))
         qry_m = qry_m.filter(Entry.committed == False)
         qry_m = qry_m.order(Entry.date)
         entries_m = qry_m.fetch(100)
 
         # Get chat messages (posts) - convert timestamps too
-        qry_t = ChatEntry.query(ancestor=chat_db_key(vball_type))
-        qry_t = qry_t.filter(ChatEntry.date >= today)
+        qry_t = ChatEntry.query(ancestor=chat_db_key(thisYear))
         qry_t = qry_t.order(ChatEntry.date)
         entries_t = qry_t.fetch(1000)
         entries_p = []
@@ -161,14 +156,12 @@ class MainPage(webapp2.RequestHandler):
                     signed_up_entry = entry
 
         template_values = {
-            'vball_type': vball_type,
             'year': get_year_string(),
             'page': 'signup',
             'user': user,
             'entries_c': entries_c,
             'entries_m': entries_m,
             'entries_p': entries_p,
-            'date': today.strftime("%m-%d-%Y"),
             'is_signed_up': is_signed_up,
             'signed_up_entry': signed_up_entry,
             'login': login_info,
@@ -182,26 +175,24 @@ class Chat(webapp2.RequestHandler):
     Manages adding a chat message.
     """
     def post(self):
-        vball_type = get_vball_type(self)
         user = users.get_current_user()
         if user:
-            entry = ChatEntry(parent=chat_db_key(vball_type))
+            entry = ChatEntry(parent=chat_db_key(thisYear))
             entry.identity = user.user_id()
             entry.email    = user.email()
             entry.name     = user.nickname()
             entry.comment  = self.request.get('comment')
             entry.put()
-            self.redirect('/%s' % vball_type)
+            self.redirect('/%s')
 
 class Signup(webapp2.RequestHandler):
     """
     Manages adding a new player to the signup list for today.
     """
     def post(self):
-        vball_type = get_vball_type(self)
         user = users.get_current_user()
         if user:
-            entry = Entry(parent=db_key(vball_type))
+            entry = Entry(parent=db_key(thisYear))
             entry.player = Player(identity=user.user_id(), email=user.email(), name=user.nickname())
             entry.comment = ""
             if self.request.get('action') == "Commit":
@@ -209,7 +200,7 @@ class Signup(webapp2.RequestHandler):
             else:
                 entry.committed = False
             entry.put()
-            self.redirect('/%s' % vball_type)
+            self.redirect('/%s')
 
 class Unsignup(webapp2.RequestHandler):
     """
@@ -217,30 +208,26 @@ class Unsignup(webapp2.RequestHandler):
     sheet (for today).
     """
     def post(self):
-        vball_type = get_vball_type(self)
         user = users.get_current_user()
         if user:
             logging.info("in user section")
             now = datetime.datetime.today()
-            today = datetime.datetime(now.year, now.month, now.day)
+            thisYear = datetime.datetime(now.year)
 
-            qry = Entry.query(ancestor=db_key(vball_type))
-            qry = qry.filter(Entry.date >= today)
+            qry = Entry.query(ancestor=db_key(thisYear))
             entries = qry.fetch(100)
             for entry in entries:
                 if entry.player.identity == user.user_id(): 
                     entry.key.delete()
-        self.redirect('/%s' % vball_type)
+        self.redirect('/%s')
 
 class Info(webapp2.RequestHandler):
     """
     Renders Info page
     """
     def get(self):
-        vball_type = get_vball_type(self)
         login_info = get_login_info(self)
         template_values = { 
-            'vball_type': vball_type, 
             'year': get_year_string(),
             'page' : 'info', 
             'login': login_info 
@@ -253,10 +240,8 @@ class Store(webapp2.RequestHandler):
     Renders Store page
     """
     def get(self):
-        vball_type = get_vball_type(self)
         login_info = get_login_info(self)
         template_values = { 
-            'vball_type': vball_type, 
             'year': get_year_string(),
             'page' : 'store', 
             'login': login_info 
@@ -269,15 +254,12 @@ class Log(webapp2.RequestHandler):
     Renders Log page (hidden)
     """
     def get(self):
-        # Get committed entries list
-        vball_type = get_vball_type(self)
-        qry = Entry.query(ancestor=db_key(vball_type))
+        qry = Entry.query(ancestor=db_key(thisYear))
         qry = qry.order(-Entry.date)
         entries = qry.fetch()
 
         login_info = get_login_info(self)
         template_values = {
-            'vball_type': vball_type, 
             'year': get_year_string(),
             'page': 'log', 
             'login': login_info, 
@@ -288,25 +270,16 @@ class Log(webapp2.RequestHandler):
 
 class Index(webapp2.RequestHandler):
     """
-    Redirects to grass (default)
+    Redirects to signup (default)
     """
     def get(self):
-        self.redirect('/grass')
+        self.redirect('/signup')
 
 app = webapp2.WSGIApplication([
     ('/',               Index),
-    ('/grass',          MainPage),
-    ('/grass/signup',   Signup),
-    ('/grass/unsignup', Unsignup),
-    ('/grass/info',     Info),
-    ('/grass/store',    Store),
-    ('/grass/log',      Log),
-    ('/grass/chat',     Chat),
-    ('/elite',          MainPage),
-    ('/elite/signup',   Signup),
-    ('/elite/unsignup', Unsignup),
-    ('/elite/info',     Info),
-    ('/elite/store',    Store),
-    ('/elite/log',      Log),
-    ('/elite/chat',     Chat),
+    ('/signup',         MainPage),
+    ('/unsignup', 		Unsignup),
+    ('/info',     		Info),
+    ('/log',      		Log),
+    ('/chat',     		Chat),
 ], debug=True)
