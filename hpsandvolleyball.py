@@ -176,8 +176,9 @@ class Chat(webapp2.RequestHandler):
     """
     def post(self):
         user = users.get_current_user()
+		now = datetime.datetime.today()
         if user:
-            entry = ChatEntry(parent=chat_db_key(thisYear))
+            entry = ChatEntry(parent=chat_db_key(now.year))
             entry.identity = user.user_id()
             entry.email    = user.email()
             entry.name     = user.nickname()
@@ -191,8 +192,9 @@ class Signup(webapp2.RequestHandler):
     """
     def post(self):
         user = users.get_current_user()
+		now = datetime.datetime.today()
         if user:
-            entry = Entry(parent=db_key(thisYear))
+            entry = Entry(parent=db_key(now.year))
             entry.player = Player(identity=user.user_id(), email=user.email(), name=user.nickname())
             entry.comment = ""
             if self.request.get('action') == "Commit":
@@ -212,9 +214,7 @@ class Unsignup(webapp2.RequestHandler):
         if user:
             logging.info("in user section")
             now = datetime.datetime.today()
-            thisYear = now.year
-
-            qry = Entry.query(ancestor=db_key(thisYear))
+            qry = Entry.query(ancestor=db_key(now.year))
             entries = qry.fetch(100)
             for entry in entries:
                 if entry.player.identity == user.user_id(): 
@@ -233,20 +233,6 @@ class Info(webapp2.RequestHandler):
             'login': login_info 
         }
         template = JINJA_ENVIRONMENT.get_template('info.html')
-        self.response.write(template.render(template_values))
-
-class Store(webapp2.RequestHandler):
-    """
-    Renders Store page
-    """
-    def get(self):
-        login_info = get_login_info(self)
-        template_values = { 
-            'year': get_year_string(),
-            'page' : 'store', 
-            'login': login_info 
-        }
-        template = JINJA_ENVIRONMENT.get_template('store.html')
         self.response.write(template.render(template_values))
 
 class Log(webapp2.RequestHandler):
