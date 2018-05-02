@@ -131,7 +131,7 @@ class MainPage(webapp2.RequestHandler):
         entries_c = qry_c.fetch(100)
 
         # Get maybe entries list
-        qry_m = Entry.quesry(ancestor=db_key(thisYear))
+        qry_m = Entry.query(ancestor=db_key(thisYear))
         qry_m = qry_m.filter(Entry.committed == False)
         qry_m = qry_m.order(Entry.date)
         entries_m = qry_m.fetch(100)
