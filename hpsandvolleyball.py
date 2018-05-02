@@ -97,10 +97,10 @@ class ChatEntryLocal(object):
 
     def utc_to_local(self, utc_dt):
         # Becase GAE doesn't have dateutil
-        utc_offset = 6 # Through testing - not sure about DST
+        utc_offset = -6 # Through testing - not sure about DST
         hour = int(utc_dt.strftime("%H"))
         min  = int(utc_dt.strftime("%M"))
-        hour = (25 + hour - utc_offset) % 24 - 1
+        hour = ((25 + hour + utc_offset) % 24) - 1
         ampm = "PM" if (hour > 11) else "AM"
         if hour > 12:
             hour = hour - 12
@@ -122,16 +122,16 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
-        thisYear = datetime.datetime(now.year)
+        thisYear = now.year
 
         # Get committed entries list
-		qry_c = Entry.query(ancestor=db_key(thisYear))
+        qry_c = Entry.query(ancestor=db_key(thisYear))
         qry_c = qry_c.filter(Entry.committed == True)
         qry_c = qry_c.order(Entry.date)
         entries_c = qry_c.fetch(100)
 
         # Get maybe entries list
-		qry_m = Entry.quesry(ancestor=db_key(thisYear))
+        qry_m = Entry.quesry(ancestor=db_key(thisYear))
         qry_m = qry_m.filter(Entry.committed == False)
         qry_m = qry_m.order(Entry.date)
         entries_m = qry_m.fetch(100)
@@ -212,7 +212,7 @@ class Unsignup(webapp2.RequestHandler):
         if user:
             logging.info("in user section")
             now = datetime.datetime.today()
-            thisYear = datetime.datetime(now.year)
+            thisYear = now.year
 
             qry = Entry.query(ancestor=db_key(thisYear))
             entries = qry.fetch(100)
