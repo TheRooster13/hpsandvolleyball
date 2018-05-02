@@ -276,7 +276,7 @@ class Index(webapp2.RequestHandler):
         self.redirect('/signup')
 
 app = webapp2.WSGIApplication([
-    ('/signup',               Index),
+    ('/',               Index),
     ('/signup',         MainPage),
     ('/unsignup', 		Unsignup),
     ('/info',     		Info),
