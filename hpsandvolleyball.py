@@ -183,7 +183,7 @@ class Chat(webapp2.RequestHandler):
             entry.name     = user.nickname()
             entry.comment  = self.request.get('comment')
             entry.put()
-            self.redirect('/%s')
+            self.redirect('/')
 
 class Signup(webapp2.RequestHandler):
     """
@@ -201,7 +201,7 @@ class Signup(webapp2.RequestHandler):
             else:
                 entry.committed = False
             entry.put()
-            self.redirect('/%s')
+            self.redirect('/')
 
 class Unsignup(webapp2.RequestHandler):
     """
@@ -218,7 +218,7 @@ class Unsignup(webapp2.RequestHandler):
             for entry in entries:
                 if entry.player.identity == user.user_id(): 
                     entry.key.delete()
-        self.redirect('/%s')
+        self.redirect('/')
 
 class Info(webapp2.RequestHandler):
     """
