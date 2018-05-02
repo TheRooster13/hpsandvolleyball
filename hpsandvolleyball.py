@@ -259,10 +259,10 @@ class Index(webapp2.RequestHandler):
     Redirects to signup (default)
     """
     def get(self):
-        self.redirect('/signup')
+        #self.redirect('/signup')
 
 app = webapp2.WSGIApplication([
-    ('/',               Index),
+ #   ('/',               Index),
     ('/',           	MainPage),
 	('/signup',			Signup),
     ('/unsignup', 		Unsignup),
