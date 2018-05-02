@@ -122,22 +122,21 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
-        thisYear = now.year
 
         # Get committed entries list
-        qry_c = Entry.query(ancestor=db_key(thisYear))
+        qry_c = Entry.query(ancestor=db_key(now.year))
         qry_c = qry_c.filter(Entry.committed == True)
         qry_c = qry_c.order(Entry.date)
         entries_c = qry_c.fetch(100)
 
         # Get maybe entries list
-        qry_m = Entry.query(ancestor=db_key(thisYear))
+        qry_m = Entry.query(ancestor=db_key(now.year))
         qry_m = qry_m.filter(Entry.committed == False)
         qry_m = qry_m.order(Entry.date)
         entries_m = qry_m.fetch(100)
 
         # Get chat messages (posts) - convert timestamps too
-        qry_t = ChatEntry.query(ancestor=chat_db_key(thisYear))
+        qry_t = ChatEntry.query(ancestor=chat_db_key(now.year))
         qry_t = qry_t.order(ChatEntry.date)
         entries_t = qry_t.fetch(1000)
         entries_p = []
@@ -240,7 +239,8 @@ class Log(webapp2.RequestHandler):
     Renders Log page (hidden)
     """
     def get(self):
-        qry = Entry.query(ancestor=db_key(thisYear))
+        now = datetime.datetime.today()
+        qry = Entry.query(ancestor=db_key(now.year))
         qry = qry.order(-Entry.date)
         entries = qry.fetch()
 
