@@ -264,7 +264,7 @@ class Index(webapp2.RequestHandler):
 app = webapp2.WSGIApplication([
     ('/',               Index),
     ('/',           	MainPage),
-	('/signup',			Signup)
+	('/signup',			Signup),
     ('/unsignup', 		Unsignup),
     ('/info',     		Info),
     ('/log',      		Log),
