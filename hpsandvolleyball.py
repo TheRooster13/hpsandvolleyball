@@ -187,7 +187,7 @@ class Chat(webapp2.RequestHandler):
 
 class Signup(webapp2.RequestHandler):
     """
-    Manages adding a new player to the signup list for today.
+    Manages adding a new player to the signup list for this season.
     """
     def post(self):
         user = users.get_current_user()
@@ -206,7 +206,7 @@ class Signup(webapp2.RequestHandler):
 class Unsignup(webapp2.RequestHandler):
     """
     Manages removing the current logged in user from the signup
-    sheet (for today).
+    sheet (for this season).
     """
     def post(self):
         user = users.get_current_user()
@@ -263,7 +263,8 @@ class Index(webapp2.RequestHandler):
 
 app = webapp2.WSGIApplication([
     ('/',               Index),
-    ('/signup',         MainPage),
+    ('/',           	MainPage),
+	('/signup',			Signup)
     ('/unsignup', 		Unsignup),
     ('/info',     		Info),
     ('/log',      		Log),
