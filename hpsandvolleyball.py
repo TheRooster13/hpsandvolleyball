@@ -176,7 +176,7 @@ class Chat(webapp2.RequestHandler):
     """
     def post(self):
         user = users.get_current_user()
-		now = datetime.datetime.today()
+        now = datetime.datetime.today()
         if user:
             entry = ChatEntry(parent=chat_db_key(now.year))
             entry.identity = user.user_id()
@@ -192,7 +192,7 @@ class Signup(webapp2.RequestHandler):
     """
     def post(self):
         user = users.get_current_user()
-		now = datetime.datetime.today()
+        now = datetime.datetime.today()
         if user:
             entry = Entry(parent=db_key(now.year))
             entry.player = Player(identity=user.user_id(), email=user.email(), name=user.nickname())
