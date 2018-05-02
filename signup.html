@@ -9,23 +9,23 @@
 
   <div class="row">
 
-  <h2 class="page-header">{{ vball_type.title() }} <small>{{ date }}</small></h2>
+  <h2 class="page-header">HP Sand Volleyball <small>{{ date }}</small></h2>
 
   </div> <!-- row -->
 
   <div class="row">
 
   {% if is_signed_up %}
-  <form class="form-horizontal" action="{{ vball_type }}/unsignup" method="post">
+  <form class="form-horizontal" action="unsignup" method="post">
   {% else %}
-  <form class="form-horizontal" action="{{ vball_type }}/signup" method="post">
+  <form class="form-horizontal" action="signup" method="post">
   {% endif %}
   <div class="col-md-6">
 
     <!-- Committed -->
     <div class="panel panel-success">
       <div class="panel-heading">
-        Committed Players
+        Signed Up Players
         <span class="badge pull-right">{{ entries_c|length }}</span> 
       </div>
       <table class="table table-hover">
@@ -170,7 +170,7 @@
     <div class="col-md-2">
     </div>
     <div class="col-md-8">
-    <form class="form" action="{{ vball_type }}/chat" method="post">
+    <form class="form" action="chat" method="post">
       <div class="form-group">
         <div class="well">
           <textarea class="form-control" id="comment" name="comment" rows="2" placeholder="Snarky and/or informative comment..."></textarea>

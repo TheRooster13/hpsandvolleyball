@@ -1,6 +1,6 @@
 # HP Volleyball
 
-Simple pickup volleyball signup page (Google App Engine).
+Simple signup page for HP's Summer Sand Volleyball League (Google App Engine).
 
 #### Overview
 
