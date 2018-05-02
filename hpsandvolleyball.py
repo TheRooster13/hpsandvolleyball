@@ -125,7 +125,7 @@ class MainPage(webapp2.RequestHandler):
         thisYear = datetime.datetime(now.year)
 
         # Get committed entries list
-		qry_c = Entry.quesry(ancestor=db_key(thisYear))
+		qry_c = Entry.query(ancestor=db_key(thisYear))
         qry_c = qry_c.filter(Entry.committed == True)
         qry_c = qry_c.order(Entry.date)
         entries_c = qry_c.fetch(100)
