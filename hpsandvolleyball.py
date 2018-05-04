@@ -63,6 +63,7 @@ class Player(ndb.Model):
     identity = ndb.StringProperty(indexed=False)
     email    = ndb.StringProperty(indexed=False)
     name     = ndb.StringProperty(indexed=False)
+	phone    = ndb.StringProperty(indexed=False)
 
 class Entry(ndb.Model):
     """
