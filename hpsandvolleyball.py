@@ -145,7 +145,7 @@ class MainPage(webapp2.RequestHandler):
             'page': 'signup',
             'user': user,
             'entries_c': entries_c,
-           'is_signed_up': is_signed_up,
+            'is_signed_up': is_signed_up,
             'signed_up_entry': signed_up_entry,
             'login': login_info,
         }
