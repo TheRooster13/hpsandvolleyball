@@ -178,7 +178,7 @@ class Signup(webapp2.RequestHandler):
         now = datetime.datetime.today()
         if user:
             entry = Entry(parent=db_key(now.year))
-            entry.player = Player(identity=user.user_id(), email=user.email(), name=user.nickname())
+            entry.player = Player(identity=user.user_id(), email=self.request.get('email'), name=self.request.get(firstname') + ' ' + self.request.get('lastname'), phone=self.request.get('phonenumber') )
             entry.comment = ""
             if self.request.get('action') == "Commit":
                 entry.committed = True
