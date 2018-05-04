@@ -1,197 +1,60 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+</head><body>
 {% extends "base.html" %}
 {% block title %}Signups{% endblock %}
 {% block content %}
-
-<div class="col-md-2">
+<div class="col-md-2"></div>
+<div class="col-sm-12 col-md-8"><!-- center col -->
+<div class="row">
+<h2 class="page-header">HP Sand Volleyball <small>{{
+date }}</small></h2>
 </div>
-
-<div class="col-sm-12 col-md-8"> <!-- center col -->
-
-  <div class="row">
-
-  <h2 class="page-header">HP Sand Volleyball <small>{{ date }}</small></h2>
-
-  </div> <!-- row -->
-
-  <div class="row">
-
-  {% if is_signed_up %}
-  <form class="form-horizontal" action="unsignup" method="post">
-  {% else %}
-  <form class="form-horizontal" action="signup" method="post">
-  {% endif %}
-  <div class="col-md-6">
-
-    <!-- Committed -->
-    <div class="panel panel-success">
-      <div class="panel-heading">
-        Signed Up Players
-        <span class="badge pull-right">{{ entries_c|length }}</span> 
-      </div>
-      <table class="table table-hover">
-      {% if entries_c|length %}
-        {% for entry in entries_c %}
-          <tr>
-            <td class="text-center">{{ loop.index }}</td>
-            <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
-          </tr>
-        {% endfor %}
-      {% else %}
-          <tr>
-            <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
-          </tr>
-      {% endif %}
-      </table>
-      {% if login.logged_in %}
-      <div class="panel-footer">
-        <div class="btn-group btn-group-justified" role="group">
-          <div class="btn-group" role="group">
-            {% if is_signed_up %}
-              {% if signed_up_entry.committed %}
-                <button id="commit" name="action" type="submit" class="btn btn-danger" value="Commit">
-                  <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
-                </button>
-              {% else %}
-                <button id="commit" name="action" type="submit" class="btn btn-success disabled">
-                  <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
-                </button>
-              {% endif %}
-            {% else %}
-              <button id="commit" name="action" type="submit" class="btn btn-success" value="Commit">
-                <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
-              </button>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-
-  </div>
-  <div class="col-md-6">
-
-    <!-- Maybe -->
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        Maybe Players
-        <span class="badge pull-right">{{ entries_m|length }}</span> 
-      </div>
-      <table class="table table-hover">
-      {% if entries_m|length %}
-        {% for entry in entries_m %}
-          <tr>
-            <td class="text-center">{{ loop.index }}</td>
-            <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
-          </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
-        </tr>
-      {% endif %}
-      </table>
-      {% if login.logged_in %}
-      <div class="panel-footer">
-        <div class="btn-group btn-group-justified" role="group">
-          <div class="btn-group" role="group">
-            {% if is_signed_up %}
-              {% if not signed_up_entry.committed %}
-                <button id="maybe" name="action" type="submit" class="btn btn-danger" value="Maybe">
-                  <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
-                </button>
-              {% else %}
-                <button id="maybe" name="action" type="submit" class="btn btn-default disabled">
-                  <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
-                </button>
-              {% endif %}
-            {% else %}
-              <button id="maybe" name="action" type="submit" class="btn btn-default" value="Maybe">
-                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> Maybe
-              </button>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-
-  </div>
-  </form>
-  </div> <!-- row -->
-
-{% if not login.logged_in %}
-
-  <!-- Login Form -->
-  <div class="row">
-    <div class="col-md-2">
-    </div>
-    <div class="col-md-8">
-      <a role="button" class="btn btn-default btn-block" href="{{ login.url }}">Login to sign up</a> 
-    </div>
-    <div class="col-md-2">
-    </div>
-  </div> <!-- row -->
-
-{% endif %}
-
-  <div class="row">
-    <h3 class="page-header">Comments ({{ entries_p|length }})</h3>
-  </div> <!-- row -->
-
-  <div class="row">
-    <div class="col-md-2">
-    </div>
-    <div class="col-md-8">
-    {% for post in entries_p %}
-    <div class="panel panel-default container-fluid">
-      <div class="panel-heading row">
-        <div class="col-xs-7">
-          <span class="glyphicon glyphicon-user" aria-hidden="true"></span>
-          <a href="mailto:{{ post.email }}">{{post.name}}</a>
-        </div>
-        <div class="col-xs-5 text-right">
-          <span class="glyphicon glyphicon-time" aria-hidden="true"></span>
-          {{ post.date }}
-        </div>
-      </div>
-      <div class="panel-body">
-        {{ post.comment }}
-      </div>
-    </div>
-    {% endfor %}
-    </div>
-    <div class="col-md-2">
-    </div>
-  </div> <!-- row -->
-
+<!-- row -->
+<div class="row"> {% if is_signed_up %}
+<form class="form-horizontal" action="unsignup" method="post"> {% else %} {% endif %}
+<div class="col-md-6"><!-- Committed -->
+<div class="panel panel-success">
+<div class="panel-heading"> Signed Up Players <span class="badge pull-right">{{ entries_c|length }}</span>
+</div>
+{% if entries_c|length %} {% for entry in entries_c %} {% endfor %} {%
+else %} {% endif %}
+<table class="table table-hover">
+<tbody>
+<tr>
+<td class="text-center">{{ loop.index }}</td>
+<td><a href="mailto:%7B%7B%20entry.player.email%20%7D%7D">{{entry.player.name}}</a></td>
+</tr>
+<tr>
+<td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
+</tr>
+</tbody>
+</table>
 {% if login.logged_in %}
-
-  <div class="row">
-    <div class="col-md-2">
-    </div>
-    <div class="col-md-8">
-    <form class="form" action="chat" method="post">
-      <div class="form-group">
-        <div class="well">
-          <textarea class="form-control" id="comment" name="comment" rows="2" placeholder="Snarky and/or informative comment..."></textarea>
-        </div>
-        <div class="btn-group pull-right" role="group">
-         <button id="chat" name="chat" type="submit" class="btn btn-default">
-            <span class="glyphicon glyphicon-share" aria-hidden="true"></span> Post Comment
-         </button>
-        </div>
-      </div>
-    </form>
-    </div>
-    <div class="col-md-2">
-    </div>
-  </div> <!-- row -->
-
-{% endif %}
-
-</div> <!-- center col -->
-
-<div class="col-md-2">
+<div class="panel-footer">
+<div class="btn-group btn-group-justified" role="group">
+<div class="btn-group" role="group"> {% if
+is_signed_up %} {% if signed_up_entry.committed %} <button id="commit" name="action" type="submit" class="btn btn-danger" value="Commit"> <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+Unsignup </button> {% else %} <button id="commit" name="action" type="submit" class="btn btn-success disabled"> <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
+Commit </button> {% endif %} {% else %} <button id="commit" name="action" type="submit" class="btn btn-success" value="Commit"> <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit </button> {%
+endif %} </div>
 </div>
-
+</div>
+{% endif %} </div>
+</div>
+</form>
+</div>
+<!-- row -->{% if not login.logged_in %}<!-- Login Form -->
+<div class="row">
+<div class="col-md-2"> </div>
+<div class="col-md-8"> <a role="button" class="btn btn-default btn-block" href="%7B%7B%20login.url%20%7D%7D">Login to sign up</a>
+</div>
+<div class="col-md-2"> </div>
+</div>
+<!-- row -->{% endif %}
+<!-- row -->
+</div>
+<!-- center col -->
+<div class="col-md-2"></div>
 {% endblock %}
+</body></html>

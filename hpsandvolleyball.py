@@ -129,20 +129,6 @@ class MainPage(webapp2.RequestHandler):
         qry_c = qry_c.order(Entry.date)
         entries_c = qry_c.fetch(100)
 
-        # Get maybe entries list
-        qry_m = Entry.query(ancestor=db_key(now.year))
-        qry_m = qry_m.filter(Entry.committed == False)
-        qry_m = qry_m.order(Entry.date)
-        entries_m = qry_m.fetch(100)
-
-        # Get chat messages (posts) - convert timestamps too
-        qry_t = ChatEntry.query(ancestor=chat_db_key(now.year))
-        qry_t = qry_t.order(ChatEntry.date)
-        entries_t = qry_t.fetch(1000)
-        entries_p = []
-        for entry in entries_t:
-            entries_p.append(ChatEntryLocal(entry))
-
         # See if user is logged in and signed up
         login_info = get_login_info(self)
         user = users.get_current_user()
@@ -159,9 +145,7 @@ class MainPage(webapp2.RequestHandler):
             'page': 'signup',
             'user': user,
             'entries_c': entries_c,
-            'entries_m': entries_m,
-            'entries_p': entries_p,
-            'is_signed_up': is_signed_up,
+           'is_signed_up': is_signed_up,
             'signed_up_entry': signed_up_entry,
             'login': login_info,
         }
