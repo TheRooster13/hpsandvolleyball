@@ -135,7 +135,7 @@ class MainPage(webapp2.RequestHandler):
         is_signed_up = False
         signed_up_entry = None
         if user:
-            for entry in entries_c + entries_m:
+            for entry in entries_c:
                 if entry.player.identity == user.user_id():
                     is_signed_up = True
                     signed_up_entry = entry

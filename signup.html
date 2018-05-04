@@ -5,22 +5,22 @@
 <div class="col-md-2">
 </div>
 
-<div class="col-sm-12 col-md-8"> <!-- center col -->
+<div class="col-md-10"> <!-- center col -->
 
   <div class="row">
 
-  <h2 class="page-header">{{ vball_type.title() }} <small>{{ date }}</small></h2>
+  <h2 class="page-header">HP Sand Volleyball <small>{{ date }}</small></h2>
 
   </div> <!-- row -->
 
   <div class="row">
 
   {% if is_signed_up %}
-  <form class="form-horizontal" action="{{ vball_type }}/unsignup" method="post">
+  <form class="form-horizontal" action="unsignup" method="post">
   {% else %}
-  <form class="form-horizontal" action="{{ vball_type }}/signup" method="post">
+  <form class="form-horizontal" action="signup" method="post">
   {% endif %}
-  <div class="col-md-6">
+  <div class="col-md-8">
 
     <!-- Committed -->
     <div class="panel panel-success">
@@ -42,6 +42,28 @@
           </tr>
       {% endif %}
       </table>
+	  <div class="well">
+		<table class="table table-hover">
+		<tr>
+			<td>First Name<br>
+			<input type="text" class="form-control" id="firstname" name="firstname" placeholder="First Name"></input>
+			</td>
+			<td>Last Name<br>
+			<input type="text" class="form-control" id="lastname" name="lastname" placeholder="Last Name"></input>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2">Contact Email<br>
+			<input type="text" class="form-control" id="email" name="email" placeholder="Email Address"></input>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2">Phone Number (in case we need to notify you of a last minute change.)<br>
+			<input type="text" class="form-control" id="phonenumber" name="phonenumber" placeholder="Phone Number"></input>
+			</td>
+		</tr>
+		</table>
+      </div>
       {% if login.logged_in %}
       <div class="panel-footer">
         <div class="btn-group btn-group-justified" role="group">
@@ -80,31 +102,6 @@
     </div>
     <div class="col-md-8">
       <a role="button" class="btn btn-default btn-block" href="{{ login.url }}">Login to sign up</a> 
-    </div>
-    <div class="col-md-2">
-    </div>
-  </div> <!-- row -->
-
-{% endif %}
-
-{% if login.logged_in %}
-
-  <div class="row">
-    <div class="col-md-2">
-    </div>
-    <div class="col-md-8">
-    <form class="form" action="{{ vball_type }}/chat" method="post">
-      <div class="form-group">
-        <div class="well">
-          <textarea class="form-control" id="comment" name="comment" rows="2" placeholder="Snarky and/or informative comment..."></textarea>
-        </div>
-        <div class="btn-group pull-right" role="group">
-         <button id="chat" name="chat" type="submit" class="btn btn-default">
-            <span class="glyphicon glyphicon-share" aria-hidden="true"></span> Post Comment
-         </button>
-        </div>
-      </div>
-    </form>
     </div>
     <div class="col-md-2">
     </div>
