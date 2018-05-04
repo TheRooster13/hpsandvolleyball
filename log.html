@@ -18,14 +18,14 @@
       <tr>
         <th class="text-center">#</th>
         <th>Player</th>
-        <th>Comment</th>
+        <th>Phone</th>
         <th>Date</th>
       </tr>
       {% for entry in entries %}
         <tr>
           <td class="text-center">{{ loop.index }}</td>
           <td><a href="mailto:{{ entry.player.email }}">{{ entry.player.name }}</a></td>
-          <td>{{ entry.comment }}</td>
+          <td>{{ entry.player.phone }}</td>
           <td>{{ entry.date }}</td>
         </tr>
       {% endfor %}

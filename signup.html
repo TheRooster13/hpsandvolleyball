@@ -42,46 +42,41 @@
           </tr>
       {% endif %}
       </table>
-	  <div class="well">
-		<table class="table table-hover">
-		<tr>
-			<td>First Name<br>
-			<input type="text" class="form-control" id="firstname" name="firstname" placeholder="First Name"></input>
-			</td>
-			<td>Last Name<br>
-			<input type="text" class="form-control" id="lastname" name="lastname" placeholder="Last Name"></input>
-			</td>
-		</tr>
-		<tr>
-			<td colspan="2">Contact Email<br>
-			<input type="text" class="form-control" id="email" name="email" placeholder="Email Address"></input>
-			</td>
-		</tr>
-		<tr>
-			<td colspan="2">Phone Number (in case we need to notify you of a last minute change.)<br>
-			<input type="text" class="form-control" id="phonenumber" name="phonenumber" placeholder="Phone Number"></input>
-			</td>
-		</tr>
-		</table>
-      </div>
+
       {% if login.logged_in %}
       <div class="panel-footer">
         <div class="btn-group btn-group-justified" role="group">
           <div class="btn-group" role="group">
             {% if is_signed_up %}
-              {% if signed_up_entry.committed %}
                 <button id="commit" name="action" type="submit" class="btn btn-danger" value="Commit">
                   <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
                 </button>
-              {% else %}
-                <button id="commit" name="action" type="submit" class="btn btn-success disabled">
-                  <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
-                </button>
-              {% endif %}
             {% else %}
-              <button id="commit" name="action" type="submit" class="btn btn-success" value="Commit">
+			  <div class="well">
+				<table class="table table-hover">
+				<tr>
+					<td>First Name<br>
+					<input type="text" class="form-control" id="firstname" name="firstname" placeholder="First Name"></input>
+					</td>
+					<td>Last Name<br>
+					<input type="text" class="form-control" id="lastname" name="lastname" placeholder="Last Name"></input>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">Contact Email<br>
+					<input type="text" class="form-control" id="email" name="email" placeholder="Email Address"></input>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">Phone Number (in case we need to notify you of a last minute change.)<br>
+					<input type="text" class="form-control" id="phonenumber" name="phonenumber" placeholder="Phone Number"></input>
+					</td>
+				</tr>
+				</table>
+			  <button id="commit" name="action" type="submit" class="btn btn-success" value="Commit">
                 <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
               </button>
+			  </div>
             {% endif %}
           </div>
         </div>
