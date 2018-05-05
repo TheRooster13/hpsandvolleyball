@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}FTO{% endblock %}
+{% block content %}
+
+<div class="col-md-2">
+</div>
+
+<div class="col-md-8"> <!-- center col -->
+
+  <div class="row">
+
+  <h2 class="page-header">HP Sand Volleyball {{ year }}</h2>
+
+  </div> <!-- row -->
+
+  <div class="row">
+
+  <form class="form-horizontal" action="fto" method="post">
+  <div class="col-sm-12">
+
+    <!-- Committed -->
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <H4>{{ player.name }}'s FTO Schedule</H4>
+      </div>
+      <table class="table table-striped table-condensed">
+        <tr>
+            <td></td>
+            <th><div style="vertical-align:middle; text-align:center">Mon @ 12</div></thd>
+            <th><div style="vertical-align:middle; text-align:center">Tue @ 12</div></th>
+            <th><div style="vertical-align:middle; text-align:center">Wed @ 12</div></th>
+            <th><div style="vertical-align:middle; text-align:center">Thu @ 12</div></th>
+            <th><div style="vertical-align:middle; text-align:center">Fri @ 12</div></th>
+        </tr>
+        {% for week in weeks %}
+        <tr>
+            <th>Week {{ loop.index }} <small>({{ week }})</small></th>
+            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-1"{% if fto_week[loop.index-1][0] %} checked{% endif %}></div></td>
+            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-2"{% if fto_week[loop.index-1][1] %} checked{% endif %}></div></td>
+            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-3"{% if fto_week[loop.index-1][2] %} checked{% endif %}></div></td>
+            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-4"{% if fto_week[loop.index-1][3] %} checked{% endif %}></div></td>
+            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-5"{% if fto_week[loop.index-1][4] %} checked{% endif %}></div></td>
+        </tr>
+        {% endfor %}
+      </table>
+      <button id="save" name="action" type="submit" class="btn btn-success btn-block" value="Save">
+            <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Save
+      </button>
+    </div>
+  </div>
+
+  </form>
+  </div> <!-- row -->
+
+
+
+</div> <!-- center col -->
+
+<div class="col-md-2">
+</div>
+
+{% endblock %}
