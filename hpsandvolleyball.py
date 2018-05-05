@@ -64,7 +64,23 @@ class Player(ndb.Model):
     email    = ndb.StringProperty(indexed=False)
     name     = ndb.StringProperty(indexed=False)
     phone    = ndb.StringProperty(indexed=False)
+    
 
+
+class Fto(ndb.Model):
+    """
+    A model for storing conflicting days per player.
+    """
+    user_id       = ndb.StringProperty(indexed=True)
+    week     = ndb.IntegerProperty(indexed=False)
+    slot     = ndb.IntegerProperty(indexed=False)
+ 
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(self, other.__class__):
+            return (self.user_id == other.user_id and self.week == other.week and self.slot == other.slot)
+        return NotImplemented
+   
 class Entry(ndb.Model):
     """
     A main model for representing an individual player entry.
@@ -229,8 +245,8 @@ class Log(webapp2.RequestHandler):
     """
     def get(self):
         now = datetime.datetime.today()
-        qry = Entry.query(ancestor=db_key(now.year))
-        qry = qry.order(-Entry.date)
+        qry = Fto.query(ancestor=db_key(now.year))
+#        qry = qry.order(-Entry.date)
         entries = qry.fetch()
 
         login_info = get_login_info(self)
@@ -242,6 +258,116 @@ class Log(webapp2.RequestHandler):
         }
         template = JINJA_ENVIRONMENT.get_template('log.html')
         self.response.write(template.render(template_values))
+      
+numWeeks = 12
+      
+class FTO(webapp2.RequestHandler):
+    """
+    Renders Schedule page
+    """
+    def post(self):
+        now = datetime.datetime.today()
+        year = now.year
+        
+        login_info = get_login_info(self)
+        user = users.get_current_user()
+
+        qry_f = Fto.query(ancestor=db_key(now.year))
+        qry_f = qry_f.filter(Fto.user_id == user.user_id())
+        fto_data = qry_f.fetch(100)
+        
+        # Add new slot entries
+        for week in range(numWeeks):
+            for slot in range(5):
+                checkbox_name = str(week+1)+"-"+str(slot+1)
+                if self.request.get(checkbox_name):
+                    fto = Fto(parent=db_key(year))
+                    fto.user_id = user.user_id()
+                    fto.week = int(week+1)
+                    fto.slot = int(slot+1)
+                    
+                    matchFound = False
+                    for fto_entry in fto_data:
+                        if fto_entry == fto:
+                            matchFound = True
+                    if matchFound == False:
+                        fto.put()
+        # delete removed slot entries
+        for fto_entry in fto_data:
+            checkbox_name = str(fto_entry.week)+"-"+str(fto_entry.slot)
+            if self.request.get(checkbox_name):
+                pass
+            else:
+                fto_entry.key.delete()
+            
+        self.redirect("fto")
+    def get(self):
+        # Filter for this year only
+        now = datetime.datetime.today()
+        year = now.year
+        
+        # Get committed entries list
+        qry_c = Entry.query(ancestor=db_key(now.year))
+        qry_c = qry_c.filter(Entry.committed == True)
+        qry_c = qry_c.order(Entry.date)
+        entries_c = qry_c.fetch(100)
+
+        # See if user is logged in and signed up
+        login_info = get_login_info(self)
+        user = users.get_current_user()
+        is_signed_up = False
+        signed_up_entry = None
+        player = None
+        if user:
+            for entry in entries_c:
+                if entry.player.identity == user.user_id():
+                    player = entry.player
+                    is_signed_up = True
+                    signed_up_entry = entry
+
+        if is_signed_up == False:
+            self.redirect('/')
+        
+        # Fill an array with the weeks of the season
+        startdate = datetime.date(year, 5, 21)
+        weeks = list()
+        for x in range(numWeeks):
+            date1 = startdate + datetime.timedelta(days=(7*x))
+            date2 = startdate + datetime.timedelta(days=(4+7*x))
+            weeks.append(date1.strftime("%b %d") + " - " + date2.strftime("%b %d"))
+
+        # build a 2D array for the weeks and slots (all False)
+        fto_week = list()
+        fto_slot = list()
+        for w in range(numWeeks):
+            for s in range(5):
+                fto_slot.append(False)
+            fto_week.append(list(fto_slot))
+            
+        # Get FTO data
+        qry_f = Fto.query(ancestor=db_key(now.year))
+        qry_f = qry_f.filter(Fto.user_id == user.user_id())
+        fto_data = qry_f.fetch(100)
+        
+        # for each set of FTO data, change the array item to True
+        for entry in fto_data:
+            fto_week[(entry.week-1)][(entry.slot-1)] = True
+#            self.response.out.write("Week: "+str(entry.week)+" Slot: "+str(entry.slot)+" = "+str(fto_week[(entry.week-1)][(entry.slot-1)]))
+        
+        template_values = {
+            'year': get_year_string(),
+            'page': 'fto',
+            'user': user,
+            'player': player,
+            'is_signed_up': is_signed_up,
+            'signed_up_entry': signed_up_entry,
+            'login': login_info,
+            'weeks': weeks,
+            'fto_week': fto_week,
+        }
+
+        template = JINJA_ENVIRONMENT.get_template('fto.html')
+        self.response.write(template.render(template_values))
 
 app = webapp2.WSGIApplication([
     ('/',           	MainPage),
@@ -249,5 +375,5 @@ app = webapp2.WSGIApplication([
     ('/unsignup', 		Unsignup),
     ('/info',     		Info),
     ('/log',      		Log),
-    ('/chat',     		Chat),
+    ('/fto',     	    FTO),
 ], debug=True)

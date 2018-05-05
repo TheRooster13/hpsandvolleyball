@@ -69,7 +69,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="/">HP Sand Volleyball</a>
+          <a class="navbar-brand" href="/">HP Sand Volleyball {{ year }}</a>
         </div>
     
         <!-- Collect the nav links, forms, and other content for toggling -->
@@ -79,6 +79,11 @@
             <li class="active"><a href="#">Signup<span class="sr-only">(current)</span></a></li> 
             {% else %}
             <li><a href="/">Signup</a></li>
+            {% endif %}
+            {% if page == "fto" %}
+            <li class="active"><a href="#">FTO Schedule<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/fto">FTO Schedule</a></li>
             {% endif %}
             {% if page == "info" %}
             <li class="active"><a href="#">Info<span class="sr-only">(current)</span></a></li> 

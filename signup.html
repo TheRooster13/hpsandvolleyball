@@ -5,11 +5,11 @@
 <div class="col-md-2">
 </div>
 
-<div class="col-md-10"> <!-- center col -->
+<div class="col-md-8"> <!-- center col -->
 
   <div class="row">
 
-  <h2 class="page-header">HP Sand Volleyball <small>{{ date }}</small></h2>
+  <h2 class="page-header">HP Sand Volleyball {{ year }}</h2>
 
   </div> <!-- row -->
 
@@ -20,7 +20,7 @@
   {% else %}
   <form class="form-horizontal" action="signup" method="post">
   {% endif %}
-  <div class="col-md-8 col-sm-12">
+  <div class="col-sm-12">
 
     <!-- Committed -->
     <div class="panel panel-success">
@@ -32,8 +32,9 @@
       {% if entries_c|length %}
         {% for entry in entries_c %}
           <tr>
-            <td class="text-center">{{ loop.index }}</td>
+            <td>{{ loop.index }}</td>
             <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
+            <td>{% if user %}{% if entry.player.identity == user.user_id() %}{{ entry.player.phone }}{% endif %}{% endif %}</td>
           </tr>
         {% endfor %}
       {% else %}
@@ -44,16 +45,20 @@
       </table>
     </div>
 
-    {% if login.logged_in %}
+
     <div class="panel panel-default">
     	<div class="panel-heading">
     		Player Signup Form
     	</div>
     	<div class="panel-body">
-	    	{% if is_signed_up %}
+
+
+			{% if login.logged_in %}
+			{% if is_signed_up %}
+            <p>If you need to modify your player information (e.g. name, email or phone number), decommit and then recommit.</p>
+			<p>You can only decommit if you have not yet been added to the schedule. Once you have been added, and you want to quit, you must set your personal schedule to absent for the remaining weeks.</p>
 	        <button id="commit" name="action" type="submit" class="btn btn-danger btn-block" value="Commit">
-	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Unsignup
-	        </button>
+	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Decommit</button>
 	    	{% else %}
 			<H3 class="text-danger">This activity presents the risk of injury. This exculpatory release confirms that the participant who commits below accepts all aspects of that risk.</H2>
 			<div>
@@ -88,29 +93,17 @@
 				<span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
 			</button>
 	        {% endif %}
+			{% else %}
+			<a role="button" class="btn btn-default btn-block" href="{{ login.url }}">Login to sign up</a>
+			{% endif %}
      	</div>
     </div>
-	{% endif %}
-
   </div>
 
   </form>
   </div> <!-- row -->
 
-{% if not login.logged_in %}
 
-  <!-- Login Form -->
-  <div class="row">
-    <div class="col-md-2">
-    </div>
-    <div class="col-md-8">
-      <a role="button" class="btn btn-default btn-block" href="{{ login.url }}">Login to sign up</a> 
-    </div>
-    <div class="col-md-2">
-    </div>
-  </div> <!-- row -->
-
-{% endif %}
 
 </div> <!-- center col -->
 
