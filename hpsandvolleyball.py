@@ -324,7 +324,9 @@ class FTO(webapp2.RequestHandler):
                     player = entry.player
                     is_signed_up = True
                     signed_up_entry = entry
-
+        else:
+            self.redirect('/')
+            
         if is_signed_up == False:
             self.redirect('/')
         
@@ -345,14 +347,15 @@ class FTO(webapp2.RequestHandler):
             fto_week.append(list(fto_slot))
             
         # Get FTO data
-        qry_f = Fto.query(ancestor=db_key(now.year))
-        qry_f = qry_f.filter(Fto.user_id == user.user_id())
-        fto_data = qry_f.fetch(100)
+        if user:
+            qry_f = Fto.query(ancestor=db_key(now.year))
+            qry_f = qry_f.filter(Fto.user_id == user.user_id())
+            fto_data = qry_f.fetch(100)
         
-        # for each set of FTO data, change the array item to True
-        for entry in fto_data:
-            fto_week[(entry.week-1)][(entry.slot-1)] = True
-#            self.response.out.write("Week: "+str(entry.week)+" Slot: "+str(entry.slot)+" = "+str(fto_week[(entry.week-1)][(entry.slot-1)]))
+            # for each set of FTO data, change the array item to True
+            for entry in fto_data:
+                fto_week[(entry.week-1)][(entry.slot-1)] = True
+#                self.response.out.write("Week: "+str(entry.week)+" Slot: "+str(entry.slot)+" = "+str(fto_week[(entry.week-1)][(entry.slot-1)]))
         
         template_values = {
             'year': get_year_string(),
