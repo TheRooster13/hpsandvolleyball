@@ -71,9 +71,9 @@ class Fto(ndb.Model):
     """
     A model for storing conflicting days per player.
     """
-    user_id       = ndb.StringProperty(indexed=True)
-    week     = ndb.IntegerProperty(indexed=False)
-    slot     = ndb.IntegerProperty(indexed=False)
+    user_id     = ndb.StringProperty(indexed=True)
+    week        = ndb.IntegerProperty(indexed=True)
+    slot        = ndb.IntegerProperty(indexed=True)
  
     def __eq__(self, other):
         """Overrides the default implementation"""
