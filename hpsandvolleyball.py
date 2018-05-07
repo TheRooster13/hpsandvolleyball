@@ -11,6 +11,10 @@ from google.appengine.ext import ndb
 import jinja2
 import webapp2
 
+# Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
+numWeeks = 14
+
+
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
     extensions=['jinja2.ext.autoescape'],
@@ -108,27 +112,20 @@ class MainPage(webapp2.RequestHandler):
         # Filter for this year only
         now = datetime.datetime.today()
 
-        # Get committed entries list
-        qry_c = Entry.query(ancestor=db_key(now.year))
-        qry_c = qry_c.filter(Entry.committed == True)
-        qry_c = qry_c.order(Entry.date)
-        entries_c = qry_c.fetch(100)
-
         # See if user is logged in and signed up
         login_info = get_login_info(self)
         user = users.get_current_user()
         player = get_player(self)
         template_values = {
             'year': get_year_string(),
-            'page': 'signup',
+            'page': 'mainpage',
             'user': user,
-            'entries_c': entries_c,
             'is_signed_up': player is not None,
             'player': player,
             'login': login_info,
         }
 
-        template = JINJA_ENVIRONMENT.get_template('signup.html')
+        template = JINJA_ENVIRONMENT.get_template('mainpage.html')
         self.response.write(template.render(template_values))
 
 class Signup(webapp2.RequestHandler):
@@ -236,8 +233,6 @@ class Ftolog(webapp2.RequestHandler):
         }
         template = JINJA_ENVIRONMENT.get_template('ftolog.html')
         self.response.write(template.render(template_values))
-      
-numWeeks = 12
       
 class FTO(webapp2.RequestHandler):
     """
