@@ -10,39 +10,22 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-- kind: ChatEntry
-  ancestor: yes
-  properties:
-  - name: date
-
 - kind: Entry
   ancestor: yes
   properties:
   - name: committed
   - name: date
 
-- kind: Entry
+- kind: Fto
   ancestor: yes
   properties:
-  - name: committed
-  - name: date
-    direction: desc
+  - name: name
+  - name: week
+  - name: slot
 
-- kind: Entry
+- kind: Fto
   ancestor: yes
   properties:
-  - name: date
-
-- kind: Entry
-  ancestor: yes
-  properties:
-  - name: date
-    direction: desc
-
-- kind: Entry
-  ancestor: yes
-  properties:
-  - name: date
-    direction: desc
-  - name: committed
-    direction: desc
+  - name: user_id
+  - name: week
+  - name: slot

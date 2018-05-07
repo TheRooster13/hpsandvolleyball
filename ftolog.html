@@ -16,15 +16,13 @@
     </div>
     <table class="table table-hover">
       <tr>
-        <th class="text-center">#</th>
-        <th>ID</th>
+        <th>Name</th>
         <th>Week</th>
         <th>Slot</th>
       </tr>
       {% for entry in entries %}
         <tr>
-          <td class="text-center">{{ loop.index }}</td>
-          <td>{{ entry.id }}</a></td>
+          <td>{{ entry.name }}</a></td>
           <td>{{ entry.week }}</td>
           <td>{{ entry.slot }}</td>
         </tr>

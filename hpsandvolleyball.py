@@ -51,22 +51,30 @@ def get_year_string():
     now = datetime.datetime.utcnow()
     return now.strftime("%Y")
 
-def get_vball_type(h):
-    comps = h.request.path.split("/")
-    logging.info("comps: %s" % comps)
-    return comps[1]
+def get_player(x):
+    # Get committed entries list
+    now = datetime.datetime.today()
+    login_info = get_login_info(x)
+    user = users.get_current_user()
+    result = Entry()
+    if user:
+        qry = Entry.query(ancestor=db_key(now.year))
+        qry = qry.filter(Entry.player.identity == user.user_id())
+        result = qry.get()
+    if result:
+        return result.player
+    else:
+        return None
 
 class Player(ndb.Model):
     """
     Sub model for representing a player.
     """
-    identity = ndb.StringProperty(indexed=False)
+    identity = ndb.StringProperty(indexed=True)
     email    = ndb.StringProperty(indexed=False)
     name     = ndb.StringProperty(indexed=False)
     phone    = ndb.StringProperty(indexed=False)
     
-
-
 class Fto(ndb.Model):
     """
     A model for storing conflicting days per player.
@@ -74,6 +82,7 @@ class Fto(ndb.Model):
     user_id     = ndb.StringProperty(indexed=True)
     week        = ndb.IntegerProperty(indexed=True)
     slot        = ndb.IntegerProperty(indexed=True)
+    name        = ndb.StringProperty(indexed=True)
  
     def __eq__(self, other):
         """Overrides the default implementation"""
@@ -90,48 +99,7 @@ class Entry(ndb.Model):
     committed = ndb.BooleanProperty(indexed=True)
     date      = ndb.DateTimeProperty(auto_now_add=True)
 
-class ChatEntry(ndb.Model):
-    """
-    Model for representing an chat comment.
-    """
-    identity = ndb.StringProperty(indexed=False)
-    email    = ndb.StringProperty(indexed=False)
-    name     = ndb.StringProperty(indexed=False)
-    comment  = ndb.StringProperty(indexed=False)
-    date     = ndb.DateTimeProperty(auto_now_add=True)
-
-class ChatEntryLocal(object):
-    """
-    To covert datetime to local timezone
-    """
-
-    def __init__(self, entry):
-        self.identity = entry.identity
-        self.email    = entry.email
-        self.name     = entry.name
-        self.comment  = entry.comment
-        self.date     = self.utc_to_local(entry.date)
-
-    def utc_to_local(self, utc_dt):
-        # Becase GAE doesn't have dateutil
-        utc_offset = -6 # Through testing - not sure about DST
-        hour = int(utc_dt.strftime("%H"))
-        min  = int(utc_dt.strftime("%M"))
-        hour = ((25 + hour + utc_offset) % 24) - 1
-        ampm = "PM" if (hour > 11) else "AM"
-        if hour > 12:
-            hour = hour - 12
-        return "%d:%02d %s" % (hour, min, ampm)
-        
-        ## Define zones
-        #utc_zone = dateutil.tz.gettz('UTC')
-        #mtn_zone = dateutil.tz.gettz('America/Boise')
-        ## Tell the datetime object that it's in UTC time zone since 
-        ## datetime objects are 'naive' by default
-        #utc_dt = utc_dt.replace(tzinfo=utc_zone)
-        ## Convert time zone to mountain
-        #return utc_dt.astimezone(mtn_zone)
-
+    
 class MainPage(webapp2.RequestHandler):
     """
     Reads the database and creates the data for rendering the signup list
@@ -149,42 +117,19 @@ class MainPage(webapp2.RequestHandler):
         # See if user is logged in and signed up
         login_info = get_login_info(self)
         user = users.get_current_user()
-        is_signed_up = False
-        signed_up_entry = None
-        if user:
-            for entry in entries_c:
-                if entry.player.identity == user.user_id():
-                    is_signed_up = True
-                    signed_up_entry = entry
-
+        player = get_player(self)
         template_values = {
             'year': get_year_string(),
             'page': 'signup',
             'user': user,
             'entries_c': entries_c,
-            'is_signed_up': is_signed_up,
-            'signed_up_entry': signed_up_entry,
+            'is_signed_up': player is not None,
+            'player': player,
             'login': login_info,
         }
 
         template = JINJA_ENVIRONMENT.get_template('signup.html')
         self.response.write(template.render(template_values))
-
-class Chat(webapp2.RequestHandler):
-    """
-    Manages adding a chat message.
-    """
-    def post(self):
-        user = users.get_current_user()
-        now = datetime.datetime.today()
-        if user:
-            entry = ChatEntry(parent=chat_db_key(now.year))
-            entry.identity = user.user_id()
-            entry.email    = user.email()
-            entry.name     = user.nickname()
-            entry.comment  = self.request.get('comment')
-            entry.put()
-            self.redirect('/')
 
 class Signup(webapp2.RequestHandler):
     """
@@ -234,19 +179,25 @@ class Info(webapp2.RequestHandler):
         template_values = { 
             'year': get_year_string(),
             'page' : 'info', 
-            'login': login_info 
+            'login': login_info,
+            'is_signed_up': get_player(self) is not None,
         }
         template = JINJA_ENVIRONMENT.get_template('info.html')
         self.response.write(template.render(template_values))
 
-class Log(webapp2.RequestHandler):
+class Ftolog(webapp2.RequestHandler):
     """
     Renders Log page (hidden)
     """
     def get(self):
         now = datetime.datetime.today()
+        player = get_player(self)
+        if player:
+            pass
+        else:
+            self.redirect('/')
         qry = Fto.query(ancestor=db_key(now.year))
-#        qry = qry.order(-Entry.date)
+        qry = qry.order(Fto.name).order(Fto.week, Fto.slot)
         entries = qry.fetch()
 
         login_info = get_login_info(self)
@@ -255,8 +206,9 @@ class Log(webapp2.RequestHandler):
             'page': 'log', 
             'login': login_info, 
             'entries': entries,
+            'is_signed_up': player is not None,
         }
-        template = JINJA_ENVIRONMENT.get_template('log.html')
+        template = JINJA_ENVIRONMENT.get_template('ftolog.html')
         self.response.write(template.render(template_values))
       
 numWeeks = 12
@@ -272,6 +224,10 @@ class FTO(webapp2.RequestHandler):
         login_info = get_login_info(self)
         user = users.get_current_user()
 
+        qry_p = Entry.query(ancestor=db_key(now.year))
+        qry_p = qry_p.filter(Entry.player.identity == user.user_id())
+        entry = qry_p.get()
+        
         qry_f = Fto.query(ancestor=db_key(now.year))
         qry_f = qry_f.filter(Fto.user_id == user.user_id())
         fto_data = qry_f.fetch(100)
@@ -283,6 +239,7 @@ class FTO(webapp2.RequestHandler):
                 if self.request.get(checkbox_name):
                     fto = Fto(parent=db_key(year))
                     fto.user_id = user.user_id()
+                    fto.name = entry.player.name
                     fto.week = int(week+1)
                     fto.slot = int(slot+1)
                     
@@ -315,19 +272,8 @@ class FTO(webapp2.RequestHandler):
         # See if user is logged in and signed up
         login_info = get_login_info(self)
         user = users.get_current_user()
-        is_signed_up = False
-        signed_up_entry = None
-        player = None
-        if user:
-            for entry in entries_c:
-                if entry.player.identity == user.user_id():
-                    player = entry.player
-                    is_signed_up = True
-                    signed_up_entry = entry
-        else:
-            self.redirect('/')
-            
-        if is_signed_up == False:
+        player = get_player(self)
+        if player is None:
             self.redirect('/')
         
         # Fill an array with the weeks of the season
@@ -362,8 +308,7 @@ class FTO(webapp2.RequestHandler):
             'page': 'fto',
             'user': user,
             'player': player,
-            'is_signed_up': is_signed_up,
-            'signed_up_entry': signed_up_entry,
+            'is_signed_up': player is not None,
             'login': login_info,
             'weeks': weeks,
             'fto_week': fto_week,
@@ -377,6 +322,6 @@ app = webapp2.WSGIApplication([
 	('/signup',			Signup),
     ('/unsignup', 		Unsignup),
     ('/info',     		Info),
-    ('/log',      		Log),
+    ('/ftolog',      	Ftolog),
     ('/fto',     	    FTO),
 ], debug=True)
