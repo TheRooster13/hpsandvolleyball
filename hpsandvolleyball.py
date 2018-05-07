@@ -153,10 +153,9 @@ class Signup(webapp2.RequestHandler):
             entry.put()
             self.redirect('signup')
 	
-	def get(self):
-        # Filter for this year only
+    def get(self):
         now = datetime.datetime.today()
-
+        
         # Get committed entries list
         qry_c = Entry.query(ancestor=db_key(now.year))
         qry_c = qry_c.filter(Entry.committed == True)
@@ -285,6 +284,7 @@ class FTO(webapp2.RequestHandler):
                 fto_entry.key.delete()
             
         self.redirect("fto")
+    
     def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
