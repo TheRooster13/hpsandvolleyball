@@ -11,6 +11,10 @@ handlers:
 - url: /bootstrap
   static_dir: bootstrap
 
+- url: /tasks/.*
+  script: hpsandvolleyball.app
+  login: admin
+  
 - url: /.*
   script: hpsandvolleyball.app
 # [END handlers]

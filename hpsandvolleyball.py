@@ -103,6 +103,37 @@ class Entry(ndb.Model):
     committed = ndb.BooleanProperty(indexed=True)
     date      = ndb.DateTimeProperty(auto_now_add=True)
 
+	
+class Schedule(ndb.Model):
+	"""
+	A model for tracking the weekly and daily schedule
+	"""
+	id			= ndb.StringProperty(indexed=True)
+	name		= ndb.StringProperty(indexed=True)
+	week		= ndb.IntegerProperty(indexed=True)
+	slot		= ndb.IntegerProperty(Indexed=True)
+	tier		= ndb.IntegerProperty(Indexed=True)
+	position	= ndb.IntegerProperty(Indexed=True)
+	
+class Player_List(ndb.Model):
+	"""
+	A model for tracking the ordered list for scheduling
+	"""
+	id				= ndb.StringProperty(indexed=False)
+	name			= ndb.StringProperty(indexed=False)
+	schedule_rank	= ndb.IntegerProperty(indexed=True)
+	elo_score		= ndb.IntegerProperty(indexed=True)
+
+class Scores(ndb.Model):
+	"""
+	A model for tracking game scores
+	"""
+	week			= ndb.IntegerProperty(indexed=True)
+	slot			= ndb.IntegerProperty(indexed=True)
+	game			= ndb.IntegerProperty(indexed=True)
+	team1_score		= ndb.IntegerProperty(indexed=False)
+	team2_score		= ndb.IntegerProperty(indexed=False)
+	
     
 class MainPage(webapp2.RequestHandler):
     """
@@ -339,11 +370,17 @@ class FTO(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('fto.html')
         self.response.write(template.render(template_values))
 
+class Schedule(webapp2.RequestHandler):
+	def get(self):
+		pass
+		
+		
 app = webapp2.WSGIApplication([
-    ('/',           	MainPage),
-	('/signup',			Signup),
-    ('/unsignup', 		Unsignup),
-    ('/info',     		Info),
-    ('/ftolog',      	Ftolog),
-    ('/fto',     	    FTO),
+    ('/',           		MainPage),
+	('/signup',				Signup),
+    ('/unsignup', 			Unsignup),
+    ('/info',     			Info),
+    ('/ftolog',      		Ftolog),
+    ('/fto',     	    	FTO),
+	('/tasks/schedule',		Schedule),
 ], debug=True)
