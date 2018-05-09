@@ -169,6 +169,8 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
+        
+        set_holidays(self)
 
         # See if user is logged in and signed up
         login_info = get_login_info(self)
