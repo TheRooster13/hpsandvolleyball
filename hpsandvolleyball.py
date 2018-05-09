@@ -72,30 +72,30 @@ def get_player(x):
 
 def set_holidays(x):
 	# Check and set holidays to unavailable
-	now = datetime.datetime.today()
+    now = datetime.datetime.today()
     year = now.year
-	login_info = get_login_info(x)
-	user = users.get_current_user()
-	qry_f = Fto.query(ancestor=db_key(year))
-	qry_f = qry_f.filter(Fto.user_id == user.user_id())
-	fto_data = qry_f.fetch(100)
-	player = get_player(x)
-	if player:
-		holidays = ((2,1),(3,4),(7,3))
-		
-		for week_slot in holidays:
-			fto = Fto(parent=db_key(year))
-			fto.user_id = user.user_id()
-			fto.name = player.name
-			fto.week = week_slot[0]
-			fto.slot = week_slot[1]
-							
-			matchFound = False
-			for fto_entry in fto_data:
-				if fto_entry == fto:
-					matchFound = True
-			if matchFound == False:
-				fto.put()
+    login_info = get_login_info(x)
+    user = users.get_current_user()
+    qry_f = Fto.query(ancestor=db_key(year))
+    qry_f = qry_f.filter(Fto.user_id == user.user_id())
+    fto_data = qry_f.fetch(100)
+    player = get_player(x)
+    if player:
+        holidays = ((2,1),(3,4),(7,3))
+
+        for week_slot in holidays:
+            fto = Fto(parent=db_key(year))
+            fto.user_id = user.user_id()
+            fto.name = player.name
+            fto.week = week_slot[0]
+            fto.slot = week_slot[1]
+                            
+            matchFound = False
+            for fto_entry in fto_data:
+                if fto_entry == fto:
+                    matchFound = True
+            if matchFound == False:
+                fto.put()
 		
 class Player(ndb.Model):
     """
@@ -132,34 +132,34 @@ class Entry(ndb.Model):
 
 	
 class Schedule(ndb.Model):
-	"""
-	A model for tracking the weekly and daily schedule
-	"""
-	id			= ndb.StringProperty(indexed=True)
-	name		= ndb.StringProperty(indexed=True)
-	week		= ndb.IntegerProperty(indexed=True)
-	slot		= ndb.IntegerProperty(indexed=True)
-	tier		= ndb.IntegerProperty(indexed=True)
-	position	= ndb.IntegerProperty(indexed=True)
+    """
+    A model for tracking the weekly and daily schedule
+    """
+    id			= ndb.StringProperty(indexed=True)
+    name		= ndb.StringProperty(indexed=True)
+    week		= ndb.IntegerProperty(indexed=True)
+    slot		= ndb.IntegerProperty(indexed=True)
+    tier		= ndb.IntegerProperty(indexed=True)
+    position	= ndb.IntegerProperty(indexed=True)
 	
 class Player_List(ndb.Model):
-	"""
-	A model for tracking the ordered list for scheduling
-	"""
-	id				= ndb.StringProperty(indexed=False)
-	name			= ndb.StringProperty(indexed=False)
-	schedule_rank	= ndb.IntegerProperty(indexed=True)
-	elo_score		= ndb.IntegerProperty(indexed=True)
+    """
+    A model for tracking the ordered list for scheduling
+    """
+    id				= ndb.StringProperty(indexed=False)
+    name			= ndb.StringProperty(indexed=False)
+    schedule_rank	= ndb.IntegerProperty(indexed=True)
+    elo_score		= ndb.IntegerProperty(indexed=True)
 
 class Scores(ndb.Model):
-	"""
-	A model for tracking game scores
-	"""
-	week			= ndb.IntegerProperty(indexed=True)
-	slot			= ndb.IntegerProperty(indexed=True)
-	game			= ndb.IntegerProperty(indexed=True)
-	team1_score		= ndb.IntegerProperty(indexed=False)
-	team2_score		= ndb.IntegerProperty(indexed=False)
+    """
+    A model for tracking game scores
+    """
+    week			= ndb.IntegerProperty(indexed=True)
+    slot			= ndb.IntegerProperty(indexed=True)
+    game			= ndb.IntegerProperty(indexed=True)
+    team1_score		= ndb.IntegerProperty(indexed=False)
+    team2_score		= ndb.IntegerProperty(indexed=False)
 	
     
 class MainPage(webapp2.RequestHandler):
