@@ -13,7 +13,7 @@ import webapp2
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
-
+startdate = datetime.date(year, 5, 21)
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
@@ -70,6 +70,32 @@ def get_player(x):
     else:
         return None
 
+def set_holidays(x):
+	# Check and set holidays to unavailable
+	now = datetime.datetime.today()
+    login_info = get_login_info(x)
+    user = users.get_current_user()
+	qry_f = Fto.query(ancestor=db_key(now.year))
+	qry_f = qry_f.filter(Fto.user_id == user.user_id())
+	fto_data = qry_f.fetch(100)
+	player = get_player(x)
+	if player:
+		holidays = ((2,1),(3,4),(7,3))
+		
+		for week_slot in holidays:
+			fto = Fto(parent=db_key(year))
+			fto.user_id = user.user_id()
+			fto.name = player.name
+			fto.week = week_slot[0]
+			fto.slot = week_slot[1]
+							
+			matchFound = False
+			for fto_entry in fto_data:
+				if fto_entry == fto:
+					matchFound = True
+			if matchFound == False:
+				fto.put()
+		
 class Player(ndb.Model):
     """
     Sub model for representing a player.
@@ -328,9 +354,10 @@ class FTO(webapp2.RequestHandler):
         player = get_player(self)
         if player is None:
             self.redirect('/')
+			
+		set_holiday(self)
         
         # Fill an array with the weeks of the season
-        startdate = datetime.date(year, 5, 21)
         weeks = list()
         for x in range(numWeeks):
             date1 = startdate + datetime.timedelta(days=(7*x))
@@ -372,7 +399,10 @@ class FTO(webapp2.RequestHandler):
 
 class Schedule(webapp2.RequestHandler):
 	def get(self):
-		pass
+        # Filter for this year only
+        now = datetime.datetime.today()
+        year = now.year		
+		
 		
 		
 app = webapp2.WSGIApplication([
