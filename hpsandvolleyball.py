@@ -398,7 +398,7 @@ class FTO(webapp2.RequestHandler):
         self.response.write(template.render(template_values))
 
 class Schedule(webapp2.RequestHandler):
-	def get(self):
+    def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
         year = now.year		
