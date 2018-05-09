@@ -354,9 +354,9 @@ class FTO(webapp2.RequestHandler):
         player = get_player(self)
         if player is None:
             self.redirect('/')
-			
-		set_holiday(self)
-        
+		
+		set_holidays(self)
+
         # Fill an array with the weeks of the season
         weeks = list()
         for x in range(numWeeks):
