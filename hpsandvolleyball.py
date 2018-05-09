@@ -77,11 +77,11 @@ def set_holidays(x):
     year = now.year
     login_info = get_login_info(x)
     user = users.get_current_user()
-    qry_f = Fto.query(ancestor=db_key(year))
-    qry_f = qry_f.filter(Fto.user_id == user.user_id())
-    fto_data = qry_f.fetch(100)
     player = get_player(x)
-    if player:
+    if player is not None:
+        qry_f = Fto.query(ancestor=db_key(year))
+        qry_f = qry_f.filter(Fto.user_id == user.user_id())
+        fto_data = qry_f.fetch(100)
         for week_slot in holidays:
             fto = Fto(parent=db_key(year))
             fto.user_id = user.user_id()
