@@ -73,9 +73,10 @@ def get_player(x):
 def set_holidays(x):
 	# Check and set holidays to unavailable
 	now = datetime.datetime.today()
+    year = now.year
 	login_info = get_login_info(x)
 	user = users.get_current_user()
-	qry_f = Fto.query(ancestor=db_key(now.year))
+	qry_f = Fto.query(ancestor=db_key(year))
 	qry_f = qry_f.filter(Fto.user_id == user.user_id())
 	fto_data = qry_f.fetch(100)
 	player = get_player(x)
