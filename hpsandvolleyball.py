@@ -137,9 +137,9 @@ class Schedule(ndb.Model):
 	id			= ndb.StringProperty(indexed=True)
 	name		= ndb.StringProperty(indexed=True)
 	week		= ndb.IntegerProperty(indexed=True)
-	slot		= ndb.IntegerProperty(Indexed=True)
-	tier		= ndb.IntegerProperty(Indexed=True)
-	position	= ndb.IntegerProperty(Indexed=True)
+	slot		= ndb.IntegerProperty(indexed=True)
+	tier		= ndb.IntegerProperty(indexed=True)
+	position	= ndb.IntegerProperty(indexed=True)
 	
 class Player_List(ndb.Model):
 	"""
