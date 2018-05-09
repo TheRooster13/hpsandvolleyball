@@ -14,6 +14,7 @@ import webapp2
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
 startdate = datetime.date(2018, 5, 21)
+holidays = ((2,1),(3,4),(7,3)) #Memorial Day, BYITW Day, Independance Day
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
@@ -81,8 +82,6 @@ def set_holidays(x):
     fto_data = qry_f.fetch(100)
     player = get_player(x)
     if player:
-        holidays = ((2,1),(3,4),(7,3)) #Memorial Day, BYITW Day, Independance Day
-
         for week_slot in holidays:
             fto = Fto(parent=db_key(year))
             fto.user_id = user.user_id()
