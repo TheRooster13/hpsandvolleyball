@@ -13,7 +13,7 @@ import webapp2
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
-startdate = datetime.date(year, 5, 21)
+startdate = datetime.date(2018, 5, 21)
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
