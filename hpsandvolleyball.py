@@ -81,7 +81,7 @@ def set_holidays(x):
     fto_data = qry_f.fetch(100)
     player = get_player(x)
     if player:
-        holidays = ((2,1),(3,4),(7,3))
+        holidays = ((2,1),(3,4),(7,3)) #Memorial Day, BYITW Day, Independance Day
 
         for week_slot in holidays:
             fto = Fto(parent=db_key(year))
