@@ -280,7 +280,7 @@ class Ftolog(webapp2.RequestHandler):
             self.redirect('/')
         qry = Fto.query(ancestor=db_key(now.year))
         qry = qry.order(Fto.name).order(Fto.week, Fto.slot)
-        entries = qry.fetch()
+        entries = qry.fetch(200)
 
         login_info = get_login_info(self)
         template_values = {
@@ -403,7 +403,7 @@ class Schedule(webapp2.RequestHandler):
     def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
-        year = now.year		
+        year = now.year	
 		
 		
 		
