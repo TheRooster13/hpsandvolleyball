@@ -78,7 +78,7 @@ def set_holidays(x):
     login_info = get_login_info(x)
     user = users.get_current_user()
     player = get_player(x)
-    if player is not None:
+    if player:
         qry_f = Fto.query(ancestor=db_key(year))
         qry_f = qry_f.filter(Fto.user_id == user.user_id())
         fto_data = qry_f.fetch(100)
