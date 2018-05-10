@@ -442,10 +442,8 @@ class Admin(webapp2.RequestHandler):
         template_values = {
             'year': get_year_string(),
             'page': 'admin',
-            'user': user,
             'player_list': player_list,
-            'is_signed_up': player is not None,
-            'login': login_info,
+            'is_signed_up': True,
         }
 
         template = JINJA_ENVIRONMENT.get_template('signup.html')
