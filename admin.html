@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Signups{% endblock %}
+{% block content %}
+
+<div class="col-md-2">
+</div>
+
+<div class="col-md-8"> <!-- center col -->
+
+  <div class="row">
+
+  <h2 class="page-header">HP Sand Volleyball {{ year }}</h2>
+
+  </div> <!-- row -->
+
+  <div class="row">
+
+
+  <form class="form-horizontal" action="admin" method="post">
+  <div class="col-sm-12">
+
+    <!-- Committed -->
+    <div class="panel panel-success">
+      <div class="panel-heading">
+        Players
+        <span class="badge pull-right">{{ player_list|length }}</span> 
+      </div>
+      <table class="table table-hover">
+      {% if player_list|length %}
+        {% for player in player_list %}
+          <tr>
+            <td>{{loop.index}}</td>
+            <td>
+                <label class="control-label col-sm-2" for="name-{{player.id}}">Name:</label>
+				<div class="col-sm-10">
+                <input type="text" class="form-control" id="name{{player.id}}" name="name{{player.id}}">{{player.name}}</input>
+            </td>
+            <td>
+                <label class="control-label col-sm-2" for="email{{player.id}}">Email:</label>
+				<div class="col-sm-10">
+                <input type="text" class="form-control" id="email{{player.id}}" name="email{{player.id}}">{{player.email}}</input>
+            </td>
+            <td>
+                <label class="control-label col-sm-2" for="phone{{player.id}}">Phone:</label>
+				<div class="col-sm-10">
+                <input type="text" class="form-control" id="phone{{player.id}}" name="phone{{player.id}}">{{player.phone}}</input>
+            </td>
+            <td>
+                <label class="control-label col-sm-2" for="rank{{player.id}}">Schedule Rank:</label>
+				<div class="col-sm-10">
+                <input type="text" class="form-control" id="rank{{player.id}}" name="rank{{player.id}}">{{player.schedule_rank}}</input>
+            </td>
+            <td>
+                <label class="control-label col-sm-2" for="score{{player.id}}">Elo Score:</label>
+				<div class="col-sm-10">
+                <input type="text" class="form-control" id="score{{player.id}}" name="score{{player.id}}">{{player.elo_score}}</input>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+          <tr>
+            <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
+          </tr>
+      {% endif %}
+      </table>
+    	<div class="panel-body">
+			<button id="submit" name="action" type="submit" class="btn btn-success btn-block" value="Submit">
+				<span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Submit Changes
+			</button>
+     	</div>
+    </div>
+  </div>
+
+  </form>
+  </div> <!-- row -->
+
+
+
+</div> <!-- center col -->
+
+<div class="col-md-2">
+</div>
+
+{% endblock %}

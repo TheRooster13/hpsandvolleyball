@@ -145,8 +145,10 @@ class Player_List(ndb.Model):
     """
     A model for tracking the ordered list for scheduling
     """
-    id				= ndb.StringProperty(indexed=False)
-    name			= ndb.StringProperty(indexed=False)
+    id				= ndb.StringProperty(indexed=True)
+    email           = ndb.StringProperty(indexed=False)
+    name			= ndb.StringProperty(indexed=True)
+    phone           = ndb.StringProperty(indexed=False)
     schedule_rank	= ndb.IntegerProperty(indexed=True)
     elo_score		= ndb.IntegerProperty(indexed=True)
 
@@ -399,6 +401,76 @@ class FTO(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('fto.html')
         self.response.write(template.render(template_values))
 
+class Admin(webapp2.RequestHandler):
+    def get(self):
+        # Filter for this year only
+        now = datetime.datetime.today()
+        year = now.year	
+		
+        # Get old player list
+        qry_c = Entry.query(ancestor=db_key(now.year))
+        qry_c = qry_c.filter(Entry.committed == True)
+        qry_c = qry_c.order(Entry.date)
+        entries_c = qry_c.fetch(100)
+
+        # Get player list
+        qry_p = Player_List.query(ancestor=db_key(now.year))
+        qry_p = qry_p.order(Player_List.schedule_rank)
+        player_list = qry_p.fetch(100)        
+
+        for entry in entries_c:
+            newPlayer = Player_List(parent=db_key(year))
+            newPlayer.id = entry.player.identity
+            newPlayer.name = entry.player.name
+            newPlayer.email = entry.player.email
+            newPlayer.phone = entry.player.phone
+            newPlayer.schedule_rank = 0
+            newPlayer.elo_score = 1000
+            
+            matchFound = False
+                for player in player_list:
+                    if player.id == newPlayer.id:
+                        matchFound = True
+                if matchFound == False:
+                    newPlayer.put()
+        
+        # Get player list
+        qry_p = Player_List.query(ancestor=db_key(now.year))
+        qry_p = qry_p.order(Player_List.schedule_rank)
+        player_list = qry_p.fetch(100)   
+        
+        template_values = {
+            'year': get_year_string(),
+            'page': 'admin',
+            'user': user,
+            'player_list': player_list,
+            'is_signed_up': player is not None,
+            'login': login_info,
+        }
+
+        template = JINJA_ENVIRONMENT.get_template('signup.html')
+        self.response.write(template.render(template_values))
+
+    def post(self):
+        user = users.get_current_user()
+        now = datetime.datetime.today()
+        
+        # Get player list
+        qry_p = Player_List.query(ancestor=db_key(now.year))
+        qry_p = qry_p.order(Player_List.schedule_rank)
+        player_list = qry_p.fetch(100)         
+        
+        for player in player_list:
+            player.name = self.request.get('name-'+player.id)
+            player.email = self.request.get('email-'+player.id)
+            player.phone = self.request.get('phone-'+player.id)
+            player.rank = self.request.get('rank-'+player.id)
+            player.score = self.request.get('score-'+player.id)
+
+            if self.request.get('action') == "Submit":
+                entry.put()
+        self.redirect('admin')        
+        
 class Schedule(webapp2.RequestHandler):
     def get(self):
         # Filter for this year only
