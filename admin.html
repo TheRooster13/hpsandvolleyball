@@ -27,13 +27,15 @@
       </div>
       <table class="table table-hover">
       {% if player_list|length %}
-        {% for player in player_list %}
           <tr>
             <th>Name</th>
             <th>Email</th>
             <th>Phone</th>
             <th>Rank</th>
             <th>Score</th>
+          </tr>
+          {% for player in player_list %}
+          <tr>
             <td>{{loop.index}}</td>
             <td>
                 <input type="text" class="form-control" id="name{{player.id}}" name="name{{player.id}}" value="{{player.name}}"></input>
