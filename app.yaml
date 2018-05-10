@@ -18,6 +18,10 @@ handlers:
 - url: /admin
   script: hpsandvolleyball.app
   login: admin
+
+- url: /ftolog
+  script: hpsandvolleyball.app
+  login: admin
   
 - url: /.*
   script: hpsandvolleyball.app
