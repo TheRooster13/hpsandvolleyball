@@ -28,19 +28,18 @@
         Players
         <span class="badge pull-right">{{ player_list|length }}</span> 
       </div>
-      <table class="table table-hover">
+      <div class="table-hover">
       {% if player_list|length %}
         {% for player in player_list %}
-          {% if loop.index % 2 == 1 %}
-          <tr>{% endif %}
-            <td>{{ loop.index }}</td>
-            <td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>
-            <td>{% if user %}{% if player.id == user.user_id() %}Phone #: {{ player.phone }}{% endif %}{% endif %}</td>
-          {% if loop.index % 2 == 0 %}
-          </tr>{% endif %}
+          {% if loop.index == 1 %}
+          <div class="panel col-sm-6">{% endif %}
+          {% if loop.index == (player_list|length)/2 and player_list|length != 1 %}
+          </div>
+          <div class="panel col-sm-6">{% endif %}
+            <div class="panel-body col-sm-2">{{ loop.index }}</div>
+            <div class="panel-body col-sm-10" data-toggle="tooltip" title="Phone# {{player.phone}}"><a href="mailto:{{ player.email }}">{{player.name}}</a></div>
         {% endfor %}
-        {% if loop.index % 2 == 1 %}
-          </tr>{% endif %}
+          </div>
       {% else %}
           <tr>
             <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
