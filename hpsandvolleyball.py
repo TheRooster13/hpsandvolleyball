@@ -409,7 +409,7 @@ class Admin(webapp2.RequestHandler):
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(now.year))
         qry_p = qry_p.order(Player_List.schedule_rank)
-#        player_list = qry_p.fetch(100)         
+        player_list = qry_p.fetch(100)         
         
         for player in player_list:
             player.name = self.request.get('name-'+player.id)
