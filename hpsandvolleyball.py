@@ -423,35 +423,35 @@ class Admin(webapp2.RequestHandler):
         year = now.year
         login_info = get_login_info(self)
 
-""" Copy old list to the new list
+# Copy old list to the new list
         # Get old player list
-        qry_e = Entry.query(ancestor=db_key(now.year))
-        qry_e = qry_e.filter(Entry.committed == True)
-        qry_e = qry_e.order(Entry.date)
-        entries_e = qry_e.fetch()
+#        qry_e = Entry.query(ancestor=db_key(now.year))
+#        qry_e = qry_e.filter(Entry.committed == True)
+#        qry_e = qry_e.order(Entry.date)
+#        entries_e = qry_e.fetch()
 
         # Get player list
-        qry_p = Player_List.query(ancestor=db_key(now.year))
-        qry_p = qry_p.order(Player_List.schedule_rank)
-        player_list = qry_p.fetch()
+#        qry_p = Player_List.query(ancestor=db_key(now.year))
+#        qry_p = qry_p.order(Player_List.schedule_rank)
+#        player_list = qry_p.fetch()
 
-        for entry in entries_e:
-            newPlayer = Player_List(parent=db_key(year))
-            newPlayer.id = entry.player.identity
-            newPlayer.name = entry.player.name
-            newPlayer.email = entry.player.email
-            newPlayer.phone = entry.player.phone
-            newPlayer.schedule_rank = 0
-            newPlayer.elo_score = 1000
+#        for entry in entries_e:
+#            newPlayer = Player_List(parent=db_key(year))
+#            newPlayer.id = entry.player.identity
+#            newPlayer.name = entry.player.name
+#            newPlayer.email = entry.player.email
+#            newPlayer.phone = entry.player.phone
+#            newPlayer.schedule_rank = 0
+#            newPlayer.elo_score = 1000
             
-            matchFound = False
-            if player_list:
-                for player in player_list:
-                    if player.id == newPlayer.id:
-                        matchFound = True
-            if matchFound == False:
-                newPlayer.put()
-"""
+#            matchFound = False
+#            if player_list:
+#                for player in player_list:
+#                    if player.id == newPlayer.id:
+#                        matchFound = True
+#            if matchFound == False:
+#                newPlayer.put()
+
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(now.year))
         qry_p = qry_p.order(Player_List.schedule_rank)
