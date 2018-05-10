@@ -14,6 +14,10 @@ handlers:
 - url: /tasks/.*
   script: hpsandvolleyball.app
   login: admin
+
+- url: /admin
+  script: hpsandvolleyball.app
+  login: admin
   
 - url: /.*
   script: hpsandvolleyball.app
