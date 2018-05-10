@@ -446,7 +446,7 @@ class Admin(webapp2.RequestHandler):
             'is_signed_up': True,
         }
 
-        template = JINJA_ENVIRONMENT.get_template('signup.html')
+        template = JINJA_ENVIRONMENT.get_template('admin.html')
         self.response.write(template.render(template_values))
 
     def post(self):
