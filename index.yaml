@@ -33,4 +33,9 @@ indexes:
 - kind: Player_List
   ancestor: yes
   properties:
+  - name: name
+
+- kind: Player_List
+  ancestor: yes
+  properties:
   - name: schedule_rank
