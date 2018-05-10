@@ -486,5 +486,6 @@ app = webapp2.WSGIApplication([
     ('/info',     			Info),
     ('/ftolog',      		Ftolog),
     ('/fto',     	    	FTO),
+    ('/admin',              Admin),
 	('/tasks/schedule',		Schedule),
 ], debug=True)
