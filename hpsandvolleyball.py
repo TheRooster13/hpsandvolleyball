@@ -468,7 +468,7 @@ class Admin(webapp2.RequestHandler):
             player.score = self.request.get('score-'+player.id)
 
             if self.request.get('action') == "Submit":
-                entry.put()
+                player.put()
         self.redirect('admin')        
         
 class Schedule(webapp2.RequestHandler):
