@@ -68,7 +68,7 @@ def get_player(x):
         qry = qry.filter(Player_List.id == user.user_id())
         result = qry.get()
     if result:
-        return result.player
+        return result
     else:
         return None
 
