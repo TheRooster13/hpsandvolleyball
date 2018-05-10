@@ -437,7 +437,7 @@ class Admin(webapp2.RequestHandler):
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(now.year))
         qry_p = qry_p.order(Player_List.schedule_rank)
-#        player_list = qry_p.fetch(100)        
+#        player_list = qry_p.fetch(100)
 
         for entry in entries_e:
             newPlayer = Player_List(parent=db_key(year))
@@ -449,10 +449,10 @@ class Admin(webapp2.RequestHandler):
             newPlayer.elo_score = 1000
             
             matchFound = False
-            if player_list:
-                for player in player_list:
-                    if player.id == newPlayer.id:
-                        matchFound = True
+#            if player_list:
+#                for player in player_list:
+#                    if player.id == newPlayer.id:
+#                        matchFound = True
             if matchFound == False:
                 newPlayer.put()
     
