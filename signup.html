@@ -32,7 +32,7 @@
       {% if player_list|length %}
         {% for player in player_list %}
           {% if loop.index == 1 %}
-          <div class="panel col-sm-6">{% elif loop.index == ceil((player_list|length)/2) %}
+          <div class="panel col-sm-6">{% elif loop.index == half %}
           </div>
           <div class="panel col-sm-6">{% endif %}
             <div class="panel-body col-sm-2">{{ loop.index }}</div>

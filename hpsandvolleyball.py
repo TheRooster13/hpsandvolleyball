@@ -223,6 +223,7 @@ class Signup(webapp2.RequestHandler):
         qry_p = Player_List.query(ancestor=db_key(now.year))
         qry_p = qry_p.order(Player_List.name)
         player_list = qry_p.fetch(100)
+        half = ceil(player_list.len()/2)
 
         # See if user is logged in and signed up
         login_info = get_login_info(self)
@@ -235,6 +236,7 @@ class Signup(webapp2.RequestHandler):
             'player_list': player_list,
             'is_signed_up': player is not None,
             'player': player,
+            'half': half,
             'login': login_info,
         }
 
