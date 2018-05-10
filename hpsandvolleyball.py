@@ -429,9 +429,10 @@ class Admin(webapp2.RequestHandler):
             newPlayer.elo_score = 1000
             
             matchFound = False
-            for player in player_list:
-                if player.id == newPlayer.id:
-                    matchFound = True
+            if player_list:
+                for player in player_list:
+                    if player.id == newPlayer.id:
+                        matchFound = True
             if matchFound == False:
                 newPlayer.put()
     
