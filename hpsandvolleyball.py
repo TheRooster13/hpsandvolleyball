@@ -197,13 +197,15 @@ class Signup(webapp2.RequestHandler):
     def post(self):
         user = users.get_current_user()
         now = datetime.datetime.today()
+        # get the number of currently signed up players
+        
         if user:
             player = Player_List(parent=db_key(now.year))
             player.id = user.user_id()
             player.name = self.request.get('name')
             player.email = self.request.get('email')
             player.phone = str(self.request.get('phonenumber')).translate(None, string.punctuation)
-            player.schedule_rank = 99
+            player.schedule_rank = int(self.request.get('count'))
             player.elo_score = 1000
             if player.name == "":
                 player.name = user.nickname()

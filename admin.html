@@ -48,7 +48,7 @@
                 <input type="text" class="form-control" id="phone-{{player.id}}" name="phone-{{player.id}}" value="{{player.phone}}"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="rank-{{player.id}}" name="rank-{{player.id}}" value="{{player.schedule_rank}}"></input>
+                <input type="text" class="form-control" id="rank-{{player.id}}" name="rank-{{player.id}}" value="{{loop.index}}"></input>
             </td>
             <td>
                 <input type="text" class="form-control" id="score-{{player.id}}" name="score-{{player.id}}" value="{{player.elo_score}}"></input>

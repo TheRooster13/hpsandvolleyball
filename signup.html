@@ -90,6 +90,7 @@
 				<input type="tel" class="form-control" id="phonenumber" name="phonenumber" placeholder="In case we need to notify you of a last-minute change."></input>
 				</div>
 			</div>
+            <input type="hidden" name="count" value="{{player_list|length+1}}"></input>
 			<button id="commit" name="action" type="submit" class="btn btn-success btn-block" value="Commit">
 				<span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
 			</button>
