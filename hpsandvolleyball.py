@@ -246,11 +246,11 @@ class Unsignup(webapp2.RequestHandler):
         if user:
             logging.info("in user section")
             now = datetime.datetime.today()
-            qry = Entry.query(ancestor=db_key(now.year))
-            entries = qry.fetch(100)
-            for entry in entries:
-                if entry.player.identity == user.user_id(): 
-                    entry.key.delete()
+            qry = Player_List.query(ancestor=db_key(now.year))
+            player_list = qry.fetch(100)
+            for player in player_list:
+                if player.id == user.user_id(): 
+                    player.key.delete()
         self.redirect('signup')
 
 class Info(webapp2.RequestHandler):
