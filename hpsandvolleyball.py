@@ -402,6 +402,26 @@ class FTO(webapp2.RequestHandler):
         self.response.write(template.render(template_values))
 
 class Admin(webapp2.RequestHandler):
+    def post(self):
+        user = users.get_current_user()
+        now = datetime.datetime.today()
+        
+        # Get player list
+        qry_p = Player_List.query(ancestor=db_key(now.year))
+        qry_p = qry_p.order(Player_List.schedule_rank)
+        player_list = qry_p.fetch(100)         
+        
+        for player in player_list:
+            player.name = self.request.get('name-'+player.id)
+            player.email = self.request.get('email-'+player.id)
+            player.phone = self.request.get('phone-'+player.id)
+            player.schedule_rank = int(self.request.get('rank-'+player.id))
+            player.elo_score = int(self.request.get('score-'+player.id))
+
+            if self.request.get('action') == "Submit":
+                player.put()
+        self.redirect('admin')   
+
     def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
@@ -409,10 +429,10 @@ class Admin(webapp2.RequestHandler):
         login_info = get_login_info(self)
 		
         # Get old player list
-        qry_c = Entry.query(ancestor=db_key(now.year))
-        qry_c = qry_c.filter(Entry.committed == True)
-        qry_c = qry_c.order(Entry.date)
-        entries_c = qry_c.fetch(100)
+        qry_e = Entry.query(ancestor=db_key(now.year))
+        qry_e = qry_e.filter(Entry.committed == True)
+        qry_e = qry_e.order(Entry.date)
+        entries_e = qry_e.fetch(100)
 
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(now.year))
@@ -451,26 +471,6 @@ class Admin(webapp2.RequestHandler):
 
         template = JINJA_ENVIRONMENT.get_template('admin.html')
         self.response.write(template.render(template_values))
-
-    def post(self):
-        user = users.get_current_user()
-        now = datetime.datetime.today()
-        
-        # Get player list
-        qry_p = Player_List.query(ancestor=db_key(now.year))
-        qry_p = qry_p.order(Player_List.schedule_rank)
-        player_list = qry_p.fetch(100)         
-        
-        for player in player_list:
-            player.name = self.request.get('name-'+player.id)
-            player.email = self.request.get('email-'+player.id)
-            player.phone = self.request.get('phone-'+player.id)
-            player.schedule_rank = int(self.request.get('rank-'+player.id))
-            player.elo_score = int(self.request.get('score-'+player.id))
-
-            if self.request.get('action') == "Submit":
-                player.put()
-        self.redirect('admin')        
         
 class Schedule(webapp2.RequestHandler):
     def get(self):
