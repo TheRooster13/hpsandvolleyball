@@ -409,7 +409,7 @@ class Admin(webapp2.RequestHandler):
         for player in player_list:
             player.name = self.request.get('name-'+player.id)
             player.email = self.request.get('email-'+player.id)
-            player.phone = str(self.request.get('phone-'+player.id)).translate(None, string.punctuation)
+            player.phone = str(self.request.get('phone-'+player.id)).translate(None, string.punctuation).translate(None, string.whitespace)
             player.schedule_rank = int(self.request.get('rank-'+player.id))
             player.elo_score = int(self.request.get('score-'+player.id))
 
@@ -423,6 +423,7 @@ class Admin(webapp2.RequestHandler):
         year = now.year
         login_info = get_login_info(self)
 		
+""" Copy old list to the new list
         # Get old player list
         qry_e = Entry.query(ancestor=db_key(now.year))
         qry_e = qry_e.filter(Entry.committed == True)
@@ -450,8 +451,11 @@ class Admin(webapp2.RequestHandler):
                         matchFound = True
             if matchFound == False:
                 newPlayer.put()
+"""
     
         # Get player list
+        qry_p = Player_List.query(ancestor=db_key(now.year))
+        qry_p = qry_p.order(Player_List.schedule_rank)
         player_list = qry_p.fetch()   
         
         template_values = {
