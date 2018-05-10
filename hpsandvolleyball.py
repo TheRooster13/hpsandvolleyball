@@ -405,7 +405,8 @@ class Admin(webapp2.RequestHandler):
     def get(self):
         # Filter for this year only
         now = datetime.datetime.today()
-        year = now.year	
+        year = now.year
+        login_info = get_login_info(self)
 		
         # Get old player list
         qry_c = Entry.query(ancestor=db_key(now.year))
@@ -444,6 +445,7 @@ class Admin(webapp2.RequestHandler):
             'page': 'admin',
             'player_list': player_list,
             'is_signed_up': True,
+            'login': login_info,
         }
 
         template = JINJA_ENVIRONMENT.get_template('admin.html')
