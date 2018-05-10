@@ -37,7 +37,7 @@
           <div class="panel col-sm-6">
           {% endif %}
             <div class="panel-body col-sm-2">{{ loop.index }}</div>
-            <div class="panel-body col-sm-10"{% if user %}{% if player.id == user.user_id() %} data-toggle="tooltip" title="Phone# {{player.phone}}"{% endif %}{% endif %><a href="mailto:{{ player.email }}">{{player.name}}</a></div>
+            <div class="panel-body col-sm-10"{% if user %}{% if player.id == user.user_id() %} data-toggle="tooltip" title="Phone# {{player.phone}}"{% endif %}{% endif %}><a href="mailto:{{ player.email }}">{{player.name}}</a></div>
         {% endfor %}
           </div>
       {% else %}
