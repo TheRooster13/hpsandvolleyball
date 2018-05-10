@@ -62,10 +62,10 @@ def get_player(x):
     now = datetime.datetime.today()
     login_info = get_login_info(x)
     user = users.get_current_user()
-    result = Entry()
+    result = Player_List()
     if user:
-        qry = Entry.query(ancestor=db_key(now.year))
-        qry = qry.filter(Entry.player.identity == user.user_id())
+        qry = Player_List.query(ancestor=db_key(now.year))
+        qry = qry.filter(Player_List.id == user.user_id())
         result = qry.get()
     if result:
         return result.player
@@ -305,9 +305,7 @@ class FTO(webapp2.RequestHandler):
         login_info = get_login_info(self)
         user = users.get_current_user()
 
-        qry_p = Entry.query(ancestor=db_key(now.year))
-        qry_p = qry_p.filter(Entry.player.identity == user.user_id())
-        entry = qry_p.get()
+        player = get_player(self)
         
         qry_f = Fto.query(ancestor=db_key(now.year))
         qry_f = qry_f.filter(Fto.user_id == user.user_id())
@@ -320,7 +318,7 @@ class FTO(webapp2.RequestHandler):
                 if self.request.get(checkbox_name):
                     fto = Fto(parent=db_key(year))
                     fto.user_id = user.user_id()
-                    fto.name = entry.player.name
+                    fto.name = player.name
                     fto.week = int(week+1)
                     fto.slot = int(slot+1)
                     
@@ -345,12 +343,6 @@ class FTO(webapp2.RequestHandler):
         now = datetime.datetime.today()
         year = now.year
         
-        # Get committed entries list
-        qry_c = Entry.query(ancestor=db_key(now.year))
-        qry_c = qry_c.filter(Entry.committed == True)
-        qry_c = qry_c.order(Entry.date)
-        entries_c = qry_c.fetch(100)
-
         # See if user is logged in and signed up
         login_info = get_login_info(self)
         user = users.get_current_user()
