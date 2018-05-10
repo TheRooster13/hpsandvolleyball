@@ -439,7 +439,7 @@ class Admin(webapp2.RequestHandler):
         qry_p = qry_p.order(Player_List.schedule_rank)
 #        player_list = qry_p.fetch(100)        
 
-        for entry in entries_c:
+        for entry in entries_e:
             newPlayer = Player_List(parent=db_key(year))
             newPlayer.id = entry.player.identity
             newPlayer.name = entry.player.name
