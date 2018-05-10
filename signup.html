@@ -32,7 +32,7 @@
       {% if player_list|length %}
         {% for player in player_list %}
           {% if loop.index == 1 %}
-          <div class="panel col-sm-6">{% elif loop.index == (player_list|length)/2 %}
+          <div class="panel col-sm-6">{% elif loop.index == ceil((player_list|length)/2) %}
           </div>
           <div class="panel col-sm-6">{% endif %}
             <div class="panel-body col-sm-2">{{ loop.index }}</div>
@@ -40,11 +40,9 @@
         {% endfor %}
           </div>
       {% else %}
-          <tr>
-            <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
-          </tr>
+            <div class="text-center col-sm-8"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></div>
       {% endif %}
-      </table>
+      </div>
     </div>
 
 
