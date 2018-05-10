@@ -2,6 +2,7 @@ import os
 import urllib
 import datetime
 import logging
+import string
 # This is needed for timezone conversion (but not part of standard lib)
 #import dateutil
 
