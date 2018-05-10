@@ -199,7 +199,7 @@ class Signup(webapp2.RequestHandler):
         now = datetime.datetime.today()
         if user:
             entry = Entry(parent=db_key(now.year))
-            entry.player = Player(identity=user.user_id(), email=self.request.get('email'), name=self.request.get('name'), phone=self.request.get('phonenumber') )
+            entry.player = Player(identity=user.user_id(), email=self.request.get('email'), name=self.request.get('name'), phone=str(self.request.get('phonenumber')).translate(None, string.punctuation) )
             if entry.player.name == "":
                 entry.player.name = user.nickname()
             if entry.player.email == "":
