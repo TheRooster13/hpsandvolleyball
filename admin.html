@@ -29,30 +29,25 @@
       {% if player_list|length %}
         {% for player in player_list %}
           <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Rank</th>
+            <th>Score</th>
             <td>{{loop.index}}</td>
             <td>
-                <label class="control-label col-sm-2" for="name-{{player.id}}">Name:</label>
-				<div class="col-sm-10">
                 <input type="text" class="form-control" id="name{{player.id}}" name="name{{player.id}}" value="{{player.name}}"></input>
             </td>
             <td>
-                <label class="control-label col-sm-2" for="email{{player.id}}">Email:</label>
-				<div class="col-sm-10">
                 <input type="text" class="form-control" id="email{{player.id}}" name="email{{player.id}}" value="{{player.email}}"></input>
             </td>
             <td>
-                <label class="control-label col-sm-2" for="phone{{player.id}}">Phone:</label>
-				<div class="col-sm-10">
                 <input type="text" class="form-control" id="phone{{player.id}}" name="phone{{player.id}}" value="{{player.phone}}"></input>
             </td>
             <td>
-                <label class="control-label col-sm-2" for="rank{{player.id}}">Schedule Rank:</label>
-				<div class="col-sm-10">
                 <input type="text" class="form-control" id="rank{{player.id}}" name="rank{{player.id}}" value="{{player.schedule_rank}}"></input>
             </td>
             <td>
-                <label class="control-label col-sm-2" for="score{{player.id}}">Elo Score:</label>
-				<div class="col-sm-10">
                 <input type="text" class="form-control" id="score{{player.id}}" name="score{{player.id}}" value="{{player.elo_score}}"></input>
             </td>
           </tr>
