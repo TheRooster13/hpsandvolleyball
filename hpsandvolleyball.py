@@ -432,12 +432,12 @@ class Admin(webapp2.RequestHandler):
         qry_e = Entry.query(ancestor=db_key(now.year))
         qry_e = qry_e.filter(Entry.committed == True)
         qry_e = qry_e.order(Entry.date)
-        entries_e = qry_e.fetch(100)
+        entries_e = qry_e.fetch()
 
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(now.year))
         qry_p = qry_p.order(Player_List.schedule_rank)
-        player_list = qry_p.fetch(100)
+        player_list = qry_p.fetch()
 
         for entry in entries_e:
             newPlayer = Player_List(parent=db_key(year))
@@ -457,7 +457,7 @@ class Admin(webapp2.RequestHandler):
                 newPlayer.put()
     
         # Get player list
-        player_list = qry_p.fetch(100)   
+        player_list = qry_p.fetch()   
         
         template_values = {
             'year': get_year_string(),
