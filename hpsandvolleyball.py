@@ -413,7 +413,7 @@ class Admin(webapp2.RequestHandler):
         for player in player_list:
             player.name = self.request.get('name-'+player.id)
             player.email = self.request.get('email-'+player.id)
-            player.phone = self.request.get('phone-'+player.id)
+            player.phone = self.request.get('phone-'+player.id).translate(None, string.punctuation)
             player.schedule_rank = int(self.request.get('rank-'+player.id))
             player.elo_score = int(self.request.get('score-'+player.id))
 
