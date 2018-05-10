@@ -198,18 +198,17 @@ class Signup(webapp2.RequestHandler):
         user = users.get_current_user()
         now = datetime.datetime.today()
         if user:
-            entry = Entry(parent=db_key(now.year))
-            entry.player = Player(identity=user.user_id(), email=self.request.get('email'), name=self.request.get('name'), phone=str(self.request.get('phonenumber')).translate(None, string.punctuation) )
-            if entry.player.name == "":
-                entry.player.name = user.nickname()
-            if entry.player.email == "":
-                entry.player.email = user.email()
-            entry.comment = ""
+            player = Player_List(parent=db_key(now.year))
+            player.id = user.user_id()
+            player.name = self.request.get('name')
+            player.email = self.request.get('email')
+            player.phone = str(self.request.get('phonenumber')).translate(None, string.punctuation)
+            if player.name == "":
+                player.name = user.nickname()
+            if player.email == "":
+                player.email = user.email()
             if self.request.get('action') == "Commit":
-                entry.committed = True
-            else:
-                entry.committed = False
-            entry.put()
+                entry.put()
             self.redirect('signup')
 	
     def get(self):
