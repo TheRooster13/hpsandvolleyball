@@ -208,7 +208,7 @@ class Signup(webapp2.RequestHandler):
             if player.email == "":
                 player.email = user.email()
             if self.request.get('action') == "Commit":
-                entry.put()
+                player.put()
             self.redirect('signup')
 	
     def get(self):
