@@ -464,8 +464,8 @@ class Admin(webapp2.RequestHandler):
             player.name = self.request.get('name-'+player.id)
             player.email = self.request.get('email-'+player.id)
             player.phone = self.request.get('phone-'+player.id)
-            player.rank = self.request.get('rank-'+player.id)
-            player.score = self.request.get('score-'+player.id)
+            player.schedule_rank = self.request.get('rank-'+player.id)
+            player.elo_score = self.request.get('score-'+player.id)
 
             if self.request.get('action') == "Submit":
                 player.put()
