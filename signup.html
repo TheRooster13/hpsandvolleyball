@@ -31,12 +31,16 @@
       <table class="table table-hover">
       {% if player_list|length %}
         {% for player in player_list %}
-          <tr>
+          {% if loop.index % 2 == 1 %}
+          <tr>{% endif %}
             <td>{{ loop.index }}</td>
             <td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>
             <td>{% if user %}{% if player.id == user.user_id() %}Phone #: {{ player.phone }}{% endif %}{% endif %}</td>
-          </tr>
+          {% if loop.index % 2 == 0 %}
+          </tr>{% endif %}
         {% endfor %}
+        {% if loop.index % 2 == 1 %}
+          </tr>{% endif %}
       {% else %}
           <tr>
             <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
