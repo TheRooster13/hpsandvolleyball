@@ -203,6 +203,8 @@ class Signup(webapp2.RequestHandler):
             player.name = self.request.get('name')
             player.email = self.request.get('email')
             player.phone = str(self.request.get('phonenumber')).translate(None, string.punctuation)
+            player.schedule_rank = 99
+            player.elo_score = 1000
             if player.name == "":
                 player.name = user.nickname()
             if player.email == "":
