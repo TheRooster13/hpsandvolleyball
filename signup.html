@@ -29,7 +29,7 @@
         <span class="badge pull-right">{{ player_list|length }}</span> 
       </div>
       <div class="table-hover">
-      {% if player_list|length %}{{half}}
+      {% if player_list|length %}
           <div class="panel col-sm-6">
         {% for player in player_list %}
           {% if loop.index == half %}
