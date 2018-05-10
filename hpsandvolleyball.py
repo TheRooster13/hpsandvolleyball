@@ -215,10 +215,9 @@ class Signup(webapp2.RequestHandler):
         now = datetime.datetime.today()
         
         # Get committed entries list
-        qry_c = Entry.query(ancestor=db_key(now.year))
-        qry_c = qry_c.filter(Entry.committed == True)
-        qry_c = qry_c.order(Entry.date)
-        entries_c = qry_c.fetch(100)
+        qry_p = Player_List.query(ancestor=db_key(now.year))
+        qry_p = qry_p.order(Player_List.name)
+        player_list = qry_p.fetch(100)
 
         # See if user is logged in and signed up
         login_info = get_login_info(self)
@@ -228,7 +227,7 @@ class Signup(webapp2.RequestHandler):
             'year': get_year_string(),
             'page': 'signup',
             'user': user,
-            'entries_c': entries_c,
+            'player_list': player_list,
             'is_signed_up': player is not None,
             'player': player,
             'login': login_info,

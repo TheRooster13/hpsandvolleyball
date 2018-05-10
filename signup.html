@@ -25,16 +25,16 @@
     <!-- Committed -->
     <div class="panel panel-success">
       <div class="panel-heading">
-        Committed Players
-        <span class="badge pull-right">{{ entries_c|length }}</span> 
+        Players
+        <span class="badge pull-right">{{ player_list|length }}</span> 
       </div>
       <table class="table table-hover">
-      {% if entries_c|length %}
-        {% for entry in entries_c %}
+      {% if player_list|length %}
+        {% for player in player_list %}
           <tr>
             <td>{{ loop.index }}</td>
-            <td><a href="mailto:{{ entry.player.email }}">{{entry.player.name}}</a></td>
-            <td>{% if user %}{% if entry.player.identity == user.user_id() %}Phone #: {{ entry.player.phone }}{% endif %}{% endif %}</td>
+            <td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>
+            <td>{% if user %}{% if player.id == user.user_id() %}Phone #: {{ player.phone }}{% endif %}{% endif %}</td>
           </tr>
         {% endfor %}
       {% else %}
