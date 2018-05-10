@@ -457,8 +457,6 @@ class Admin(webapp2.RequestHandler):
                 newPlayer.put()
     
         # Get player list
-        qry_p = Player_List.query(ancestor=db_key(now.year))
-        qry_p = qry_p.order(Player_List.schedule_rank)
         player_list = qry_p.fetch(100)   
         
         template_values = {
@@ -472,25 +470,6 @@ class Admin(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('admin.html')
         self.response.write(template.render(template_values))
 
-class Copy(webapp2.RequestHandler):
-    def get(self):
-        now = datetime.datetime.today()
-        year = now.year	
-        # Get old player list
-        qry_e = Entry.query(ancestor=db_key(year))
-        qry_e = qry_e.filter(Entry.committed == True)
-        qry_e = qry_e.order(Entry.date)
-        entries_e = qry_e.fetch(100)		
-        for entry in entries_e:
-            newPlayer = Player_List(parent=db_key(year))
-            newPlayer.id = entry.player.identity
-            newPlayer.name = entry.player.name
-            newPlayer.email = entry.player.email
-            newPlayer.phone = entry.player.phone
-            newPlayer.schedule_rank = 0
-            newPlayer.elo_score = 1000
-            newPlayer.put()		
-            
 class Schedule(webapp2.RequestHandler):
     def get(self):
         # Filter for this year only
@@ -507,5 +486,4 @@ app = webapp2.WSGIApplication([
     ('/fto',     	    	FTO),
     ('/admin',              Admin),
 	('/tasks/schedule',		Schedule),
-    ('/copy',               Copy),
 ], debug=True)

@@ -29,3 +29,8 @@ indexes:
   - name: user_id
   - name: week
   - name: slot
+
+- kind: Player_List
+  ancestor: yes
+  properties:
+  - name: schedule_rank
