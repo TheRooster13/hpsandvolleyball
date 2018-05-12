@@ -68,10 +68,9 @@ def get_player(x):
         qry = Player_List.query(ancestor=db_key(now.year))
         qry = qry.filter(Player_List.id == user.user_id())
         result = qry.get()
-    if result:
-        return result
-    else:
-        return None
+        if result:
+            return result
+    return None
 
 def set_holidays(x):
 	# Check and set holidays to unavailable
@@ -79,25 +78,24 @@ def set_holidays(x):
     year = now.year
     login_info = get_login_info(x)
     user = users.get_current_user()
-    if user:
-        player = get_player(x)
-        if player:
-            qry_f = Fto.query(ancestor=db_key(year))
-            qry_f = qry_f.filter(Fto.user_id == user.user_id())
-            fto_data = qry_f.fetch(100)
-            for week_slot in holidays:
-                fto = Fto(parent=db_key(year))
-                fto.user_id = user.user_id()
-                fto.name = player.name
-                fto.week = week_slot[0]
-                fto.slot = week_slot[1]
-                                
-                matchFound = False
-                for fto_entry in fto_data:
-                    if fto_entry == fto:
-                        matchFound = True
-                if matchFound == False:
-                    fto.put()
+    player = get_player(x)
+    if player:
+        qry_f = Fto.query(ancestor=db_key(year))
+        qry_f = qry_f.filter(Fto.user_id == user.user_id())
+        fto_data = qry_f.fetch(100)
+        for week_slot in holidays:
+            fto = Fto(parent=db_key(year))
+            fto.user_id = user.user_id()
+            fto.name = player.name
+            fto.week = week_slot[0]
+            fto.slot = week_slot[1]
+                            
+            matchFound = False
+            for fto_entry in fto_data:
+                if fto_entry == fto:
+                    matchFound = True
+            if matchFound == False:
+                fto.put()
 		
 class Player(ndb.Model):
     """
@@ -224,7 +222,6 @@ class Signup(webapp2.RequestHandler):
         qry_p = Player_List.query(ancestor=db_key(now.year))
         qry_p = qry_p.order(Player_List.name)
         player_list = qry_p.fetch(100)
-        half = int(math.ceil(float(len(player_list))/2))+1
 
         # See if user is logged in and signed up
         login_info = get_login_info(self)
@@ -237,7 +234,6 @@ class Signup(webapp2.RequestHandler):
             'player_list': player_list,
             'is_signed_up': player is not None,
             'player': player,
-            'half': half,
             'login': login_info,
         }
 
