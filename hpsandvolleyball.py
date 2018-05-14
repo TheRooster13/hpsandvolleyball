@@ -530,9 +530,10 @@ class Scheduler(webapp2.RequestHandler):
         num_available_players = int(len(player_data) - len(bye_list)) #number of players not on bye
 #        print("The number of available player = %s" % num_available_players)
         slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
-        
+      
         valid_schedule = False
         while valid_schedule == False:
+            if slots_needed == 0: break # Cannot create a schedule (too few players or an incredible number of conflicts)
             tier_list = list() # List of player ids per tier
             tier_slot_list = list() # List of available slots per tier after removing conflicts for each player in the tier
             tier_slot = list() # List of the slot each tier will play in
