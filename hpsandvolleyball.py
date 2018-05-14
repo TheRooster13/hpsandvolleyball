@@ -132,14 +132,14 @@ def get_player_data(current_week):
         fto_count[player.id]=[0] * numWeeks
      
     # Check previous schedules for byes or alternates
-#    if current_week > 1:
-    qry = Schedule.query(ancestor=db_key(year))
-    qry = qry.filter(Schedule.tier == 0)
-    past_byes = qry.fetch()
-    if past_byes:
-        for bye in past_byes:
-            if bye.week < current_week: #in the past
-                pl[bye.id].byes += 1
+    if current_week > 1:
+        qry = Schedule.query(ancestor=db_key(year))
+        qry = qry.filter(Schedule.tier == 0)
+        past_byes = qry.fetch()
+        if past_byes:
+            for bye in past_byes:
+                if bye.week < current_week: #in the past
+                    pl[bye.id].byes += 1
 
     # Check future fto for byes
     qry = Fto.query(ancestor=db_key(year))
