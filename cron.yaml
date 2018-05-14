@@ -1,5 +1,5 @@
 cron:
 - description: "create the weekly schedule"
-  url: /tasks/schedule
+  url: /tasks/scheduler
   schedule: every fri 14:00
   timezone: America/Boise

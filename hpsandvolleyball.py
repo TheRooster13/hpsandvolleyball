@@ -614,7 +614,40 @@ class Scheduler(webapp2.RequestHandler):
                 s.put()
             y+=1
         sys.stdout.flush()
-		
+
+class Weekly_Schedule(webapp2.RequestHandler):
+    def get(self):
+        today = datetime.date.today()
+        year = today.year
+
+        # Calculate what week# next week will be
+        week = int(math.floor(int((today - startdate).days+3)/7))
+        if week < 1: week = 1
+        slots = []
+        for d in range(5):
+            slots.append(startdate + datetime.timedelta(days=(7*(week-1)+d)))
+        
+        player = get_player(self)
+        
+        qry = Schedule.query(ancestor=db_key(year))
+        qry = qry.filter(Schedule.week == week)
+        qry = qry.order(Schedule.slot, Schedule.position)
+        schedule_data = qry.fetch()
+        
+        template_values = {
+            'year': get_year_string(),
+            'page': 'week',
+            'week': week,
+            'slots': slots,
+            'schedule_data': schedule_data,
+            'is_signed_up': player is not None,
+            'login': login_info,
+        }
+
+        template = JINJA_ENVIRONMENT.get_template('week.html')
+        self.response.write(template.render(template_values))
+        
+
 app = webapp2.WSGIApplication([
     ('/',           		MainPage),
 	('/signup',				Signup),
@@ -622,6 +655,8 @@ app = webapp2.WSGIApplication([
     ('/info',     			Info),
     ('/ftolog',      		Ftolog),
     ('/fto',     	    	FTO),
+    ('/week'                Weekly_Schedule)
+    ('/day'                 Daily_Schedule)
     ('/admin',              Admin),
 	('/tasks/scheduler',	Scheduler),
 ], debug=True)

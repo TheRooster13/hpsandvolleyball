@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Weekly Schedule{% endblock %}
+{% block content %}
+
+<div class="col-md-2">
+</div>
+
+<div class="col-md-8"> <!-- center col -->
+
+    <div class="row">
+
+    <h2 class="page-header">HP Sand Volleyball {{ year }}</h2>
+
+    </div>
+
+    <div class="heading col-sm-12">
+        <H4>Week {{week}} Schedule</H4>
+    </div>
+    <div class="panel panel-default col-sm-12">
+        <div class="panel-heading">
+            On Bye
+        </div>
+        <div class="panel panel-body">
+            <ul>
+                {% for p in schedule_data %}
+                {% if p.tier == 0 %}
+                <li>{{p.name}}</li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% for x in range(6) %}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            {{slots[x].strftime("%a %m/%d")}}
+        </div>
+        <div class="panel panel-body">
+            <ol>
+            {% for p in schedule_data %}
+            {% if p.tier == x+1 %}
+                <li>{{p.name}}</li>
+            {% endif %}
+            {% endfor %}
+            </ol>
+        </div>
+    </div>
+</div>
+
+<div class="col-md-2">
+</div>
+
+{% endblock %}
