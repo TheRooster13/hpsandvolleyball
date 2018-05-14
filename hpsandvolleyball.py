@@ -591,7 +591,7 @@ class Scheduler(webapp2.RequestHandler):
         # If we reach this point, we have a valid schedule! Save it to the database.
         # First delete any existing schedule for this week (in case the scheduler runs more than once)
         qry = Schedule.query(ancestor=db_key(year))
-        qry = qry.filter(Schedule.week == week)
+#        qry = qry.filter(Schedule.week == week)
         results = qry.fetch()
         print(results)
         for r in results:
