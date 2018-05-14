@@ -168,7 +168,7 @@ def remove_conflicts(player_ids, player_data, count=1):
             if s in slots:
                 slots.remove(s)
     if len(slots) == 0:
-        print("8 players, no valid slot, shuffling and trying again. Count=%s" % count)
+#        print("8 players, no valid slot, shuffling and trying again. Count=%s" % count)
         random.shuffle(player_ids)
         return remove_conflicts(player_ids, player_data, count+1)
     random.shuffle(player_ids) #randomize the order of the available slots
@@ -557,9 +557,11 @@ class Scheduler(webapp2.RequestHandler):
             
             tier_slot_list.append([]) # empty set for tier 0 (byes)
             for x in range(1,len(tier_list)):
+                print("Tier %s: Size %s" % (x, len(tier_list[x])))
                 random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
                 tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
+                print(tier_slot_list[x])
             
             for i in range(20): # Try this up to X times.
                 if not pick_slots(tier_slot, 1, tier_slot_list):
@@ -572,7 +574,6 @@ class Scheduler(webapp2.RequestHandler):
                     break
             
             for x in range(1, len(tier_list)):
-                print("Tier %s: Size %s" % (x, len(tier_list[x])))
                 for p in range(len(tier_list[x])-1, 7, -1):
                     tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
                     tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
