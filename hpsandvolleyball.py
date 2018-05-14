@@ -99,6 +99,7 @@ def get_player_data(current_week):
     fto_count = {}
     # Get player list
     qry = Player_List.query(ancestor=db_key(now.year))
+    qry = qry.order(Player_List.schedule_rank)
     plr = qry.fetch(100)
     for player in plr:
         pl[player.id] = Player()
@@ -132,7 +133,6 @@ def get_player_data(current_week):
             if f.week == current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
                 pl[f.user_id].conflicts.append(f.slot)
                 
-    pl = sorted(pl, key=lambda k:pl[k].rank)
     return pl
             
 
