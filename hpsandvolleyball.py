@@ -571,7 +571,7 @@ class Scheduler(webapp2.RequestHandler):
             
             for x in range(1, len(tier_list)):
                 print("Tier %s: Size %s" % (x, len(tier_list[x])))
-                for p in range(8, len(tier_list[x])):
+                for p in range(len(tier_list[x])-1, 7, -1):
                     print("p=%s" % p)
                     tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
                     tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
