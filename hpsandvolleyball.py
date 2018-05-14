@@ -522,7 +522,8 @@ class Scheduler(webapp2.RequestHandler):
         if week < 1: week = 1
         # Now that we know what week it will be next, get the players who will definitely be on bye
         player_data = get_player_data(week)
-        player_list = sorted(player_data.iterkeys, key=lambda k: player_data[k].rank)
+        player_list = player_data.keys()
+        player_list = sorted(player_list, key=lambda k: player_data[k].rank)
         # Create a list of players ids on bye this week because of FTO
         bye_list = []
         if player_list:
