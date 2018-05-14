@@ -132,6 +132,7 @@ def get_player_data(current_week):
             if f.week == current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
                 pl[f.user_id].conflicts.append(f.slot)
                 
+    pl = sorted(pl, key=lambda k:pl[k].rank)
     return pl
             
 
@@ -181,7 +182,7 @@ class Player(object):
         self.phone = None
         self.rank = None
         self.score = 1000
-        self.byes = None
+        self.byes = 0
         self.conflicts = []
     
    
@@ -546,7 +547,7 @@ class Scheduler(webapp2.RequestHandler):
             tier_list.append([]) #Add list for tier 1 (top players)
             for p in player_data:
                 if p in bye_list: # player is on a bye and should be added to tier 0
-                    tier_list[0].append(player_data[p].id) #add a player to the bye tier
+                    tier_list[0].append(p) #add a player to the bye tier
                 else: #player is elligible to play and 
                     # This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
                     counter += 1
