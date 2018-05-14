@@ -168,7 +168,7 @@ def remove_conflicts(player_ids, player_data, count=1):
             if s in slots:
                 slots.remove(s)
     if len(slots) == 0:
-        print("8 players, no valid slot, shuffling and trying again.")
+        print("8 players, no valid slot, shuffling and trying again. Count=%s" % count)
         random.shuffle(player_ids)
         return remove_conflicts(player_ids, player_data, count+1)
     random.shuffle(player_ids) #randomize the order of the available slots
@@ -561,11 +561,11 @@ class Scheduler(webapp2.RequestHandler):
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
                 tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
             
-            for i in range(50): # Try this up to X times.
+            for i in range(20): # Try this up to X times.
                 if not pick_slots(tier_slot, 1, tier_slot_list):
                     # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
                     stc = find_smallest_set(tier_slot_list) #stc = set to cycle
-                    print("Could not find a valid schedule. Shuffling tier %s and trying again." % stc)
+                    print("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s" % (stc,i+1))
                     random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier.
                     tier_slot_list[stc] = remove_conflicts(tier_list[x], player_data)
                 else:
@@ -574,7 +574,6 @@ class Scheduler(webapp2.RequestHandler):
             for x in range(1, len(tier_list)):
                 print("Tier %s: Size %s" % (x, len(tier_list[x])))
                 for p in range(len(tier_list[x])-1, 7, -1):
-                    print("p=%s" % p)
                     tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
                     tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
