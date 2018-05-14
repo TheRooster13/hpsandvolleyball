@@ -168,6 +168,7 @@ def remove_conflicts(player_ids, player_data, count=1):
             if s in slots:
                 slots.remove(s)
     if len(slots) == 0:
+        print("8 players, no valid slot, shuffling and trying again.")
         random.shuffle(player_ids)
         return remove_conflicts(player_ids, player_data, count+1)
     random.shuffle(player_ids) #randomize the order of the available slots
@@ -564,6 +565,7 @@ class Scheduler(webapp2.RequestHandler):
                 if not pick_slots(tier_slot, 1, tier_slot_list):
                     # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
                     stc = find_smallest_set(tier_slot_list) #stc = set to cycle
+                    print("Could not find a valid schedule. Shuffling tier %s and trying again." % stc)
                     random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier.
                     tier_slot_list[stc] = remove_conflicts(tier_list[x], player_data)
                 else:
@@ -583,6 +585,7 @@ class Scheduler(webapp2.RequestHandler):
                 if not tier_slot[x]: # No valid slots for this tier - bad news
                     valid_schedule = False
             if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
+                print("We can't find a valid schedule so we're dropping from %s matches to %s and trying again." % (slots_needed, slots_needed-1))
                 del tier_list[:]
                 del tier_slot_list[:]
                 del tier_slot[:]
@@ -593,17 +596,9 @@ class Scheduler(webapp2.RequestHandler):
         qry = Schedule.query(ancestor=db_key(year))
         qry = qry.filter(Schedule.week == week)
         results = qry.fetch()
-        print(len(results))
         for r in results:
             r.key.delete()
 
-        qry = Schedule.query()
-        qry = qry.filter(Schedule.week == week)
-        results = qry.fetch()
-        print(len(results))
-        for r in results:
-            r.key.delete()            
- 
         y=0
         for x in tier_list:
             z=0
