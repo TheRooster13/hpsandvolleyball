@@ -570,6 +570,7 @@ class Scheduler(webapp2.RequestHandler):
                     break
             
             for x in range(1, len(tier_list)):
+                print("Tier %s: Size %s" % (x, len(tier_list[x])))
                 for p in range(8, len(tier_list[x])):
                     tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
                     tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
@@ -601,7 +602,7 @@ class Scheduler(webapp2.RequestHandler):
                 s.position = z #1-8
                 s.put()
             y+=1
-#        sys.stdout.flush()
+        sys.stdout.flush()
 		
 app = webapp2.WSGIApplication([
     ('/',           		MainPage),
