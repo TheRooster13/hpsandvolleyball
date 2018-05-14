@@ -38,3 +38,10 @@ indexes:
   ancestor: yes
   properties:
   - name: week
+
+- kind: Schedule
+  ancestor: yes
+  properties:
+  - name: week
+  - name: slot
+  - name: position
