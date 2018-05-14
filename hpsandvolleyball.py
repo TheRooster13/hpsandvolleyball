@@ -5,6 +5,7 @@ import logging
 import string
 import math
 import random
+import sys
 # This is needed for timezone conversion (but not part of standard lib)
 #import dateutil
 
@@ -119,7 +120,7 @@ def get_player_data(current_week):
     # Get player list
     qry = Player_List.query(ancestor=db_key(now.year))
     plr = qry.fetch(100)
-    for each player in plr:
+    for player in plr:
         pl[player.id] = Player()
         pl[player.id].name = player.name
         pl[player.id].email = player.email
@@ -131,13 +132,14 @@ def get_player_data(current_week):
         fto_count[player.id]=[0] * numWeeks
      
     # Check previous schedules for byes or alternates
+#    if current_week > 1:
     qry = Schedule.query(ancestor=db_key(year))
     qry = qry.filter(Schedule.tier == 0)
     past_byes = qry.fetch()
     if past_byes:
         for bye in past_byes:
             if bye.week < current_week: #in the past
-                pl[bye.user_id].byes += 1
+                pl[bye.id].byes += 1
 
     # Check future fto for byes
     qry = Fto.query(ancestor=db_key(year))
@@ -147,25 +149,27 @@ def get_player_data(current_week):
             fto_count[f.user_id][f.week-1]+=1
             if fto_count[f.user_id][f.week-1] == 4: #Once we reach 4 conflicts in a week, that's a bye week. Don't want to double-count on the 5th conflict.
                 pl[f.user_id].byes += 1
-            if f.week = current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
-                pl[player.id].conflicts.append(f.slot)
+            if f.week == current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
+                pl[f.user_id].conflicts.append(f.slot)
+                
+    return pl
             
 
-def pick_slot(a, b, c):
+def pick_slots(a, b, c):
     if b >= len(c): return True
     while len(a)<b+1:a.append(0)
     a[b]=0
     for x in c[b]:
         if x not in a:
             a[b] = x
-            if pick_slot(a, b+1, c):
+            if pick_slots(a, b+1, c):
                 return True
     return False
 
 def find_smallest_set(set_list):
     smallest_set = len(set_list[1])
     smallest_set_pos = 1
-    for p in range(2,len(set_list):
+    for p in range(2,len(set_list)):
         if len(set_list[p]) < smallest_set:
             smallest_set = len(set_list[p])
             smallest_set_pos = p
@@ -184,7 +188,7 @@ def remove_conflicts(player_ids, player_data, count=1):
     if len(slots) == 0:
         random.shuffle(player_ids)
         return remove_conflicts(player_ids, player_data, count+1)
-    random.shuffle(tier_slot_list[x]) #randomize the order of the available slots
+    random.shuffle(player_ids) #randomize the order of the available slots
     return slots
     
 class Player(object):
@@ -295,7 +299,8 @@ class Signup(webapp2.RequestHandler):
                 player.email = user.email()
             if self.request.get('action') == "Commit":
                 player.put()
-            self.redirect('signup')
+            set_holidays(self)
+        self.redirect('signup')
 	
     def get(self):
         now = datetime.datetime.today()
@@ -521,32 +526,36 @@ class Admin(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('admin.html')
         self.response.write(template.render(template_values))
 
-class Schedule(webapp2.RequestHandler):
+class Scheduler(webapp2.RequestHandler):
     # This will run on Fridays for the next week
     def get(self):
         # Filter for this year only
-        today = datetime.datetime.today()
+        today = datetime.date.today()
         year = today.year
 
         # Calculate what week# next week will be
-        week = math.floor(int(startdate - today)/7)+1
-        week = 1 if week < 1
+        week = int(math.floor(int((today - startdate).days)/7)+1)
+        if week < 1: week = 1
         # Now that we know what week it will be next, get the players who will definitely be on bye
         player_data = get_player_data(week)
         # Create a list of players ids on bye this week because of FTO
         bye_list = []
-        for p in player_data:
-            if len(player_data[p].conflicts)>= 4: bye_list.append(p)
-        num_available_players = int(len(player_list) - len(bye_list)) #number of players not on bye
+        if player_data:
+            for p in player_data:
+                if len(player_data[p].conflicts)>= 4:
+                    bye_list.append(p)
+#                    print("Putting %s on a bye." % player_data[p].name)
+        num_available_players = int(len(player_data) - len(bye_list)) #number of players not on bye
+#        print("The number of available player = %s" % num_available_players)
         slots_needed = math.floor(num_available_players / 9) # Should always have at least one alternate per tier
-        slots_needed = 4 if slots_needed > 4 # Max of 4 matches per week.  -------Check This-------
+        if slots_needed > 4: slots_needed = 4  # Max of 4 matches per week.  -------Check This-------
         players_per_slot = float(num_available_players) / float(slots_needed) #Put this many players into each tier
         tier_list = list() # List of a list of player ids per tier
         counter = 0
         tier_list.append([]) #Add list for tier 0 (bye players)
         tier_list.append([]) #Add list for tier 1 (top players)
         for p in player_data:
-            if player_data[p].id is in bye_list: # player is on a bye and should be added to tier 0
+            if p in bye_list: # player is on a bye and should be added to tier 0
                 tier_list[0].append(player_data[p].id) #add a player to the bye tier
             else: #player is elligible to play and 
                 # This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
@@ -554,13 +563,13 @@ class Schedule(webapp2.RequestHandler):
                 if counter > players_per_slot:
                     counter -= players_per_slot
                     tier_list.append([]) #Add another tier
-                tier_list[len(tier_list)-1].append(player_data[p].id) #Add a player to the current tier
+                tier_list[len(tier_list)-1].append(p) #Add a player to the current tier
         
         tier_slot_list = list() # Create a list of available slots per tier (8 players combined)
         tier_slot_list.append([]) # empty set for tier 0 (byes)
         for x in range(1,len(tier_list)):
             random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
-            tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse) #order based on byes (decending order). Future orders will be random.
+            tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
             tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
         
         tier_slot=list() # Create a list to store the slot where each tier will play.
@@ -574,12 +583,29 @@ class Schedule(webapp2.RequestHandler):
                 break
         
         for x in range(1, len(tier_list)):
-            for p in range(9, len(tier_slot_list[x])):
-                bye_list.append(p) # Add alternate players to bye list
-                tier_slot_list[x].remove(p) # Remove alternate players from the tier list
-            tier_slot_list[x] = sorted(tier_slot_list[x], key lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
+            for p in range(8, len(tier_list[x])):
+                tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
+                tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
+            tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
         
-        print(tier_slot_list)
+
+        y=0
+        for x in tier_list:
+#            print("Tier %s:" % y)
+            z=0
+            for p in x:
+                z+=1
+#                print("%s" % player_data[p].name)
+                s = Schedule()
+                s.id = p
+                s.name = player_data[p].name
+                s.week = week
+                s.slot = tier_slot[y]
+                s.tier = y
+                s.position = z #1-8
+                s.put()
+            y+=1
+#        sys.stdout.flush()
 		
 app = webapp2.WSGIApplication([
     ('/',           		MainPage),
@@ -589,5 +615,5 @@ app = webapp2.WSGIApplication([
     ('/ftolog',      		Ftolog),
     ('/fto',     	    	FTO),
     ('/admin',              Admin),
-	('/tasks/schedule',		Schedule),
+	('/tasks/scheduler',	Scheduler),
 ], debug=True)
