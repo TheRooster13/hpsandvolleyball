@@ -40,7 +40,7 @@
         </div>
         <ol>
         {% for p in schedule_data %}
-        {% if p.tier == x+1 %}
+        {% if p.slot == x+1 %}
             <li>{{p.name}}</li>
         {% endif %}
         {% endfor %}
