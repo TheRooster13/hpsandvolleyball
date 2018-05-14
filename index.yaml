@@ -33,8 +33,3 @@ indexes:
   ancestor: yes
   properties:
   - name: schedule_rank
-
-- kind: Schedule
-  ancestor: yes
-  properties:
-  - name: week

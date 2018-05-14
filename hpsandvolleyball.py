@@ -590,19 +590,26 @@ class Scheduler(webapp2.RequestHandler):
 
         # If we reach this point, we have a valid schedule! Save it to the database.
         # First delete any existing schedule for this week (in case the scheduler runs more than once)
-        qry_s = Schedule.query(ancestor=db_key(year))
-        qry_s = qry_s.filter(Schedule.week == week)
-        results = qry_s.fetch()
-        print(results)
+        qry = Schedule.query(ancestor=db_key(year))
+        qry = qry.filter(Schedule.week == week)
+        results = qry.fetch()
+        print(qry.count())
         for r in results:
             r.key.delete()
-        
+
+        qry = Schedule.query()
+        qry = qry.filter(Schedule.week == week)
+        results = qry.fetch()
+        print(qry.count())
+        for r in results:
+            r.key.delete()            
+ 
         y=0
         for x in tier_list:
             z=0
             for p in x:
                 z+=1
-                s = Schedule()
+                s = Schedule(parent=db_key(year))
                 s.id = p
                 s.name = player_data[p].name
                 s.week = week
