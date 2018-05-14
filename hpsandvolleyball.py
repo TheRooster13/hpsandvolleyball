@@ -4,6 +4,7 @@ import datetime
 import logging
 import string
 import math
+import random
 # This is needed for timezone conversion (but not part of standard lib)
 #import dateutil
 
@@ -96,16 +97,107 @@ def set_holidays(x):
                     matchFound = True
             if matchFound == False:
                 fto.put()
-		
-class Player(ndb.Model):
-    """
-    Sub model for representing a player.
-    """
-    identity = ndb.StringProperty(indexed=True)
-    email    = ndb.StringProperty(indexed=False)
-    name     = ndb.StringProperty(indexed=False)
-    phone    = ndb.StringProperty(indexed=False)
+
+def assign_byes(week, player_list):
+    # Find players who are on a bye. If they have four or more bad days they will be automatically placed on a bye.
+    now = datetime.datetime.today()
+    year = now.year
+    bye_list = list()
+    for player in player_list:
+        qry = Fto.query(ancestor=db_key(year))
+        qry=qry.filter(Fto.user_id == player.id)
+        qry = qry.filter(FTO.week == week)
+        if qry.count() >= 4:
+            bye_list.append(player.id)
+    return bye_list
+
+def get_player_data(current_week):
+    now = datetime.datetime.today()
+    year = now.year
+    pl = {}
+    fto_count = {}
+    # Get player list
+    qry = Player_List.query(ancestor=db_key(now.year))
+    plr = qry.fetch(100)
+    for each player in plr:
+        pl[player.id] = Player()
+        pl[player.id].name = player.name
+        pl[player.id].email = player.email
+        pl[player.id].phone = player.phone
+        pl[player.id].rank = player.schedule_rank
+        pl[player.id].score = player.elo_score
+        
+        # Need a dict of lists to count the conflicts for each week per player. Initialized with zeros.
+        fto_count[player.id]=[0] * numWeeks
+     
+    # Check previous schedules for byes or alternates
+    qry = Schedule.query(ancestor=db_key(year))
+    qry = qry.filter(Schedule.tier == 0)
+    past_byes = qry.fetch()
+    if past_byes:
+        for bye in past_byes:
+            if bye.week < current_week: #in the past
+                pl[bye.user_id].byes += 1
+
+    # Check future fto for byes
+    qry = Fto.query(ancestor=db_key(year))
+    fto = qry.fetch()
+    if fto:
+        for f in fto:
+            fto_count[f.user_id][f.week-1]+=1
+            if fto_count[f.user_id][f.week-1] == 4: #Once we reach 4 conflicts in a week, that's a bye week. Don't want to double-count on the 5th conflict.
+                pl[f.user_id].byes += 1
+            if f.week = current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
+                pl[player.id].conflicts.append(f.slot)
+            
+
+def pick_slot(a, b, c):
+    if b >= len(c): return True
+    while len(a)<b+1:a.append(0)
+    a[b]=0
+    for x in c[b]:
+        if x not in a:
+            a[b] = x
+            if pick_slot(a, b+1, c):
+                return True
+    return False
+
+def find_smallest_set(set_list):
+    smallest_set = len(set_list[1])
+    smallest_set_pos = 1
+    for p in range(2,len(set_list):
+        if len(set_list[p]) < smallest_set:
+            smallest_set = len(set_list[p])
+            smallest_set_pos = p
+    return smallest_set_pos
+
+def remove_conflicts(player_ids, player_data, count=1):
+    if count > 20: return []
+    slots = range(1,6)
+    y=0
+    for p in player_ids:
+        y+=1
+        if y > 8: break # use the data from the first 8 players in the tier
+        for s in player_data[p].conflicts:
+            if s in slots:
+                slots.remove(s)
+    if len(slots) == 0:
+        random.shuffle(player_ids)
+        return remove_conflicts(player_ids, player_data, count+1)
+    random.shuffle(tier_slot_list[x]) #randomize the order of the available slots
+    return slots
     
+class Player(object):
+    def __init__(self):
+        self.name = None
+        self.email = None
+        self.phone = None
+        self.rank = None
+        self.score = 1000
+        self.byes = None
+        self.conflicts = []
+    
+   
 class Fto(ndb.Model):
     """
     A model for storing conflicting days per player.
@@ -121,16 +213,6 @@ class Fto(ndb.Model):
             return (self.user_id == other.user_id and self.week == other.week and self.slot == other.slot)
         return NotImplemented
    
-class Entry(ndb.Model):
-    """
-    A main model for representing an individual player entry.
-    """
-    player    = ndb.StructuredProperty(Player)
-    comment   = ndb.StringProperty(indexed=False)
-    committed = ndb.BooleanProperty(indexed=True)
-    date      = ndb.DateTimeProperty(auto_now_add=True)
-
-	
 class Schedule(ndb.Model):
     """
     A model for tracking the weekly and daily schedule
@@ -285,7 +367,7 @@ class Ftolog(webapp2.RequestHandler):
             self.redirect('/')
         qry = Fto.query(ancestor=db_key(now.year))
         qry = qry.order(Fto.name).order(Fto.week, Fto.slot)
-        entries = qry.fetch(200)
+        entries = qry.fetch(500)
 
         login_info = get_login_info(self)
         template_values = {
@@ -423,35 +505,6 @@ class Admin(webapp2.RequestHandler):
         year = now.year
         login_info = get_login_info(self)
 
-# Copy old list to the new list
-        # Get old player list
-#        qry_e = Entry.query(ancestor=db_key(now.year))
-#        qry_e = qry_e.filter(Entry.committed == True)
-#        qry_e = qry_e.order(Entry.date)
-#        entries_e = qry_e.fetch()
-
-        # Get player list
-#        qry_p = Player_List.query(ancestor=db_key(now.year))
-#        qry_p = qry_p.order(Player_List.schedule_rank)
-#        player_list = qry_p.fetch()
-
-#        for entry in entries_e:
-#            newPlayer = Player_List(parent=db_key(year))
-#            newPlayer.id = entry.player.identity
-#            newPlayer.name = entry.player.name
-#            newPlayer.email = entry.player.email
-#            newPlayer.phone = entry.player.phone
-#            newPlayer.schedule_rank = 0
-#            newPlayer.elo_score = 1000
-            
-#            matchFound = False
-#            if player_list:
-#                for player in player_list:
-#                    if player.id == newPlayer.id:
-#                        matchFound = True
-#            if matchFound == False:
-#                newPlayer.put()
-
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(now.year))
         qry_p = qry_p.order(Player_List.schedule_rank)
@@ -469,11 +522,64 @@ class Admin(webapp2.RequestHandler):
         self.response.write(template.render(template_values))
 
 class Schedule(webapp2.RequestHandler):
+    # This will run on Fridays for the next week
     def get(self):
         # Filter for this year only
-        now = datetime.datetime.today()
-        year = now.year	
+        today = datetime.datetime.today()
+        year = today.year
 
+        # Calculate what week# next week will be
+        week = math.floor(int(startdate - today)/7)+1
+        week = 1 if week < 1
+        # Now that we know what week it will be next, get the players who will definitely be on bye
+        player_data = get_player_data(week)
+        # Create a list of players ids on bye this week because of FTO
+        bye_list = []
+        for p in player_data:
+            if len(player_data[p].conflicts)>= 4: bye_list.append(p)
+        num_available_players = int(len(player_list) - len(bye_list)) #number of players not on bye
+        slots_needed = math.floor(num_available_players / 9) # Should always have at least one alternate per tier
+        slots_needed = 4 if slots_needed > 4 # Max of 4 matches per week.  -------Check This-------
+        players_per_slot = float(num_available_players) / float(slots_needed) #Put this many players into each tier
+        tier_list = list() # List of a list of player ids per tier
+        counter = 0
+        tier_list.append([]) #Add list for tier 0 (bye players)
+        tier_list.append([]) #Add list for tier 1 (top players)
+        for p in player_data:
+            if player_data[p].id is in bye_list: # player is on a bye and should be added to tier 0
+                tier_list[0].append(player_data[p].id) #add a player to the bye tier
+            else: #player is elligible to play and 
+                # This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
+                counter += 1
+                if counter > players_per_slot:
+                    counter -= players_per_slot
+                    tier_list.append([]) #Add another tier
+                tier_list[len(tier_list)-1].append(player_data[p].id) #Add a player to the current tier
+        
+        tier_slot_list = list() # Create a list of available slots per tier (8 players combined)
+        tier_slot_list.append([]) # empty set for tier 0 (byes)
+        for x in range(1,len(tier_list)):
+            random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
+            tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse) #order based on byes (decending order). Future orders will be random.
+            tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
+        
+        tier_slot=list() # Create a list to store the slot where each tier will play.
+        for i in range(50): # Try this up to X times.
+            if not pick_slots(tier_slot, 1, tier_slot_list):
+                # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
+                stc = find_smallest_set(tier_slot_list) #stc = set to cycle
+                random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier.
+                tier_slot_list[stc] = remove_conflicts(tier_list[x], player_data)
+            else:
+                break
+        
+        for x in range(1, len(tier_list)):
+            for p in range(9, len(tier_slot_list[x])):
+                bye_list.append(p) # Add alternate players to bye list
+                tier_slot_list[x].remove(p) # Remove alternate players from the tier list
+            tier_slot_list[x] = sorted(tier_slot_list[x], key lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
+        
+        print(tier_slot_list)
 		
 app = webapp2.WSGIApplication([
     ('/',           		MainPage),
