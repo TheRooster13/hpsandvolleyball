@@ -578,7 +578,7 @@ class Scheduler(webapp2.RequestHandler):
             # Check to see if we have a valid schedule
             valid_schedule = True
             for x in range(1, len(tier_slot)):
-                if len(tier_slot[x]) == 0: # No valid slots for this tier - bad news
+                if not tier_slot[x]: # No valid slots for this tier - bad news
                     valid_schedule = False
             if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
                 del tier_list[:]
