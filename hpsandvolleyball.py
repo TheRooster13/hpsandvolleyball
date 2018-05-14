@@ -530,6 +530,7 @@ class Scheduler(webapp2.RequestHandler):
         num_available_players = int(len(player_data) - len(bye_list)) #number of players not on bye
 #        print("The number of available player = %s" % num_available_players)
         slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
+        if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
       
         valid_schedule = False
         while valid_schedule == False:
@@ -538,7 +539,6 @@ class Scheduler(webapp2.RequestHandler):
             tier_slot_list = list() # List of available slots per tier after removing conflicts for each player in the tier
             tier_slot = list() # List of the slot each tier will play in
             
-            if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
             players_per_slot = float(num_available_players) / float(slots_needed) #Put this many players into each tier
             counter = 0
             tier_list.append([]) #Add list for tier 0 (bye players)
@@ -572,6 +572,7 @@ class Scheduler(webapp2.RequestHandler):
             for x in range(1, len(tier_list)):
                 print("Tier %s: Size %s" % (x, len(tier_list[x])))
                 for p in range(8, len(tier_list[x])):
+                    print("p=%s" % p)
                     tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
                     tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
