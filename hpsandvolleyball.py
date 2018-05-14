@@ -32,13 +32,6 @@ def db_key(db_name):
     """
     return ndb.Key("Entries", db_name)
 
-def chat_db_key(db_name):
-    """
-    Constructs a Datastore key for a chat comment list.
-    We use the list name as the key.
-    """
-    return ndb.Key("ChatEntries", db_name)
-
 def get_login_info(h):
     user = users.get_current_user()
     if user:
@@ -99,19 +92,6 @@ def set_holidays(x):
             if matchFound == False:
                 fto.put()
 
-def assign_byes(week, player_list):
-    # Find players who are on a bye. If they have four or more bad days they will be automatically placed on a bye.
-    now = datetime.datetime.today()
-    year = now.year
-    bye_list = list()
-    for player in player_list:
-        qry = Fto.query(ancestor=db_key(year))
-        qry=qry.filter(Fto.user_id == player.id)
-        qry = qry.filter(FTO.week == week)
-        if qry.count() >= 4:
-            bye_list.append(player.id)
-    return bye_list
-
 def get_player_data(current_week):
     now = datetime.datetime.today()
     year = now.year
@@ -170,6 +150,8 @@ def find_smallest_set(set_list):
     smallest_set = len(set_list[1])
     smallest_set_pos = 1
     for p in range(2,len(set_list)):
+        if len(set_list[p]) == smallest_set:
+            smallest_set_pos = random.choice((smallest_set_pos,p)) # Randomly choose which of the two sets to return if there is a tie. The randomness isn't evenly distributed though.
         if len(set_list[p]) < smallest_set:
             smallest_set = len(set_list[p])
             smallest_set_pos = p
@@ -372,7 +354,7 @@ class Ftolog(webapp2.RequestHandler):
             self.redirect('/')
         qry = Fto.query(ancestor=db_key(now.year))
         qry = qry.order(Fto.name).order(Fto.week, Fto.slot)
-        entries = qry.fetch(500)
+        entries = qry.fetch()
 
         login_info = get_login_info(self)
         template_values = {
@@ -547,55 +529,68 @@ class Scheduler(webapp2.RequestHandler):
 #                    print("Putting %s on a bye." % player_data[p].name)
         num_available_players = int(len(player_data) - len(bye_list)) #number of players not on bye
 #        print("The number of available player = %s" % num_available_players)
-        slots_needed = math.floor(num_available_players / 9) # Should always have at least one alternate per tier
-        if slots_needed > 4: slots_needed = 4  # Max of 4 matches per week.  -------Check This-------
-        players_per_slot = float(num_available_players) / float(slots_needed) #Put this many players into each tier
-        tier_list = list() # List of a list of player ids per tier
-        counter = 0
-        tier_list.append([]) #Add list for tier 0 (bye players)
-        tier_list.append([]) #Add list for tier 1 (top players)
-        for p in player_data:
-            if p in bye_list: # player is on a bye and should be added to tier 0
-                tier_list[0].append(player_data[p].id) #add a player to the bye tier
-            else: #player is elligible to play and 
-                # This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
-                counter += 1
-                if counter > players_per_slot:
-                    counter -= players_per_slot
-                    tier_list.append([]) #Add another tier
-                tier_list[len(tier_list)-1].append(p) #Add a player to the current tier
+        slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
         
-        tier_slot_list = list() # Create a list of available slots per tier (8 players combined)
-        tier_slot_list.append([]) # empty set for tier 0 (byes)
-        for x in range(1,len(tier_list)):
-            random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
-            tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
-            tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
-        
-        tier_slot=list() # Create a list to store the slot where each tier will play.
-        for i in range(50): # Try this up to X times.
-            if not pick_slots(tier_slot, 1, tier_slot_list):
-                # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
-                stc = find_smallest_set(tier_slot_list) #stc = set to cycle
-                random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier.
-                tier_slot_list[stc] = remove_conflicts(tier_list[x], player_data)
-            else:
-                break
-        
-        for x in range(1, len(tier_list)):
-            for p in range(8, len(tier_list[x])):
-                tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
-                tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
-            tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
-        
+        valid_schedule = False
+        while valid_schedule == False:
+            tier_list = list() # List of player ids per tier
+            tier_slot_list = list() # List of available slots per tier after removing conflicts for each player in the tier
+            tier_slot = list() # List of the slot each tier will play in
+            
+            if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
+            players_per_slot = float(num_available_players) / float(slots_needed) #Put this many players into each tier
+            counter = 0
+            tier_list.append([]) #Add list for tier 0 (bye players)
+            tier_list.append([]) #Add list for tier 1 (top players)
+            for p in player_data:
+                if p in bye_list: # player is on a bye and should be added to tier 0
+                    tier_list[0].append(player_data[p].id) #add a player to the bye tier
+                else: #player is elligible to play and 
+                    # This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
+                    counter += 1
+                    if counter > players_per_slot:
+                        counter -= players_per_slot
+                        tier_list.append([]) #Add another tier
+                    tier_list[len(tier_list)-1].append(p) #Add a player to the current tier
+            
+            tier_slot_list.append([]) # empty set for tier 0 (byes)
+            for x in range(1,len(tier_list)):
+                random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
+                tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
+                tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
+            
+            for i in range(50): # Try this up to X times.
+                if not pick_slots(tier_slot, 1, tier_slot_list):
+                    # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
+                    stc = find_smallest_set(tier_slot_list) #stc = set to cycle
+                    random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier.
+                    tier_slot_list[stc] = remove_conflicts(tier_list[x], player_data)
+                else:
+                    break
+            
+            for x in range(1, len(tier_list)):
+                for p in range(8, len(tier_list[x])):
+                    tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
+                    tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
+                tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
+            
+            # Check to see if we have a valid schedule
+            valid_schedule = True
+            for x in range(1, len(tier_slot)):
+                if len(tier_slot[x]) == 0: # No valid slots for this tier - bad news
+                    valid_schedule = False
+            if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
+                del tier_list[:]
+                del tier_slot_list[:]
+                del tier_slot[:]
+                slots_needed -= 1
 
+        # If we reach this point, we have a valid schedule! Save it to the database.
         y=0
         for x in tier_list:
-#            print("Tier %s:" % y)
             z=0
             for p in x:
                 z+=1
-#                print("%s" % player_data[p].name)
                 s = Schedule()
                 s.id = p
                 s.name = player_data[p].name
