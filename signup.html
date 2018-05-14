@@ -33,7 +33,9 @@
         {% for player in player_list %}
           <tr>
             <td>{{ loop.index }}</td>
-            <td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>
+            {% if is_signed_up %}<td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>
+            {% else %}<td>{{player.name}}</td>
+            {% endif %}
             <td>{% if user %}{% if player.id == user.user_id() %}Phone #: {{ player.phone }}{% endif %}{% endif %}</td>
           </tr>
         {% endfor %}
