@@ -593,14 +593,14 @@ class Scheduler(webapp2.RequestHandler):
         qry = Schedule.query(ancestor=db_key(year))
         qry = qry.filter(Schedule.week == week)
         results = qry.fetch()
-        print(qry.count())
+        print(len(results))
         for r in results:
             r.key.delete()
 
         qry = Schedule.query()
         qry = qry.filter(Schedule.week == week)
         results = qry.fetch()
-        print(qry.count())
+        print(len(results))
         for r in results:
             r.key.delete()            
  
