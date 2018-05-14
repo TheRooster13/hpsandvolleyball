@@ -522,14 +522,15 @@ class Scheduler(webapp2.RequestHandler):
         if week < 1: week = 1
         # Now that we know what week it will be next, get the players who will definitely be on bye
         player_data = get_player_data(week)
+        player_list = sorted(player_data.iterkeys, key=lambda k: player_data[k].rank)
         # Create a list of players ids on bye this week because of FTO
         bye_list = []
-        if player_data:
-            for p in player_data:
+        if player_list:
+            for p in player_list:
                 if len(player_data[p].conflicts)>= 4:
                     bye_list.append(p)
 #                    print("Putting %s on a bye." % player_data[p].name)
-        num_available_players = int(len(player_data) - len(bye_list)) #number of players not on bye
+        num_available_players = int(len(player_list) - len(bye_list)) #number of players not on bye
 #        print("The number of available player = %s" % num_available_players)
         slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
         if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
@@ -545,7 +546,7 @@ class Scheduler(webapp2.RequestHandler):
             counter = 0
             tier_list.append([]) #Add list for tier 0 (bye players)
             tier_list.append([]) #Add list for tier 1 (top players)
-            for p in player_data:
+            for p in player_list:
                 if p in bye_list: # player is on a bye and should be added to tier 0
                     tier_list[0].append(p) #add a player to the bye tier
                 else: #player is elligible to play and 
