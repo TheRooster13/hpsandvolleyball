@@ -20,7 +20,7 @@ numWeeks = 14
 startdate = datetime.date(2018, 5, 21)
 holidays = ((2,1),(3,4),(7,3)) #Memorial Day, BYITW Day, Independance Day
 
-random.seed(datetime.now())
+random.seed(datetime.datetime.now())
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
