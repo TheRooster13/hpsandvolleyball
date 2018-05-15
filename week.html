@@ -35,7 +35,7 @@
         <div class="panel-heading" align="center">
             {{slots[x].strftime("%a %-m/%-d")}}
         </div>
-        <a href="?w={{week}}&d={{x+1}}"></a>
+        <a href="day?w={{week}}&d={{x+1}}"></a>
         <ol class="left-aligned">
         {% for p in schedule_data %}
         {% if p.slot == x+1 %}

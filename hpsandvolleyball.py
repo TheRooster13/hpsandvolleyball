@@ -661,7 +661,59 @@ class Daily_Schedule(webapp2.RequestHandler):
     def get(self):
         today = datetime.date.today()
         year = today.year        
+        # See if user is logged in and signed up
+        login_info = get_login_info(self)
+        user = users.get_current_user()
+        player = get_player(self)      
+        
+        # Calculate what week and day it is
+        week = int(self.request.get('w'))
+        if not week:
+            week = int(math.floor(int((today - startdate).days)/7))
+        if week < 1 :
+            week = 1
+        if week > numWeeks :
+            week = numWeeks
+        day = int(self.request.get('d'))
+        if not day :
+            day = today.weekday() + 1
+        if day > 5 :
+            day = 1
+            week += 1
+        
+        schedule_day = startdate + datetime.timedelta(days=(7*(week-1)+(day-1)))
+        
+        qry = Schedule.query(ancestor=db_key(year))
+        qry = qry.filter(Schedule.week == week, Schedule.slot == day)
+        qry = qry.order(Schedule.position)
+        schedule_data = qry.fetch()
+        if len(schedule_data)>0:
+            games = True
+        else:
+            games = False
+    	
+        ms = ((0,1,0,1,1,0,1,0),(0,1,1,0,0,1,1,0),(0,1,1,0,1,0,0,1))
+        game_team = [[],[]],[[],[]],[[],[]]
+        for p in schedule_data:
+            for x in range(3):
+                game_team[x][ms[x][p.position-1]].append(p.name)
 
+        template_values = {
+            'year': get_year_string(),
+            'page': 'day',
+            'week': week,
+            'day': day,
+            'games': games,
+            'schedule_day': schedule_day,
+            'game_team': game_team,
+            'is_signed_up': player is not None,
+            'login': login_info,
+        }
+
+        template = JINJA_ENVIRONMENT.get_template('day.html')
+        self.response.write(template.render(template_values))
+        
+        
 app = webapp2.WSGIApplication([
     ('/',           		MainPage),
 	('/signup',				Signup),

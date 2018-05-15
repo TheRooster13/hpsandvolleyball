@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Daily Schedule{% endblock %}
+{% block content %}
+<div class="col-md-2">
+</div>
+
+<div class="col-md-8"> <!-- center col -->
+
+    <div class="row">
+
+    <h2 class="page-header">HP Sand Volleyball {{ year }}</h2>
+
+    </div>
+
+    <div class="row">
+        <H4>Schedule for {{schedule_day.strftime("%A %-m/%-d")}}</H4>
+    </div>
+    {% if games %}
+    {% for g in range(3) %}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            Game {{g+1}}
+        </div>
+        <div class="panel-body">
+        <table>
+        {% for t in range(2) %}
+        	<tr>
+        		<th>Team {{t+1}}</th>
+	            {% for p in game_team[g][t] %}
+	            <td>{{p}}</td>
+	            {% endfor %}
+	            <td>
+	            	<div class="input-group">
+            		<span class="input-group-addon" id="ba1">Score</span>
+            		<input class="form-control" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}" size=3></input>
+            		</div>
+        		</td>
+            </tr>
+	    {% endfor %}
+    	</table>
+	    </div>
+    </div>
+    {% endfor %}
+    <button class="btn btn-block btn-success" type="submit" value="scores">Submit Scores</button>
+    {% else %}
+    <p class="text-danger"><strong>There are no matches scheduled for this day.</strong></p>
+    {% endif %}
+</div>
+
+<div class="col-md-2">
+</div>
+
+{% endblock %}
