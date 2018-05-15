@@ -553,7 +553,7 @@ class Scheduler(webapp2.RequestHandler):
                 else: #player is elligible to play and 
                     # This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
                     counter += 1
-                    if counter > players_per_slot:
+                    if counter > players_per_slot and len(tier_list) < slots_needed+1:
                         counter -= players_per_slot
                         tier_list.append([]) #Add another tier
                     tier_list[len(tier_list)-1].append(p) #Add a player to the current tier
