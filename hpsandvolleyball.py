@@ -560,7 +560,7 @@ class Scheduler(webapp2.RequestHandler):
             
             tier_slot_list.append([]) # empty set for tier 0 (byes)
             for x in range(1,len(tier_list)):
-                self.response.out.write("Tier %s: Size %s" % (x, len(tier_list[x])))
+                self.response.out.write("Tier %s: Size %s<br>" % (x, len(tier_list[x])))
                 random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
                 tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
@@ -570,7 +570,7 @@ class Scheduler(webapp2.RequestHandler):
                 if not pick_slots(tier_slot, 1, tier_slot_list):
                     # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
                     stc = find_smallest_set(tier_slot_list) #stc = set to cycle
-                    self.response.out.write("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s" % (stc,i+1))
+                    self.response.out.write("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s<br>" % (stc,i+1))
                     random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier.
                     tier_slot_list[stc] = remove_conflicts(tier_list[x], player_data)
                 else:
@@ -588,7 +588,7 @@ class Scheduler(webapp2.RequestHandler):
                 if not tier_slot[x]: # No valid slots for this tier - bad news
                     valid_schedule = False
             if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
-                self.response.out.write("We can't find a valid schedule so we're dropping from %s matches to %s and trying again." % (slots_needed, slots_needed-1))
+                self.response.out.write("We can't find a valid schedule so we're dropping from %s matches to %s and trying again.<br>" % (slots_needed, slots_needed-1))
 #                print("We can't find a valid schedule so we're dropping from %s matches to %s and trying again." % (slots_needed, slots_needed-1))
                 del tier_list[:]
                 del tier_slot_list[:]
