@@ -20,6 +20,8 @@ numWeeks = 14
 startdate = datetime.date(2018, 5, 21)
 holidays = ((2,1),(3,4),(7,3)) #Memorial Day, BYITW Day, Independance Day
 
+random.seed(datetime.now())
+
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
     extensions=['jinja2.ext.autoescape'],
@@ -159,7 +161,7 @@ def find_smallest_set(set_list):
     return smallest_set_pos
 
 def remove_conflicts(player_ids, player_data, count=1):
-    if count > 40: return []
+    if count > 20: return []
     slots = range(1,6)
     y=0
     for p in player_ids:
@@ -566,7 +568,7 @@ class Scheduler(webapp2.RequestHandler):
                 tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
                 print(tier_slot_list[x])
             
-            for i in range(40): # Try this up to X times.
+            for i in range(20): # Try this up to X times.
                 if not pick_slots(tier_slot, 1, tier_slot_list):
                     # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
                     stc = find_smallest_set(tier_slot_list) #stc = set to cycle
