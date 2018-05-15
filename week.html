@@ -1,9 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Weekly Schedule{% endblock %}
 {% block content %}
-<style>
-	ol,ul{ padding-left:0.5em; list-style-position:inside; }
-</style>
 <div class="col-md-2">
 </div>
 
@@ -23,7 +20,7 @@
         <div class="panel-heading">
             On Bye
         </div>
-        <ul>
+        <ul class="left-aligned">
             {% for p in schedule_data %}
             {% if p.tier == 0 %}
             <li>{{p.name}}</li>
@@ -34,11 +31,12 @@
     </div>
     {% for x in range(5) %}
     <div class="col-sm-2">
-    <div class="panel panel-success">
+    <div class="panel linked panel-success">
         <div class="panel-heading" align="center">
             {{slots[x].strftime("%a %-m/%-d")}}
         </div>
-        <ol>
+        <a href="?w={{week}}&d={{x+1}}"></a>
+        <ol class="left-aligned">
         {% for p in schedule_data %}
         {% if p.slot == x+1 %}
             <li>{{p.name}}</li>

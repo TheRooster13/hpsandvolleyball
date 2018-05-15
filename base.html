@@ -34,9 +34,26 @@
     -->
 
     <style>
-      body {
-        padding-top: 30px; /* to make the container go all the way to the bottom of the topbar */
-      }
+        body {
+            padding-top: 30px; /* to make the container go all the way to the bottom of the topbar */
+        }
+        .left-aligned { padding-left:0.5em; list-style-position:inside; }
+        div.linked {
+            position: relative;
+        }
+
+        div.linked a {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            text-decoration: none; /* No underlines on the link */
+            z-index: 10; /* Places the link above everything else in the div */
+            background-color: #FFF; /* Fix to make div clickable in IE */
+            opacity: 0; /* Fix to make div clickable in IE */
+            filter: alpha(opacity=1); /* Fix to make div clickable in IE */
+        }
     </style>
 
     <!-- JQuery must appear before bootstrap javascript -->
