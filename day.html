@@ -22,22 +22,20 @@
             Game {{g+1}}
         </div>
         <div class="panel-body">
-        <table>
-        {% for t in range(2) %}
-        	<tr>
-        		<th>Team {{t+1}}</th>
-	            {% for p in game_team[g][t] %}
-	            <td>{{p}}</td>
-	            {% endfor %}
-	            <td>
-	            	<div class="input-group">
-            		<span class="input-group-addon" id="ba1">Score</span>
-            		<input class="form-control" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}" size=3></input>
-            		</div>
-        		</td>
-            </tr>
+         {% for t in range(2) %}
+        	<div class="col-sm-10">
+	        	<div class="btn-group btn-group-justified">
+	        		<div class="btn-group"><button type="button" class="btn btn-primary">Team {{t+1}}</button></div>
+		            {% for p in game_team[g][t] %}
+		            <div class="btn-group"><button type="button" class="btn btn-default">{{p}}</button></div>
+		            {% endfor %}
+	            </div>
+            </div>
+	        <div class="input-group col-sm-2">
+        		<span class="input-group-addon input-primary" id="ba1">Score</span>
+        		<input class="form-control" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}"></input>
+    		</div>
 	    {% endfor %}
-    	</table>
 	    </div>
     </div>
     {% endfor %}
