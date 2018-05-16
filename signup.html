@@ -6,15 +6,11 @@
 </div>
 
 <div class="col-md-8"> <!-- center col -->
-
   <div class="row">
-
   <h2 class="page-header">Sign Up</h2>
-
-  </div> <!-- row -->
+  </div>
 
   <div class="row">
-
   {% if is_signed_up %}
   <form class="form-horizontal" action="unsignup" method="post">
   {% else %}
@@ -57,7 +53,7 @@
 
 			{% if login.logged_in %}
 			{% if is_signed_up %}
-            <p>If you need to modify your player information (e.g. name, email or phone number), decommit and then commit again with your modified info.</p>
+            <p>If you need to modify your player information (e.g. name, email or phone number), send me an email and I can change it for you.</p>
 			<p>You can only decommit if you have not yet been added to the schedule. Once you have been added, and you want to quit, you must set your personal schedule to absent for the remaining weeks.</p>
 	        <p>If you need to modify your player information after being added to the schedule, contact the league administrator.</p>
             <button id="commit" name="action" type="submit" class="btn btn-danger btn-block" value="Commit">

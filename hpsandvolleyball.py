@@ -129,9 +129,10 @@ def get_player_data(current_week):
     fto = qry.fetch()
     if fto:
         for f in fto:
-            fto_count[f.user_id][f.week-1]+=1
-            if fto_count[f.user_id][f.week-1] == 4: #Once we reach 4 conflicts in a week, that's a bye week. Don't want to double-count on the 5th conflict.
-                pl[f.user_id].byes += 1
+            if f.week > current_week and f.user_id in fto_count:
+                fto_count[f.user_id][f.week-1]+=1
+                if fto_count[f.user_id][f.week-1] == 4: #Once we reach 4 conflicts in a week, that's a bye week. Don't want to double-count on the 5th conflict.
+                    pl[f.user_id].byes += 1
             if f.week == current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
                 pl[f.user_id].conflicts.append(f.slot)
                 
@@ -533,7 +534,7 @@ class Scheduler(webapp2.RequestHandler):
             for p in player_list:
                 if len(player_data[p].conflicts)>= 4:
                     bye_list.append(p)
-#                    print("Putting %s on a bye." % player_data[p].name)
+                    self.response.out.write("Putting %s on a bye.<br>" % player_data[p].name)
         num_available_players = int(len(player_list) - len(bye_list)) #number of players not on bye
 #        print("The number of available player = %s" % num_available_players)
         slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
@@ -571,7 +572,8 @@ class Scheduler(webapp2.RequestHandler):
             for i in range(20): # Try this up to X times.
                 for x in range(1,len(tier_slot_list)):
                     random.shuffle(tier_slot_list[x])
-                    print(tier_slot_list[x])
+                    self.response.out.write(tier_slot_list[x])
+                    self.response.out.write("<br>")
                 if not pick_slots(tier_slot, 1, tier_slot_list):
                     # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
                     stc = find_smallest_set(tier_slot_list) #stc = set to cycle
