@@ -8,12 +8,12 @@
 
     <div class="row">
 
-    <h2 class="page-header">HP Sand Volleyball {{ year }}</h2>
+    <h2 class="page-header">Weekly Schedule</h2>
 
     </div>
 
-    <div class="row">
-        <H4>Week {{week}} Schedule</H4>
+    <div class="row" align="center">
+        <H3>Week {{week}}</H3>
     </div>
     <div class="col-sm-2">
     <div class="panel panel-danger">
@@ -33,7 +33,7 @@
     <div class="col-sm-2">
     <div class="panel linked panel-success">
         <div class="panel-heading" align="center">
-            {{slots[x].strftime("%a %-m/%-d")}}
+            {{slots[x].strftime("%a %m/%d")}}
         </div>
         <a href="day?w={{week}}&d={{x+1}}"></a>
         <ol class="left-aligned">

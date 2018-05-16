@@ -5,38 +5,37 @@
 </div>
 
 <div class="col-md-8"> <!-- center col -->
-
     <div class="row">
-
-    <h2 class="page-header">HP Sand Volleyball {{ year }}</h2>
-
+    <h2 class="page-header">Daily Schedule</h2>
     </div>
 
-    <div class="row">
-        <H4>Schedule for {{schedule_day.strftime("%A %-m/%-d")}}</H4>
-    </div>
-    {% if games %}
-    {% for g in range(3) %}
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            Game {{g+1}}
+    <div class="row" align="center">
+        <H3>{% if week>1 or day>1 %}<a href="?w={% if day>1 %}{{week}}{% else %}{{week-1}}{% endif %}&d={% if day-1 > 0 %}{{day-1}}{% else %}5{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} {{schedule_day.strftime("%a %m/%d")}} {% if week<numWeeks or day<5 %}<a href="?w={% if day<5 %}{{week}}{% else %}{{week+1}}{% endif %}&d={% if day<5 %}{{day+1}}{% else %}1{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H4>
+    </div>{% 
+    if games %} 
+    <div class="list-group">{%
+    for g in range(3) %}
+        <div class="list-group-item list-group-item-success row"><H4><strong>Game {{g+1}}</strong></H4>
         </div>
-        <div class="panel-body">
-         {% for t in range(2) %}
-	        	<ul class="list-group">
-	        		<li class="list-group-item list-group-item-success"><div class="col-sm-6">Team {{t+1}}</div><div class="input-group col-sm-6"><span class="input-group-addon input-primary" id="ba1">Score</span><input class="form-control" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}"></input></div></li>
-		            {% for p in game_team[g][t] %}
-		            <li class="list-group-item">{{p}}</li>
-		            {% endfor %}
-	            </ul>
-	    {% endfor %}
-	    </div>
+        <div class="list-group-item row">{% 
+        for t in range(2) %}
+            <div class="col-xs-6">
+                <ul class="list-group">
+                    <li class="list-group-item list-group-item-{% if t==0 %}danger{% else %}info{% endif %}"><strong>Team {% if t==0 %}Red{% else %}Blue{% endif %}</strong></li>{% 
+                    for p in game_team[g][t] %}
+                    <li class="list-group-item">{{p}}</li>{% 
+                    endfor %}
+                    <li class="list-group-item"><div class="input-group"><span class="input-group-addon" id="ba1">Score</span><input class="form-control" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}"></input></div></li>
+                </ul>
+            </div>{% 
+            endfor %}
+        </div>{%
+    endfor %}
     </div>
-    {% endfor %}
-    <button class="btn btn-block btn-success" type="submit" value="scores">Submit Scores</button>
-    {% else %}
-    <p class="text-danger"><strong>There are no matches scheduled for this day.</strong></p>
-    {% endif %}
+    <button class="btn btn-block btn-success" type="submit" value="scores">Submit Scores</button>{% 
+    else %}
+    <p class="text-danger"><strong>There are no matches scheduled for this day.</strong></p>{% 
+    endif %}
 </div>
 
 <div class="col-md-2">

@@ -518,7 +518,8 @@ class Scheduler(webapp2.RequestHandler):
         # Filter for this year only
         today = datetime.date.today()
         year = today.year
-
+        random.seed(datetime.datetime.now())
+        
         # Calculate what week# next week will be
         week = int(math.floor(int((today - startdate).days)/7)+1)
         if week < 1: week = 1
@@ -566,9 +567,11 @@ class Scheduler(webapp2.RequestHandler):
                 random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
                 tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
-                print(tier_slot_list[x])
             
             for i in range(20): # Try this up to X times.
+                for x in range(1,len(tier_slot_list)):
+                    random.shuffle(tier_slot_list[x])
+                    print(tier_slot_list[x])
                 if not pick_slots(tier_slot, 1, tier_slot_list):
                     # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
                     stc = find_smallest_set(tier_slot_list) #stc = set to cycle
@@ -667,16 +670,21 @@ class Daily_Schedule(webapp2.RequestHandler):
         player = get_player(self)      
         
         # Calculate what week and day it is
-        week = int(self.request.get('w'))
-        if not week:
+        if self.request.get('w'):
+            week = int(self.request.get('w'))
+        else:
             week = int(math.floor(int((today - startdate).days)/7))
         if week < 1 :
             week = 1
+            day = 1
         if week > numWeeks :
             week = numWeeks
-        day = int(self.request.get('d'))
-        if not day :
-            day = today.weekday() + 1
+        
+        if self.request.get('d'):
+            day = int(self.request.get('d'))
+        else:
+            if not day:
+                day = today.weekday() + 1
         if day > 5 :
             day = 1
             week += 1
@@ -704,6 +712,7 @@ class Daily_Schedule(webapp2.RequestHandler):
             'week': week,
             'day': day,
             'games': games,
+            'numWeeks': numWeeks,
             'schedule_day': schedule_day,
             'game_team': game_team,
             'is_signed_up': player is not None,
