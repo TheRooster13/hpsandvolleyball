@@ -94,7 +94,7 @@ def set_holidays(x):
             if matchFound == False:
                 fto.put()
 
-def get_player_data(current_week):
+def get_player_data(current_week, self):
     now = datetime.datetime.today()
     year = now.year
     pl = {}
@@ -135,20 +135,24 @@ def get_player_data(current_week):
                     pl[f.user_id].byes += 1
             if f.week == current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
                 pl[f.user_id].conflicts.append(f.slot)
+                self.response.out.write("%s's conflicts: " % f.name)
+                self.response.out.write(pl[f.user_id].conflicts)
+                self.response.out.write("<br>")
                 
     return pl
             
 
-def pick_slots(a, b, c):
-    if b >= len(c): return True
-    while len(a)<b+1:a.append(0)
-    a[b]=0
-    for x in c[b]:
-        if x not in a:
-            a[b] = x
-            if pick_slots(a, b+1, c):
-                return True
-    return False
+def pick_slots(tier_slot, tier, tier_slot_list):
+    if tier >= len(tier_slot_list): return True #We've iterated through all tiers, we're good.
+    while len(tier_slot)<(tier+1):tier_slot.append(0) #Fill tier_slot with 0s. We'll fill this with the correct slots as we go.
+    for x in tier_slot_list[tier]: #Cycle through each possible slot for this tier
+        if x not in tier_slot: #If this slot hasn't been taken by another slot yet...
+            tier_slot[tier] = x #Claim the slot.
+            if pick_slots(tier_slot, tier+1, tier_slot_list): #Recursively call the function again on the next tier. If it returns True...
+                return True #...then we can return true too.
+    #If we get here, we've tried every slot in this tier's valid list and found nothing that isn't taken yet, so...
+    tier_slot[tier]=0 #...reset this tier's slot to 0 so we can try again.
+    return False #We've failed. Back up and try another slot in the prior tier's list.
 
 def find_smallest_set(set_list):
     smallest_set = len(set_list[1])
@@ -161,7 +165,7 @@ def find_smallest_set(set_list):
             smallest_set_pos = p
     return smallest_set_pos
 
-def remove_conflicts(player_ids, player_data, count=1):
+def remove_conflicts(player_ids, player_data, self, count=1):
     if count > 20: return []
     slots = range(1,6)
     y=0
@@ -171,11 +175,15 @@ def remove_conflicts(player_ids, player_data, count=1):
         for s in player_data[p].conflicts:
             if s in slots:
                 slots.remove(s)
-    if len(slots) == 0:
-#        print("8 players, no valid slot, shuffling and trying again. Count=%s" % count)
+    for z in player_ids:
+        self.response.out.write(" %s " % player_data[z].name)
+        self.response.out.write(player_data[z].conflicts)
+    self.response.out.write("<br>")
+    if (len(slots) == 0) and (len(player_ids) > 8):
+        self.response.out.write("8 players, no valid slot, shuffling and trying again. Count=%s<br>" % count)
         random.shuffle(player_ids)
-        return remove_conflicts(player_ids, player_data, count+1)
-    random.shuffle(player_ids) #randomize the order of the available slots
+        return remove_conflicts(player_ids, player_data, self, count+1)
+    random.shuffle(slots) #randomize the order of the available slots
     return slots
     
 class Player(object):
@@ -525,7 +533,7 @@ class Scheduler(webapp2.RequestHandler):
         week = int(math.floor(int((today - startdate).days)/7)+1)
         if week < 1: week = 1
         # Now that we know what week it will be next, get the players who will definitely be on bye
-        player_data = get_player_data(week)
+        player_data = get_player_data(week, self)
         player_list = player_data.keys()
         player_list = sorted(player_list, key=lambda k: player_data[k].rank)
         # Create a list of players ids on bye this week because of FTO
@@ -567,19 +575,28 @@ class Scheduler(webapp2.RequestHandler):
                 self.response.out.write("Tier %s: Size %s<br>" % (x, len(tier_list[x])))
                 random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
-                tier_slot_list.append(remove_conflicts(tier_list[x], player_data))
+                tier_slot_list.append(remove_conflicts(tier_list[x], player_data, self))
+                for z in tier_list[x]:
+                    self.response.out.write(" %s " % player_data[z].name)
+                self.response.out.write("<br>")
             
-            for i in range(20): # Try this up to X times.
+            for i in range(25): # Try this up to X times.
                 for x in range(1,len(tier_slot_list)):
-                    random.shuffle(tier_slot_list[x])
+#                    random.shuffle(tier_slot_list[x])
                     self.response.out.write(tier_slot_list[x])
                     self.response.out.write("<br>")
-                if not pick_slots(tier_slot, 1, tier_slot_list):
+                if not pick_slots(tier_slot, 1, tier_slot_list): #iterate through the slots per tier until a solution is found for every tier.
                     # We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
-                    stc = find_smallest_set(tier_slot_list) #stc = set to cycle
+#                    stc = find_smallest_set(tier_slot_list) #stc = set to cycle
+                    stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle.
+                    while stc == len(tier_slot_list):
+                        stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle.
                     self.response.out.write("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s<br>" % (stc,i+1))
-                    random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier.
-                    tier_slot_list[stc] = remove_conflicts(tier_list[x], player_data)
+                    random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier. (This should probably be a random tier.)
+                    tier_slot_list[stc] = remove_conflicts(tier_list[stc], player_data, self)
+                    for z in tier_list[stc]:
+                        self.response.out.write(" %s " % player_data[z].name)
+                    self.response.out.write("<br>")
                 else:
                     break
             
@@ -588,6 +605,9 @@ class Scheduler(webapp2.RequestHandler):
                     tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
                     tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
                 tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
+                for z in tier_list[x]:
+                    self.response.out.write(" %s " % player_data[z].name)
+                self.response.out.write("<br>")
             
             # Check to see if we have a valid schedule
             valid_schedule = True
