@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Weekly Schedule{% endblock %}
+{% block title %}Week {{week}} Schedule{% endblock %}
 {% block content %}
 <div class="col-md-2">
 </div>
 
 <div class="col-md-8"> <!-- center col -->
     <div class="row">
-    <h2 class="page-header">Weekly Schedule</h2>
+    <h2 class="page-header">Week {{week}} Schedule</h2>
     </div>
 
     <div class="row" align="center">
-        <H3>Week {{week}}</H3>
+        <H3>{% if week>1 %}<a href="?w={{week-1}}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} Week {{week}}{% if week < numWeeks %}<a href="?w={{week+1}}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H3>
     </div>
     <div class="col-sm-2">
     <div class="panel panel-danger">

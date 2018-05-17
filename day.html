@@ -1,14 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Daily Schedule{% endblock %}
+{% block title %}Week {{week}}, Day {{day}} Schedule{% endblock %}
 {% block content %}
 <div class="col-md-2">
 </div>
 
 <div class="col-md-8"> <!-- center col -->
     <div class="row">
-    <h2 class="page-header">Daily Schedule</h2>
+    <h2 class="page-header"><a href="week?w={{week}}">Week {{week}}</a>, Day {{day}} Schedule</h2>
     </div>
 
+    <form class="form-horizontal" action="day" method="post">
     <div class="row" align="center">
         <H3>{% if week>1 or day>1 %}<a href="?w={% if day>1 %}{{week}}{% else %}{{week-1}}{% endif %}&d={% if day-1 > 0 %}{{day-1}}{% else %}5{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} {{schedule_day.strftime("%a %m/%d")}} {% if week<numWeeks or day<5 %}<a href="?w={% if day<5 %}{{week}}{% else %}{{week+1}}{% endif %}&d={% if day<5 %}{{day+1}}{% else %}1{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H4>
     </div>{% 
@@ -25,17 +26,21 @@
                     for p in game_team[g][t] %}
                     <li class="list-group-item">{{p}}</li>{% 
                     endfor %}
-                    <li class="list-group-item"><div class="input-group"><span class="input-group-addon" id="ba1">Score</span><input class="form-control" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}"></input></div></li>
+                    <li class="list-group-item"><div class="input-group"><span class="input-group-addon" id="ba1">Score</span><input class="form-control" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}" value={{score[g][t]}}></input></div></li>
                 </ul>
             </div>{% 
             endfor %}
         </div>{%
     endfor %}
     </div>
-    <button class="btn btn-block btn-success" type="submit" value="scores">Submit Scores</button>{% 
+    <button class="btn btn-block btn-success" type="submit" name="action" value="Scores">Submit Scores</button>{% 
     else %}
     <p class="text-danger"><strong>There are no matches scheduled for this day.</strong></p>{% 
     endif %}
+    <input type="hidden" name="w" value={{week}}></input>
+    <input type="hidden" name="d" value={{day}}></input>
+    <input type="hidden" name="t" value={{tier}}></input>
+    </form>
 </div>
 
 <div class="col-md-2">

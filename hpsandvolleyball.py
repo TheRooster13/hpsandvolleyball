@@ -19,6 +19,7 @@ import webapp2
 numWeeks = 14
 startdate = datetime.date(2018, 5, 21)
 holidays = ((2,1),(3,4),(7,3)) #Memorial Day, BYITW Day, Independance Day
+ms = ((0,1,0,1,1,0,1,0),(0,1,1,0,0,1,1,0),(0,1,1,0,1,0,0,1))
 
 random.seed(datetime.datetime.now())
 
@@ -239,10 +240,11 @@ class Scores(ndb.Model):
     A model for tracking game scores
     """
     week			= ndb.IntegerProperty(indexed=True)
+    tier            = ndb.IntegerProperty(indexed=True)
     slot			= ndb.IntegerProperty(indexed=True)
     game			= ndb.IntegerProperty(indexed=True)
-    team1_score		= ndb.IntegerProperty(indexed=False)
-    team2_score		= ndb.IntegerProperty(indexed=False)
+    score1  		= ndb.IntegerProperty(indexed=False)
+    score2  		= ndb.IntegerProperty(indexed=False)
 	
     
 class MainPage(webapp2.RequestHandler):
@@ -553,10 +555,96 @@ class Scheduler(webapp2.RequestHandler):
         # Calculate what week# next week will be
         week = int(math.floor(int((today - startdate).days)/7)+1)
         if week < 1: week = 1
-        # Now that we know what week it will be next, get the players who will definitely be on bye
         player_data = get_player_data(week, self)
-        player_list = player_data.keys()
-        player_list = sorted(player_list, key=lambda k: player_data[k].rank)
+        old_player_list = player_data.keys()
+        old_player_list = sorted(old_player_list, key=lambda k: player_data[k].rank)
+
+        
+        # If there is no existing schedule for this week, we know it is the first time the scheduler has run for this week
+        # So we should first reorder the players based on the previous week's results. Unless this is week 1
+        if week > 1:
+            qry = Schedule.query(ancestor=db_key(now.year))
+            qry = qry.filter(Schedule.week == week)
+            if qry.count() == 0: #Check if there is already a schedule for this week, if there isn't, we must reorder the player list based on last week's scores
+                qry = Schedule.query(ancestor=db_key(now.year))
+                qry = qry.filter(Schedule.week == week-1)
+                qry = qry.order(-Schedule.tier, Schedule.position)
+                schedule_results = qry.fetch()
+                tiers = schedule_results[0].tier
+                tier_position = [] * (tiers+1)
+                on_bye = []
+                for p in schedule_results:
+                    tier_position[p.tier].append([p.id, 0]) # Fill with the player IDs
+                    if p.tier == 0:
+                        on_bye.append(p.id)
+                
+                qry = Scores.query(ancestor=db_key(now.year))
+                qry = qry.filter(Scores.week == week)
+                qry = qry.order(Scores.tier, Scores.game)
+                results = qry.fetch()
+                if results:
+                    for score in results:
+                        if score.game == 1:
+                            tier_position[score.tier][0][1] += (score.score1-score.score2)
+                            tier_position[score.tier][2][1] += (score.score1-score.score2)
+                            tier_position[score.tier][5][1] += (score.score1-score.score2)
+                            tier_position[score.tier][7][1] += (score.score1-score.score2)
+                            tier_position[score.tier][1][1] += (score.score2-score.score1)
+                            tier_position[score.tier][3][1] += (score.score2-score.score1)
+                            tier_position[score.tier][4][1] += (score.score2-score.score1)
+                            tier_position[score.tier][6][1] += (score.score2-score.score1)
+                        if score.game == 2:
+                            tier_position[score.tier][0][1] += (score.score1-score.score2)
+                            tier_position[score.tier][3][1] += (score.score1-score.score2)
+                            tier_position[score.tier][4][1] += (score.score1-score.score2)
+                            tier_position[score.tier][7][1] += (score.score1-score.score2)
+                            tier_position[score.tier][1][1] += (score.score2-score.score1)
+                            tier_position[score.tier][2][1] += (score.score2-score.score1)
+                            tier_position[score.tier][5][1] += (score.score2-score.score1)
+                            tier_position[score.tier][6][1] += (score.score2-score.score1)
+                        if score.game == 3:
+                            tier_position[score.tier][0][1] += (score.score1-score.score2)
+                            tier_position[score.tier][3][1] += (score.score1-score.score2)
+                            tier_position[score.tier][5][1] += (score.score1-score.score2)
+                            tier_position[score.tier][6][1] += (score.score1-score.score2)
+                            tier_position[score.tier][1][1] += (score.score2-score.score1)
+                            tier_position[score.tier][2][1] += (score.score2-score.score1)
+                            tier_position[score.tier][4][1] += (score.score2-score.score1)
+                            tier_position[score.tier][7][1] += (score.score2-score.score1)
+                    for t in range(1, tiers+1)
+                        tier_position[t] = sorted(tier_position[t], key=lambda k: k[1], reverse=True)
+                    temp_rank_list = []
+                    for x in range(1,tiers+1):
+                        if x == 1: # If the top tier, top performers move to the top
+                            temp_rank_list.append(tier_position[x][0][0])
+                            temp_rank_list.append(tier_position[x][1][0])
+                        temp_rank_list.append(tier_position[x][2][0])
+                        temp_rank_list.append(tier_position[x][3][0])
+                        if x > 1: # If not the top tier, bottom performers from tier above move down here
+                            temp_rank_list.append(tier_position[x-1][6][0])
+                            temp_rank_list.append(tier_position[x-1][7][0])                        
+                        if x < tiers: # If not the bottom tier, top performers from tier below move up here
+                            temp_rank_list.append(tier_position[x+1][0][0])
+                            temp_rank_list.append(tier_position[x+1][1][0])
+                        temp_rank_list.append(tier_position[x][4][0])
+                        temp_rank_list.append(tier_position[x][5][0])
+                        if x == tiers: # If the bottom tier, bottom performers move to the bottom
+                            temp_rank_list.append(tier_position[x][6][0])
+                            temp_rank_list.append(tier_position[x][7][0])
+                    for p in range(len(old_player_list)):
+                        if p in on_bye:
+                            player_list.append(p)
+                        else:
+                            player_list.append(temp_rank_list.pop(0))
+                else:
+                    player_list = old_player_list
+            else:
+                player_list = old_player_list
+        else:
+            player_list = old_player_list
+        
+        
+        
         # Create a list of players ids on bye this week because of FTO
         bye_list = []
         if player_list:
@@ -679,8 +767,14 @@ class Weekly_Schedule(webapp2.RequestHandler):
         player = get_player(self)      
         
         # Calculate what week# next week will be
-        week = int(math.floor(int((today - startdate).days+3)/7))
-        if week < 1: week = 1
+        if self.request.get('w'):
+            week = int(self.request.get('w'))
+        else:
+            week = int(math.floor(int((today - startdate).days+3)/7))
+        if week < 1:
+            week = 1
+        if week > numWeeks:
+            week = numWeeks
         slots = []
         for d in range(5):
             slots.append(startdate + datetime.timedelta(days=(7*(week-1)+d)))
@@ -694,6 +788,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
             'year': get_year_string(),
             'page': 'week',
             'week': week,
+            'numWeeks': numWeeks,
             'slots': slots,
             'schedule_data': schedule_data,
             'is_signed_up': player is not None,
@@ -704,6 +799,43 @@ class Weekly_Schedule(webapp2.RequestHandler):
         self.response.write(template.render(template_values))
 
 class Daily_Schedule(webapp2.RequestHandler):
+    def post(self):
+        user = users.get_current_user()
+        now = datetime.datetime.today()
+        # See if user is logged in and signed up
+        login_info = get_login_info(self)
+        user = users.get_current_user()
+        player = get_player(self)
+        
+        week = int(self.request.get('w'))
+        day = int(self.request.get('d'))
+        tier = int(self.request.get('t'))
+        
+        if self.request.get('action') == "Scores":
+            qry = Scores.query(ancestor=db_key(now.year))
+            qry = qry.filter(Scores.week == week, Scores.slot == day)
+            sr = qry.fetch()
+            for s in sr:
+                s.key.delete() # Delete the old scores
+            
+            for g in range(1,4):
+                score = Scores(parent=db_key(now.year))
+                score.week = week
+                score.slot = day
+                score.game = g
+                if self.request.get("score-%s-1" % g):
+                    score.score1 = int(self.request.get("score-%s-1" % g))
+                else:
+                    score.score1 = 0
+                if self.request.get("score-%s-2" % g):
+                    score.score2 = int(self.request.get("score-%s-2" % g))
+                else:
+                    score.score2 = 0
+                if score.score1 or score.score2:
+                    score.put() # Save the new scores
+        
+        self.redirect("day")
+                        
     def get(self):
         today = datetime.date.today()
         year = today.year        
@@ -742,19 +874,33 @@ class Daily_Schedule(webapp2.RequestHandler):
             games = True
         else:
             games = False
-    	
-        ms = ((0,1,0,1,1,0,1,0),(0,1,1,0,0,1,1,0),(0,1,1,0,1,0,0,1))
+        
+    	tier = schedule_data[0].tier
+        
         game_team = [[],[]],[[],[]],[[],[]]
         for p in schedule_data:
             for x in range(3):
                 game_team[x][ms[x][p.position-1]].append(p.name)
-
+        
+        qry = Scores.query(ancestor=db_key(year))
+        qry = qry.filter(Scores.week == week, Scores.slot == day)
+        sr = qry.fetch()
+        
+        score = [['',''],['',''],['','']]
+        if sr:
+            for s in sr:
+                score[s.game-1][0] = s.score1
+                score[s.game-1][1] = s.score2
+        
+    
         template_values = {
             'year': get_year_string(),
             'page': 'day',
             'week': week,
             'day': day,
+            'tier': tier,
             'games': games,
+            'score': score,
             'numWeeks': numWeeks,
             'schedule_day': schedule_day,
             'game_team': game_team,
