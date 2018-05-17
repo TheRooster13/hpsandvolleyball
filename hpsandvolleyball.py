@@ -611,7 +611,7 @@ class Scheduler(webapp2.RequestHandler):
                             tier_position[score.tier][2][1] += (score.score2-score.score1)
                             tier_position[score.tier][4][1] += (score.score2-score.score1)
                             tier_position[score.tier][7][1] += (score.score2-score.score1)
-                    for t in range(1, tiers+1)
+                    for t in range(1, tiers+1):
                         tier_position[t] = sorted(tier_position[t], key=lambda k: k[1], reverse=True)
                     temp_rank_list = []
                     for x in range(1,tiers+1):
