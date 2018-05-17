@@ -12,7 +12,9 @@
 
   <div class="row">
   {% if is_signed_up %}
+  {% if not active_schedule %}
   <form class="form-horizontal" action="unsignup" method="post">
+  {% endif %}
   {% else %}
   <form class="form-horizontal" action="signup" method="post">
   {% endif %}
@@ -60,7 +62,7 @@
 	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Decommit</button>
 			{% else %}
 			<button id="commit" name="action" type="submit" class="btn disabled btn-block" value="Commit">
-	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Decommit</button>
+	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Cannot Decommit - The Season Has Started</button>
 			{% endif %}
 	    	{% else %}
 			<H3 class="text-danger">This activity presents the risk of injury. This exculpatory release confirms that the participant who commits below accepts all aspects of that risk.</H2>
@@ -103,7 +105,6 @@
      	</div>
     </div>
   </div>
-
   </form>
   </div> <!-- row -->
 
