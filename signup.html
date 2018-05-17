@@ -53,11 +53,15 @@
 
 			{% if login.logged_in %}
 			{% if is_signed_up %}
-            <p>If you need to modify your player information (e.g. name, email or phone number), send me an email and I can change it for you.</p>
-			<p>You can only decommit if you have not yet been added to the schedule. Once you have been added, and you want to quit, you must set your personal schedule to absent for the remaining weeks.</p>
-	        <p>If you need to modify your player information after being added to the schedule, contact the league administrator.</p>
-            <button id="commit" name="action" type="submit" class="btn btn-danger btn-block" value="Commit">
+            <p>If you need to modify your player information (e.g. name, email or phone number), contact the administrator.</p>
+			<p>You can only decommit if the initial schedule hasn't yet posted. Once the schedule has been posted, if you want to quit, you must set your personal schedule to absent for the remaining weeks.</p>
+            {% if not active_schedule %}
+			<button id="commit" name="action" type="submit" class="btn btn-danger btn-block" value="Commit">
 	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Decommit</button>
+			{% else %}
+			<button id="commit" name="action" type="submit" class="btn disabled btn-block" value="Commit">
+	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Decommit</button>
+			{% endif %}
 	    	{% else %}
 			<H3 class="text-danger">This activity presents the risk of injury. This exculpatory release confirms that the participant who commits below accepts all aspects of that risk.</H2>
 			<div>

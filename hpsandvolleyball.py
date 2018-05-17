@@ -311,12 +311,17 @@ class Signup(webapp2.RequestHandler):
 		login_info = get_login_info(self)
 		user = users.get_current_user()
 		player = get_player(self)
+		
+		qry = Schedule.query(ancestor=db_key(now.year))
+		active_schedule = qry.count() > 0
+		
 		template_values = {
 			'year': get_year_string(),
 			'page': 'signup',
 			'user': user,
 			'player_list': player_list,
 			'is_signed_up': player is not None,
+			'active_schedule': active_schedule,
 			'player': player,
 			'login': login_info,
 		}

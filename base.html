@@ -97,11 +97,21 @@
             {% else %}
             <li><a href="/signup">Signup</a></li>
             {% endif %}
+            {% if page == "week" %}
+            <li class="active"><a href="#">Schedule<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/week">Schedule</a></li>
+            {% endif %}
+            {% if page == "day" %}
+            <li class="active"><a href="#">Scores<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/day">Scores</a></li>
+            {% endif %}
             {% if is_signed_up %}
             {% if page == "fto" %}
-            <li class="active"><a href="#">FTO Schedule<span class="sr-only">(current)</span></a></li> 
+            <li class="active"><a href="#">FTO<span class="sr-only">(current)</span></a></li> 
             {% else %}
-            <li><a href="/fto">FTO Schedule</a></li>
+            <li><a href="/fto">FTO</a></li>
             {% endif %}
             {% endif %}
             {% if page == "info" %}
