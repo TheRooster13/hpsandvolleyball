@@ -52,3 +52,18 @@ indexes:
   - name: week
   - name: slot
   - name: position
+
+- kind: Schedule
+  ancestor: yes
+  properties:
+  - name: week
+  - name: tier
+    direction: desc
+  - name: position
+
+- kind: Scores
+  ancestor: yes
+  properties:
+  - name: week
+  - name: tier
+  - name: game
