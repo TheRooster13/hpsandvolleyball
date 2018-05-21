@@ -954,13 +954,20 @@ class Notify(webapp2.RequestHandler):
 					subject = "Reminder to submit scores"
 					content = Content("text/html", "Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores from today's games.")
 					for p in schedule_data:
-						to_list.append(p.email)
+						pass
+#						to_list.append(p.email)
 		else if self.request.get('t') == "fto":
 			subject = "Reminder to check your FTO/Conflicts for next week"
 			content = Content("text/html", "Next week's schedule will be generated in 30 minutes. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure your schedule is up-to-date for next week.")
 			for p in player_data:
 				if p.email:
-					to_list.append(p.email)
+					pass
+#					to_list.append(p.email)
+		
+		else if self.request.get('t') == "test":
+			subject = "Test email"
+			content = Content("text/html", "Test email. I'd like to make this a meeting invitation.")
+		
 		if subject and content:
 			mail = Mail(from_email, subject, to_email, content)
 			for t in to_list:
