@@ -20,7 +20,7 @@ import webapp2
 # https://github.com/sendgrid/sendgrid-python
 import sendgrid
 from sendgrid.helpers.mail import *
-API_KEY = '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'
+API_KEY = ''
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
