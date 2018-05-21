@@ -6,6 +6,7 @@ import string
 import math
 import random
 import sys
+
 # This is needed for timezone conversion (but not part of standard lib)
 #import dateutil
 
@@ -14,6 +15,12 @@ from google.appengine.ext import ndb
 
 import jinja2
 import webapp2
+
+# using SendGrid's Python Library
+# https://github.com/sendgrid/sendgrid-python
+import sendgrid
+from sendgrid.helpers.mail import *
+API_KEY = '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'
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
@@ -914,17 +921,68 @@ class Daily_Schedule(webapp2.RequestHandler):
 
 		template = JINJA_ENVIRONMENT.get_template('day.html')
 		self.response.write(template.render(template_values))
+
+class Notify(webapp2.RequestHandler):
+	sg = sendgrid.SendGridAPIClient(apikey=API_KEY)
+	def get(self):
+		today = datetime.date.today()
+		year = today.year
 		
+		# Calculate what week and day it is
+		week = int(math.floor(int((today - startdate).days)/7))
+		day = today.weekday() + 1
+
+		from_email = Email("noreply@hpsandvolleyball.appspot.com")
+#		to_email = Email("")
+		to_email = Email("brian.bartlow@hp.com")
+
+		player_data = get_player_data(0, self)
+		to_list = []
+		
+		if self.request.get('t') == "score":
+			# Check to see if there is a match scheduled for today
+			qry = Schedule.query(ancestor=db_key(year))
+			qry = qry.filter(Schedule.week == week, Schedule.slot == day)
+			qry = qry.order(Schedule.position)
+			schedule_data = qry.fetch()
+			if schedule_data: # If there is a match scheduled for today
+				# Check to see if scores have been entered for today's match
+				qry = Scores.query(ancestor=db_key(year))
+				qry = qry.filter(Scores.week == week, Scores.slot == day)
+				sr = qry.count()
+				if sr == 0: # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
+					subject = "Reminder to submit scores"
+					content = Content("text/html", "Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores from today's games.")
+					for p in schedule_data:
+						to_list.append(p.email)
+		else if self.request.get('t') == "fto":
+			subject = "Reminder to check your FTO/Conflicts for next week"
+			content = Content("text/html", "Next week's schedule will be generated in 30 minutes. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure your schedule is up-to-date for next week.")
+			for p in player_data:
+				if p.email:
+					to_list.append(p.email)
+		if subject and content:
+			mail = Mail(from_email, subject, to_email, content)
+			for t in to_list:
+				mail.personalizations[0].add_to(Email(t))
+
+		
+		response = sg.client.mail.send.post(request_body=mail.get())
+		print(response.status_code)
+		print(response.body)
+		print(response.headers)
+
 		
 app = webapp2.WSGIApplication([
-	('/',		   		MainPage),
+	('/',					MainPage),
 	('/signup',				Signup),
-	('/unsignup', 			Unsignup),
-	('/info',	 			Info),
-	('/ftolog',	  		Ftolog),
-	('/fto',	 			FTO),
-	('/week',			   Weekly_Schedule),
+	('/unsignup',			Unsignup),
+	('/info',				Info),
+	('/ftolog',				Ftolog),
+	('/fto',				FTO),
+	('/week',				Weekly_Schedule),
 	('/day',				Daily_Schedule),
-	('/admin',			  Admin),
+	('/admin',				Admin),
+	('/tasks/notify',		Notify),
 	('/tasks/scheduler',	Scheduler),
 ], debug=True)
