@@ -21,7 +21,6 @@ import webapp2
 # https://github.com/sendgrid/sendgrid-python
 # import sendgrid
 # from sendgrid.helpers.mail import *
-# API_KEY = ''
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
