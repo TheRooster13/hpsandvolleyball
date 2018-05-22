@@ -749,7 +749,8 @@ class Scheduler(webapp2.RequestHandler):
 		results = qry.fetch()
 		for r in results:
 			r.key.delete()
-		
+
+		sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY) # Object for sending emails
 		y=0
 		for x in tier_list:
 			z=0
