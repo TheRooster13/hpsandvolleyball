@@ -6,7 +6,7 @@ import string
 import math
 import random
 import sys
-import keys
+
 
 # This is needed for timezone conversion (but not part of standard lib)
 #import dateutil
@@ -19,8 +19,9 @@ import webapp2
 
 # using SendGrid's Python Library
 # https://github.com/sendgrid/sendgrid-python
-# import sendgrid
-# from sendgrid.helpers.mail import *
+import keys
+import sendgrid
+from sendgrid.helpers.mail import *
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
@@ -922,9 +923,9 @@ class Daily_Schedule(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('day.html')
 		self.response.write(template.render(template_values))
 
-"""
+
 class Notify(webapp2.RequestHandler):
-	sg = sendgrid.SendGridAPIClient(apikey=API_KEY)
+	sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
 	def get(self):
 		today = datetime.date.today()
 		year = today.year
@@ -978,7 +979,7 @@ class Notify(webapp2.RequestHandler):
 		response = sg.client.mail.send.post(request_body=mail.get())
 		print(response.status_code)
 		print(response.body)
-		print(response.headers)"""
+		print(response.headers)
 
 		
 app = webapp2.WSGIApplication([
@@ -991,6 +992,6 @@ app = webapp2.WSGIApplication([
 	('/week',				Weekly_Schedule),
 	('/day',				Daily_Schedule),
 	('/admin',				Admin),
-#	('/tasks/notify',		Notify),
+	('/tasks/notify',		Notify),
 	('/tasks/scheduler',	Scheduler),
 ], debug=True)
