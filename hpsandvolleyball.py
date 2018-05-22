@@ -925,8 +925,9 @@ class Daily_Schedule(webapp2.RequestHandler):
 
 
 class Notify(webapp2.RequestHandler):
-	sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
 	def get(self):
+		sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
+
 		today = datetime.date.today()
 		year = today.year
 		
@@ -937,9 +938,12 @@ class Notify(webapp2.RequestHandler):
 		from_email = Email("noreply@hpsandvolleyball.appspot.com")
 #		to_email = Email("")
 		to_email = Email("brian.bartlow@hp.com")
+		subject = "Please Ignore"
+		content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
 
 		player_data = get_player_data(0, self)
 		to_list = []
+		sendit = False
 		
 		if self.request.get('t') == "score":
 			# Check to see if there is a match scheduled for today
@@ -955,31 +959,33 @@ class Notify(webapp2.RequestHandler):
 				if sr == 0: # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
 					subject = "Reminder to submit scores"
 					content = Content("text/html", "Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores from today's games.")
+					sendit = True
 					for p in schedule_data:
-						pass
-#						to_list.append(p.email)
+#						pass
+						to_list.append(p.email)
+
 		elif self.request.get('t') == "fto":
-			subject = "Reminder to check your FTO/Conflicts for next week"
-			content = Content("text/html", "Next week's schedule will be generated in 30 minutes. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure your schedule is up-to-date for next week.")
+			subject = "Reminder to check and update your FTO/Conflicts for next week"
+			content = Content("text/html", """Next week's schedule will be generated at 2:00. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure your schedule is up-to-date for next week.
+			If that link doesn't work, you probably need to log in again. Be sure to log in with your correct Google account.""")
+			sendit = True
 			for p in player_data:
 				if p.email:
-					pass
-#					to_list.append(p.email)
+#					pass
+					to_list.append(p.email)
 		
 		elif self.request.get('t') == "test":
-			subject = "Test email"
-			content = Content("text/html", "Test email. I'd like to make this a meeting invitation.")
+			subject = "Test"
+			content = Content("text/html", "Test email. Please ignore.")
+			to_list.append("brian.bartlow@hp.com")
+			sendit = True
 		
-		if subject and content:
+		if sendit:
 			mail = Mail(from_email, subject, to_email, content)
-			for t in to_list:
-				mail.personalizations[0].add_to(Email(t))
-
-		
-		response = sg.client.mail.send.post(request_body=mail.get())
-		print(response.status_code)
-		print(response.body)
-		print(response.headers)
+			response = sg.client.mail.send.post(request_body=mail.get())
+			print(response.status_code)
+			print(response.body)
+			print(response.headers)
 
 		
 app = webapp2.WSGIApplication([

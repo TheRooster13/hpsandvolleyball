@@ -3,3 +3,11 @@ cron:
   url: /tasks/scheduler
   schedule: every fri 14:00
   timezone: America/Boise
+- description: "reminder to enter scores"
+  url: /tasks/notify?t=score
+  schedule: every mon, tues, wed, thurs, fri 13:30
+  timezone: America/Boise
+- description: "reminder to check fto"
+  url: /tasks/notify?t=fto
+  schedule: every fri 13:00
+  timezone: America/Boise
