@@ -778,19 +778,6 @@ class Scheduler(webapp2.RequestHandler):
 		
 			y+=1
 		
-		qry = Schedule.query(ancestor=db_key(year))
-		qry = qry.filter(Schedule.week = week)
-		qry = qry.order(Schedule.slot, Schedule.position)
-		schedule_data = qry.fetch()
-		
-		match_date = []
-		
-		for entry in schedule_data:
-			if entry.slot > 0:
-				match_date.append(startdate + datetime.timedelta(days=(7*(week-1)+(entry.slot-1))))
-				
-				
-		
 		sys.stdout.flush()
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
 		self.response.write(template.render({}))
