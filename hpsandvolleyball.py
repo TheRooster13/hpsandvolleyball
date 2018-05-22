@@ -749,21 +749,48 @@ class Scheduler(webapp2.RequestHandler):
 		results = qry.fetch()
 		for r in results:
 			r.key.delete()
-
+		
 		y=0
 		for x in tier_list:
 			z=0
+			name_list = list()
+			email_list = list()
 			for p in x:
 				z+=1
-				s = Schedule(parent=db_key(year))
+				s = Schedule(parent=db_key(year)) #database entry
 				s.id = p
 				s.name = player_data[p].name
 				s.week = week
 				s.slot = tier_slot[y]
 				s.tier = y
 				s.position = z #1-8
-				s.put()
+				s.put() #Stores the schedule data in the database
+				
+				# Add the player names and emails to some lists for creating and sending an iCalendar event
+				name_list.append(player_data[p].name)
+				email_list.append(player_data[p].email)
+							
+			if y > 0: # If this isn't tier 0 (players on bye)...
+				# Calculate the date for this match
+				match_date = startdate + datetime.timedelta(days=(7*(week-1)+(tier_slot[y]-1)))
+				# Generate an iCalendar Event and email it to the players
+				# --- Need help here---
+		
 			y+=1
+		
+		qry = Schedule.query(ancestor=db_key(year))
+		qry = qry.filter(Schedule.week = week)
+		qry = qry.order(Schedule.slot, Schedule.position)
+		schedule_data = qry.fetch()
+		
+		match_date = []
+		
+		for entry in schedule_data:
+			if entry.slot > 0:
+				match_date.append(startdate + datetime.timedelta(days=(7*(week-1)+(entry.slot-1))))
+				
+				
+		
 		sys.stdout.flush()
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
 		self.response.write(template.render({}))
@@ -788,7 +815,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 			week = numWeeks
 		slots = []
 		for d in range(5):
-			slots.append(startdate + datetime.timedelta(days=(7*(week-1)+d)))
+			slots.append(startdate + datetime.timedelta(days=(7*(week-1)+d))
 		
 		qry = Schedule.query(ancestor=db_key(year))
 		qry = qry.filter(Schedule.week == week)
