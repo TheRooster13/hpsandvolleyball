@@ -860,7 +860,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 		if self.request.get('w'):
 			week = int(self.request.get('w'))
 		else:
-			week = int(math.floor(int((today - startdate).days)/7))
+			week = int(math.floor(int((today - startdate).days)/7)+1)
 		if week < 1 :
 			week = 1
 			day = 1
