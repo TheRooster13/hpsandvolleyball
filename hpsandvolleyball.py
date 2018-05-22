@@ -803,7 +803,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 			week = numWeeks
 		slots = []
 		for d in range(5):
-			slots.append(startdate + datetime.timedelta(days=(7*(week-1)+d))
+			slots.append(startdate + datetime.timedelta(days=(7*(week-1)+d)))
 		
 		qry = Schedule.query(ancestor=db_key(year))
 		qry = qry.filter(Schedule.week == week)
@@ -871,6 +871,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 		user = users.get_current_user()
 		player = get_player(self)	  
 		
+		day = 0
 		# Calculate what week and day it is
 		if self.request.get('w'):
 			week = int(self.request.get('w'))
