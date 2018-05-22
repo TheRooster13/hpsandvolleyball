@@ -1,7 +1,4 @@
-from sendgrid import *
-from message import *
-
-del sendgrid, message
-
-__version__ = "0.1.3"
-version_info = (0, 1, 3)
+from .version import __version__  # noqa
+# v3 API
+from .sendgrid import SendGridAPIClient  # noqa
+from .helpers.mail.mail import Email  # noqa
