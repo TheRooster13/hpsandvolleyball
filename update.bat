@@ -1,1 +1,1 @@
-gcloud app deploy app.yaml index.yaml --project hpsandvolleyball
+gcloud app deploy app.yaml index.yaml cron.yaml --project hpsandvolleyball
