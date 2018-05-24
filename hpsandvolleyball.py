@@ -7,6 +7,14 @@ import math
 import random
 import sys
 
+#RICH ADD START
+#import icalendar
+#import uuid
+#import email.MIMEBase
+#from email.MIMEMultipart import MIMEMultipart
+#The following won't be needed if we send via sendgrid
+#import smtplib
+#RICH ADD END
 
 # This is needed for timezone conversion (but not part of standard lib)
 #import dateutil
@@ -755,7 +763,7 @@ class Scheduler(webapp2.RequestHandler):
 		for x in tier_list:
 			z=0
 			name_list = list()
-			email_list = list()
+			self.email_list = list()
 			for p in x:
 				z+=1
 				s = Schedule(parent=db_key(year)) #database entry
@@ -769,19 +777,130 @@ class Scheduler(webapp2.RequestHandler):
 				
 				# Add the player names and emails to some lists for creating and sending an iCalendar event
 				name_list.append(player_data[p].name)
-				email_list.append(player_data[p].email)
+				self.email_list.append(player_data[p].email)
 							
 			if y > 0: # If this isn't tier 0 (players on bye)...
 				# Calculate the date for this match
-				match_date = startdate + datetime.timedelta(days=(7*(week-1)+(tier_slot[y]-1)))
+				self.match_date = startdate + datetime.timedelta(days=(7*(week-1)+(tier_slot[y]-1)))
 				# Generate an iCalendar Event and email it to the players
-				# --- Need help here---
+            #RICH ADD START
+            ## Required parameters for GenInvite
+            #self.startHour  = 12
+            #self.durationH  = 1
+            #self.location   = 'N/S Sand Court'
+            #self.match_time = datetime.datetime.combine(self.match_date, datetime.time(self.startHour,0,0))
+
+            ##Organizer (Will recieve responses)
+            #self.sendfrom   = 'brian.bartlow@hp.com'
+            #
+            ##Simple message to players
+            ##Could add lineup for games
+            #self.msg_to_plyrs = "Weekly match invite."
+
+            ##MIME message generation
+            #self.msg = MIMEMultipart("mixed")
+            #self.msg['Subject'] = 'Sand Volleyball Match'
+            #self.msg['From'] = self.sendfrom
+            #self.msg['To']   = ", ".join(self.email_list)
+            #
+            ##Generate the invite (requires:
+            ##                     self.match_date, self.email_list self.startHour,
+            ##                     self.durationH, self.location, self.reminderMins,
+            ##                     self.match_time, self.sendfrom self.msg_to_plyrs,
+            ##                     self.msg
+            #self.GenInvite()
+            #
+            ## Send the message via our own SMTP server.
+            ## TODO: Needs to be modified for sendgrid
+            #s = smtplib.SMTP('localhost')
+            #s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+            #s.quit()
+            #RICH ADD END
 		
 			y+=1
 		
 		sys.stdout.flush()
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
 		self.response.write(template.render({}))
+	#RICH ADD START
+   #def GenInivte(self):
+   #   #Create the calendar component
+   #   cal = icalendar.Calendar()
+   #   cal.add('method', 'REQUEST')
+   #   cal.add('prodid', 'HP Sand VB ics')
+   #   
+   #   #This makes Outlook happy
+   #   #Copied format based on working invite
+   #   #We're all in Boise so I'm not too worried about TZ
+   #   timz= icalendar.Timezone()
+   #   timz.add('tzid', 'Mountain Standard Time')
+   #   timzs= icalendar.TimezoneStandard()
+   #   timzs.add('dtstart', datetime.datetime(1601, 1, 1, 2, 0 , 0))
+   #   timzs['tzoffsetfrom'] = '-0600'
+   #   timzs['tzoffsetto'] = '-0700' 
+   #   timzd= icalendar.TimezoneDaylight()
+   #   timzd.add('dtstart', datetime.datetime(1601, 1, 1, 2, 0 , 0))
+   #   timzd['tzoffsetfrom'] = '-0700'
+   #   timzd['tzoffsetto'] = '-0600' 
+   #   timz.add_component(timzs)
+   #   timz.add_component(timzd)
+   #   cal.add_component(timz)
+   #   
+   #   #Create the Event component
+   #   event = icalendar.Event()
+   #   
+   #   #Add attendees
+   #   for a in range(len(self.email_list)):
+   #      attendee = icalendar.vCalAddress('MAILTO:'+self.email_list[a])
+   #      attendee.params['ROLE']= icalendar.vText('REQ-PARTICIPANT')
+   #      attendee.params['PARTSTAT']= icalendar.vText('NEEDS-ACTION')
+   #      attendee.params['RSVP']= icalendar.vText('TRUE')
+   #      event.add('attendee', attendee)
+   #   
+   #   #Specify the organizer
+   #   organizer = icalendar.vCalAddress('MAILTO:' + self.sendfrom)
+   #   organizer.params['CN'] = icalendar.vText('Mr. Sandman')
+   #   event.add('organizer', organizer)
+   #   
+   #   #Add more calendar invite information
+   #   event.add('description', self.msg_to_plyrs)
+   #   event.add('location', self.location)
+   #   event.add('dtstart', self.match_time)
+   #   event.add('dtend',   datetime.datetime.combine(self.match_date, datetime.time(self.startHour+self.durationH, 0, 0)))
+   #   event.add('dtstamp', datetime.datetime.now())
+   #   event['uid']  = uuid.uuid4().hex
+   #   event.add('status', 'CONFIRMED')
+   #   event.add('priority', 5)
+   #   event.add('sequence', 0)
+   #   event.add('created',   datetime.datetime.now())
+   #   event.add('transp', "OPAQUE")
+   #   
+   #   alarm = icalendar.Alarm()
+   #   alarm.add("action", "DISPLAY")
+   #   alarm.add('description', "REMINDER")
+   #   alarm.add("TRIGGER;RELATED=START", "-PT{0}M".format(self.reminderMins))
+   #   event.add_component(alarm)
+   #   
+   #   cal.add_component(event)
+   #   
+   #   #Don't think we need to actually write a file out
+   #   #We set the payload to the contents of cal.to_ical() below
+   #   filename = "invite.ics"
+   #   #f = open(filename, 'wb')
+   #   #f.write(cal.to_ical())
+   #   #f.close()
+   #   
+   #   attachment_part = email.MIMEBase.MIMEBase('text', 'calendar', method="REQUEST", name=filename)
+   #   attachment_part.set_payload(cal.to_ical())
+   #   attachment_part.set_type('text/calendar; charset=UTF-8;method=REQUEST;component =VEVENT')
+   #   email.Encoders.encode_base64(attachment_part)
+   #   attachment_part.add_header('Content-Description', filename)
+   #   attachment_part.add_header('Content-class', 'urn:content-classes:calendarmessage')
+   #   attachment_part.add_header('Content-ID', 'calendar_message')
+   #   attachment_part.add_header('Filename', filename)
+   #   attachment_part.add_header('Path', filename)
+   #   self.msg.attach(attachment_part)
+   #RICH ADD END
 
 class Weekly_Schedule(webapp2.RequestHandler):
 	def get(self):
