@@ -8,7 +8,7 @@ import random
 import sys
 
 #RICH ADD START
-import icalendar
+#import icalendar
 import uuid
 import email.MIMEBase
 from email.MIMEMultipart import MIMEMultipart
