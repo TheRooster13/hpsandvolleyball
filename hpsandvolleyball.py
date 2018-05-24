@@ -893,6 +893,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 			week += 1
 		
 		schedule_day = startdate + datetime.timedelta(days=(7*(week-1)+(day-1)))
+
 		
 		qry = Schedule.query(ancestor=db_key(year))
 		qry = qry.filter(Schedule.week == week, Schedule.slot == day)
@@ -919,7 +920,10 @@ class Daily_Schedule(webapp2.RequestHandler):
 			for s in sr:
 				score[s.game-1][0] = s.score1
 				score[s.game-1][1] = s.score2
-		
+
+		is_today = False
+		if today == schedule_day or not score[2][1]:
+			is_today = True		
 	
 		template_values = {
 			'year': get_year_string(),
@@ -931,6 +935,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 			'score': score,
 			'numWeeks': numWeeks,
 			'schedule_day': schedule_day,
+			'is_today': is_today,
 			'game_team': game_team,
 			'is_signed_up': player is not None,
 			'login': login_info,
