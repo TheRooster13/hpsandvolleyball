@@ -13,7 +13,7 @@ import uuid
 import email.MIMEBase
 from email.MIMEMultipart import MIMEMultipart
 #The following won't be needed if we send via sendgrid
-#import smtplib
+import smtplib
 #RICH ADD END
 
 # This is needed for timezone conversion (but not part of standard lib)
@@ -893,20 +893,20 @@ class Scheduler(webapp2.RequestHandler):
 			#					 self.msg
 			GenInvite(self)
 			
-			# Send the message via our own SMTP server.
-			# TODO: Needs to be modified for sendgrid
-			#s = smtplib.SMTP('localhost')
-			#s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
-			#s.quit()
+			# Send the message via SendGrid SMTP server.
+			s = smtplib.SMTP('smtp.sendgrid.net', 587)
+			s.login('apikey', keys.API_KEY)
+			s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+			s.quit()
 			#RICH ADD END
-			self.to_list = []
-			for e in self.email_list:
-				self.to_list.append(Email(e))
-			mail = Mail(Email(self.sendfrom), self.msg['Subject'], self.to_list, self.msg.as_string())
-			response = sg.client.mail.send.post(request_body=mail.get())
-			print(response.status_code)
-			print(response.body)
-			print(response.headers)
+#			self.to_list = []
+#			for e in self.email_list:
+#				self.to_list.append(Email(e))
+#			mail = Mail(Email(self.sendfrom), self.msg['Subject'], self.to_list, self.msg.as_string())
+#			response = sg.client.mail.send.post(request_body=mail.get())
+#			print(response.status_code)
+#			print(response.body)
+#			print(response.headers)
 		
 			y+=1
 		
@@ -1090,8 +1090,7 @@ class Notify(webapp2.RequestHandler):
 
 		from_email = Email("noreply@hpsandvolleyball.appspot.com")
 #		to_email = Email("")
-		to_email = []
-		to_email.append(Email("brian.bartlow@hp.com"))
+		to_email = Email("brian.bartlow@hp.com")
 		subject = "Please Ignore"
 		content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
 
@@ -1158,22 +1157,20 @@ class Notify(webapp2.RequestHandler):
 			#					 self.msg
 			GenInvite(self)
 			
-			# Send the message via our own SMTP server.
-			# TODO: Needs to be modified for sendgrid
-			#s = smtplib.SMTP('localhost')
-			#s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
-			#s.quit()
+			#Send via SendGrid SMTP
+			s = smtplib.SMTP('smtp.sendgrid.net', 587)
+			s.login('apikey', keys.API_KEY)
+			s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+			s.quit()
 			#RICH ADD END
-			to_email = []
-			for e in self.email_list:
-				to_email.append(Email(e))
-			from_email = Email("brian.bartlow@hp.com")
-			subject = "Sand Volleyball Match"
-			content = self.msg.as_string()
-			sendit = True
+
 		
 		if sendit:
 			mail = Mail(from_email, subject, to_email, content)
+			personalization = Personalization()
+			for e in self.email_list:
+				personalization.add_to(Email(e))
+			mail.add_personalization(personalization)
 			response = sg.client.mail.send.post(request_body=mail.get())
 			print(response.status_code)
 			print(response.body)
