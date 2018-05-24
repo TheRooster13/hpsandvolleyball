@@ -8,7 +8,7 @@ import random
 import sys
 
 #RICH ADD START
-#import icalendar
+import icalendar
 import uuid
 import email.MIMEBase
 from email.MIMEMultipart import MIMEMultipart
@@ -249,7 +249,7 @@ def GenInvite(self):
 	event.add('dtstart', self.match_time)
 	event.add('dtend',   datetime.datetime.combine(self.match_date, datetime.time(self.startHour+self.durationH, 0, 0)))
 	event.add('dtstamp', datetime.datetime.now())
-	event['uid']  = uuid.uuid4().hex
+	event['uid'] = self.uid
 	event.add('status', 'CONFIRMED')
 	event.add('priority', 5)
 	event.add('sequence', 0)
@@ -885,6 +885,7 @@ class Scheduler(webapp2.RequestHandler):
 				self.msg['Subject'] = 'Sand Volleyball Match'
 				self.msg['From'] = self.sendfrom
 				self.msg['To']   = ", ".join(self.email_list)
+				self.uid = uuid.uuid4().hex
 				
 				#Generate the invite (requires:
 				#					 self.match_date, self.email_list self.startHour,
@@ -892,11 +893,19 @@ class Scheduler(webapp2.RequestHandler):
 				#					 self.match_time, self.sendfrom self.msg_to_plyrs,
 				#					 self.msg
 				GenInvite(self)
-				
-				# Send the message via SendGrid SMTP server.
+				#Send via SendGrid SMTP
 				s = smtplib.SMTP('smtp.sendgrid.net', 587)
 				s.login('apikey', keys.API_KEY)
 				s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+				
+				# Send another invite with the same UID to the coordinator, from a different address.
+				self.sendfrom = "scheduler@hpsandvolleyball.appspot.com"
+				self.email_list = ['brian.bartlow@hp.com']
+				self.msg['From'] = self.sendfrom
+				self.msg['To'] = ", ".join(self.email_list)
+				GenInvite(self)
+				s.sendmail(self.sendfrom, self.msg['To'], self.msg.as_string())
+				
 				s.quit()
 				#RICH ADD END
 		
@@ -1088,6 +1097,7 @@ class Notify(webapp2.RequestHandler):
 
 		player_data = get_player_data(0, self)
 		sendit = False
+		notification_list = []
 		
 		if self.request.get('t') == "score":
 			# Check to see if there is a match scheduled for today
@@ -1106,17 +1116,17 @@ class Notify(webapp2.RequestHandler):
 					sendit = True
 					for p in schedule_data:
 #						pass
-						to_email.append(Email(p.email))
+						notification_list.append(Email(p.email))
 
 		elif self.request.get('t') == "fto":
 			subject = "Reminder to check and update your FTO/Conflicts for next week"
-			content = Content("text/html", """Next week's schedule will be generated at 2:00. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure your schedule is up-to-date for next week.
-			If that link doesn't work, you probably need to log in again. Be sure to log in with your correct Google account.""")
+			content = Content("text/html", """Next week's schedule will be generated at 2:00pm. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure your schedule is up-to-date for next week.
+			If that link doesn't work, please log in with the Google account used when you signed up.""")
 			sendit = True
 			for p in player_data:
 				if p.email:
 #					pass
-					to_email.append(Email(p.email))
+					notification_list.append(Email(p.email))
 		
 		elif self.request.get('t') == "test":
 			self.email_list = ["brian.bartlow@hp.com","richard.w.hernandez@hp.com"]
@@ -1126,21 +1136,22 @@ class Notify(webapp2.RequestHandler):
 			self.startHour  = 12
 			self.durationH  = 1
 			self.location   = 'N/S Sand Court'
-			self.match_time = datetime.datetime.combine(today, datetime.time(self.startHour,0,0))
+			self.match_time = datetime.datetime.combine(datetime.date(2018, 5, 25), datetime.time(self.startHour,0,0))
 			self.reminderMins = 30
 
 			#Organizer (Will recieve responses)
-			self.sendfrom   = 'brian.bartlow@hp.com'
+			self.sendfrom = 'brian.bartlow@hp.com'
 			
 			#Simple message to players
 			#Could add lineup for games
-			self.msg_to_plyrs = "Weekly match invite."
+			self.msg_to_plyrs = "This is a test meeting. Please accept this and then I will delete it and send the cancellation to make sure it all works."
 
 			#MIME message generation
 			self.msg = MIMEMultipart("mixed")
-			self.msg['Subject'] = 'Sand Volleyball Match'
+			self.msg['Subject'] = 'Test Sand Volleyball Match'
 			self.msg['From'] = self.sendfrom
 			self.msg['To']   = ", ".join(self.email_list)
+			self.uid = uuid.uuid4().hex
 			
 			#Generate the invite (requires:
 			#					 self.match_date, self.email_list self.startHour,
@@ -1148,11 +1159,17 @@ class Notify(webapp2.RequestHandler):
 			#					 self.match_time, self.sendfrom self.msg_to_plyrs,
 			#					 self.msg
 			GenInvite(self)
-			
 			#Send via SendGrid SMTP
 			s = smtplib.SMTP('smtp.sendgrid.net', 587)
 			s.login('apikey', keys.API_KEY)
 			s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+			# Send another invite with the same UID to the coordinator, from a different address.
+			self.sendfrom = "scheduler@hpsandvolleyball.appspot.com"
+			self.email_list = ['brian.bartlow@hp.com']
+			self.msg['From'] = self.sendfrom
+			self.msg['To'] = ", ".join(self.email_list)
+			GenInvite(self)
+			s.sendmail(self.sendfrom, self.msg['To'], self.msg.as_string())
 			s.quit()
 			#RICH ADD END
 
@@ -1160,7 +1177,7 @@ class Notify(webapp2.RequestHandler):
 		if sendit:
 			mail = Mail(from_email, subject, to_email, content)
 			personalization = Personalization()
-			for e in self.email_list:
+			for e in notification_list:
 				personalization.add_to(Email(e))
 			mail.add_personalization(personalization)
 			response = sg.client.mail.send.post(request_body=mail.get())
