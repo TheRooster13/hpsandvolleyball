@@ -7,6 +7,9 @@ import math
 import random
 import sys
 
+# For Google Calendar
+from apiclient.discovery import build
+
 #RICH ADD START
 import icalendar
 import uuid
@@ -1131,10 +1134,11 @@ class Notify(webapp2.RequestHandler):
 					notification_list.append(Email(p.email))
 		
 		elif self.request.get('t') == "test":
+			service = build('calendar', 'v3')
 			event = {
 				'summary': 'Sand VolleyBall Match',
 				'location': 'N/S Sand Court',
-				'description': 'Sand Volleyball Match - Google Calendar',
+				'description': 'Sand Volleyball Match - Google Calendar API',
 				'start': {
 					'dateTime': '2018-05-28T12:00:00',
 					'timeZone': 'America/Boise',
@@ -1151,56 +1155,56 @@ class Notify(webapp2.RequestHandler):
 				},
 				}
 			event = service.events().insert(calendarId='primary', sendNotifications=True, body=event).execute()
-			
-			
-			
-"""			self.email_list = ["brian.bartlow@hp.com"]
-			#RICH ADD START
-			# Required parameters for GenInvite
-			self.match_date = datetime.date(2018, 5, 25)
-			self.startHour  = 12
-			self.durationH  = 1
-			self.location   = 'N/S Sand Court'
-			self.match_time = datetime.datetime.combine(self.match_date, datetime.time(self.startHour,0,0))
-			self.reminderMins = 30
 
-			#Organizer (Will recieve responses)
-			self.sendfrom = 'brian.bartlow@hp.com'
-			
-			#Simple message to players
-			#Could add lineup for games
-			self.msg_to_plyrs = "This is a test meeting. It comes in pretty now, but I don't see a way to edit the meeting for the participants. For example, if I need to cancel it."
 
-			#MIME message generation
-			self.msg = MIMEMultipart("mixed")
-			self.msg['Subject'] = 'Test Sand Volleyball Match'
-			self.msg['From'] = self.sendfrom
-			self.msg['To']   = ", ".join(self.email_list)
-			self.uid = uuid.uuid4().hex
-			
-			#Generate the invite (requires:
-			#					 self.match_date, self.email_list self.startHour,
-			#					 self.durationH, self.location, self.reminderMins,
-			#					 self.match_time, self.sendfrom self.msg_to_plyrs,
-			#					 self.msg
-			GenInvite(self)
-			#Send via SendGrid SMTP
-			s = smtplib.SMTP('smtp.sendgrid.net', 587)
-			s.login('apikey', keys.API_KEY)
+
+#			self.email_list = ["brian.bartlow@hp.com"]
+#			#RICH ADD START
+#			# Required parameters for GenInvite
+#			self.match_date = datetime.date(2018, 5, 25)
+#			self.startHour  = 12
+#			self.durationH  = 1
+#			self.location   = 'N/S Sand Court'
+#			self.match_time = datetime.datetime.combine(self.match_date, datetime.time(self.startHour,0,0))
+#			self.reminderMins = 30
+#
+#			#Organizer (Will recieve responses)
+#			self.sendfrom = 'brian.bartlow@hp.com'
+#			
+#			#Simple message to players
+#			#Could add lineup for games
+#			self.msg_to_plyrs = "This is a test meeting. It comes in pretty now, but I don't see a way to edit the meeting for the participants. For example, if I need to cancel it."
+#
+#			#MIME message generation
+#			self.msg = MIMEMultipart("mixed")
+#			self.msg['Subject'] = 'Test Sand Volleyball Match'
+#			self.msg['From'] = self.sendfrom
+#			self.msg['To']   = ", ".join(self.email_list)
+#			self.uid = uuid.uuid4().hex
+#			
+#			#Generate the invite (requires:
+#			#					 self.match_date, self.email_list self.startHour,
+#			#					 self.durationH, self.location, self.reminderMins,
+#			#					 self.match_time, self.sendfrom self.msg_to_plyrs,
+#			#					 self.msg
+#			GenInvite(self)
+#			#Send via SendGrid SMTP
+#			s = smtplib.SMTP('smtp.sendgrid.net', 587)
+#			s.login('apikey', keys.API_KEY)
 #			s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
-			# Send another invite with the same UID to the coordinator, from a different address.
-			self.sendfrom = "brianbartlow@gmail.com"
-			self.email_list = ['brian.bartlow@hp.com']
-			self.msg = MIMEMultipart("mixed")
-			self.msg['Subject'] = 'Test Sand Volleyball Match'
-			self.msg['From'] = self.sendfrom
-			self.msg['To'] = ", ".join(self.email_list)
-			GenInvite(self)
-			s.sendmail(self.sendfrom, self.msg['To'], self.msg.as_string())
-			s.quit()
-			#RICH ADD END"""
+#			# Send another invite with the same UID to the coordinator, from a different address.
+#			self.sendfrom = "brianbartlow@gmail.com"
+#			self.email_list = ['brian.bartlow@hp.com']
+#			self.msg = MIMEMultipart("mixed")
+#			self.msg['Subject'] = 'Test Sand Volleyball Match'
+#			self.msg['From'] = self.sendfrom
+#			self.msg['To'] = ", ".join(self.email_list)
+#			GenInvite(self)
+#			s.sendmail(self.sendfrom, self.msg['To'], self.msg.as_string())
+#			s.quit()
+#			#RICH ADD END
 
-		
+
 		if sendit:
 			mail = Mail(from_email, subject, to_email, content)
 			personalization = Personalization()
