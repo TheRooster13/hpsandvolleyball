@@ -878,7 +878,7 @@ class Scheduler(webapp2.RequestHandler):
 				
 				#Simple message to players
 				#Could add lineup for games
-				self.msg_to_plyrs = "Weekly match invite."
+				self.msg_to_plyrs = "This is a placeholder for your sand volleyball match. Please respond either accepting or declining the invite. Preferrably accepting. :)"
 
 				#MIME message generation
 				self.msg = MIMEMultipart("mixed")
@@ -896,15 +896,17 @@ class Scheduler(webapp2.RequestHandler):
 				#Send via SendGrid SMTP
 				s = smtplib.SMTP('smtp.sendgrid.net', 587)
 				s.login('apikey', keys.API_KEY)
-				s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+#				s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
 				
 				# Send another invite with the same UID to the coordinator, from a different address.
 				self.sendfrom = "scheduler@hpsandvolleyball.appspot.com"
 				self.email_list = ['brian.bartlow@hp.com']
+				self.msg = MIMEMultipart("mixed")
+				self.msg['Subject'] = 'Test Sand Volleyball Match'
 				self.msg['From'] = self.sendfrom
 				self.msg['To'] = ", ".join(self.email_list)
 				GenInvite(self)
-				s.sendmail(self.sendfrom, self.msg['To'], self.msg.as_string())
+#				s.sendmail(self.sendfrom, self.msg['To'], self.msg.as_string())
 				
 				s.quit()
 				#RICH ADD END
@@ -1129,14 +1131,37 @@ class Notify(webapp2.RequestHandler):
 					notification_list.append(Email(p.email))
 		
 		elif self.request.get('t') == "test":
-			self.email_list = ["brian.bartlow@hp.com","richard.w.hernandez@hp.com"]
+			event = {
+				'summary': 'Sand VolleyBall Match',
+				'location': 'N/S Sand Court',
+				'description': 'Sand Volleyball Match - Google Calendar',
+				'start': {
+					'dateTime': '2018-05-28T12:00:00',
+					'timeZone': 'America/Boise',
+					},
+				'end': {
+					'dateTime': '2015-05-28T13:00:00',
+					'timeZone': 'America/Boise',
+					},
+				'attendees': [
+				{'email': 'brian.bartlow@hp.com'},
+				],
+				'reminders': {
+				'useDefault': True,
+				},
+				}
+			event = service.events().insert(calendarId='primary', sendNotifications=True, body=event).execute()
+			
+			
+			
+"""			self.email_list = ["brian.bartlow@hp.com"]
 			#RICH ADD START
 			# Required parameters for GenInvite
-			self.match_date = today
+			self.match_date = datetime.date(2018, 5, 25)
 			self.startHour  = 12
 			self.durationH  = 1
 			self.location   = 'N/S Sand Court'
-			self.match_time = datetime.datetime.combine(datetime.date(2018, 5, 25), datetime.time(self.startHour,0,0))
+			self.match_time = datetime.datetime.combine(self.match_date, datetime.time(self.startHour,0,0))
 			self.reminderMins = 30
 
 			#Organizer (Will recieve responses)
@@ -1144,7 +1169,7 @@ class Notify(webapp2.RequestHandler):
 			
 			#Simple message to players
 			#Could add lineup for games
-			self.msg_to_plyrs = "This is a test meeting. Please accept this and then I will delete it and send the cancellation to make sure it all works."
+			self.msg_to_plyrs = "This is a test meeting. It comes in pretty now, but I don't see a way to edit the meeting for the participants. For example, if I need to cancel it."
 
 			#MIME message generation
 			self.msg = MIMEMultipart("mixed")
@@ -1162,16 +1187,18 @@ class Notify(webapp2.RequestHandler):
 			#Send via SendGrid SMTP
 			s = smtplib.SMTP('smtp.sendgrid.net', 587)
 			s.login('apikey', keys.API_KEY)
-			s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+#			s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
 			# Send another invite with the same UID to the coordinator, from a different address.
-			self.sendfrom = "scheduler@hpsandvolleyball.appspot.com"
+			self.sendfrom = "brianbartlow@gmail.com"
 			self.email_list = ['brian.bartlow@hp.com']
+			self.msg = MIMEMultipart("mixed")
+			self.msg['Subject'] = 'Test Sand Volleyball Match'
 			self.msg['From'] = self.sendfrom
 			self.msg['To'] = ", ".join(self.email_list)
 			GenInvite(self)
 			s.sendmail(self.sendfrom, self.msg['To'], self.msg.as_string())
 			s.quit()
-			#RICH ADD END
+			#RICH ADD END"""
 
 		
 		if sendit:
