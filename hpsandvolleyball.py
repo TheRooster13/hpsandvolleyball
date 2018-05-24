@@ -865,48 +865,40 @@ class Scheduler(webapp2.RequestHandler):
 				self.match_date = startdate + datetime.timedelta(days=(7*(week-1)+(tier_slot[y]-1)))
 				# Generate an iCalendar Event and email it to the players
 
-			#RICH ADD START
-			# Required parameters for GenInvite
-			self.startHour  = 12
-			self.durationH  = 1
-			self.location   = 'N/S Sand Court'
-			self.match_time = datetime.datetime.combine(self.match_date, datetime.time(self.startHour,0,0))
-			self.reminderMins = 30
+				#RICH ADD START
+				# Required parameters for GenInvite
+				self.startHour  = 12
+				self.durationH  = 1
+				self.location   = 'N/S Sand Court'
+				self.match_time = datetime.datetime.combine(self.match_date, datetime.time(self.startHour,0,0))
+				self.reminderMins = 30
 
-			#Organizer (Will recieve responses)
-			self.sendfrom   = 'brian.bartlow@hp.com'
-			
-			#Simple message to players
-			#Could add lineup for games
-			self.msg_to_plyrs = "Weekly match invite."
+				#Organizer (Will recieve responses)
+				self.sendfrom   = 'brian.bartlow@hp.com'
+				
+				#Simple message to players
+				#Could add lineup for games
+				self.msg_to_plyrs = "Weekly match invite."
 
-			#MIME message generation
-			self.msg = MIMEMultipart("mixed")
-			self.msg['Subject'] = 'Sand Volleyball Match'
-			self.msg['From'] = self.sendfrom
-			self.msg['To']   = ", ".join(self.email_list)
-			
-			#Generate the invite (requires:
-			#					 self.match_date, self.email_list self.startHour,
-			#					 self.durationH, self.location, self.reminderMins,
-			#					 self.match_time, self.sendfrom self.msg_to_plyrs,
-			#					 self.msg
-			GenInvite(self)
-			
-			# Send the message via SendGrid SMTP server.
-			s = smtplib.SMTP('smtp.sendgrid.net', 587)
-			s.login('apikey', keys.API_KEY)
-			s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
-			s.quit()
-			#RICH ADD END
-#			self.to_list = []
-#			for e in self.email_list:
-#				self.to_list.append(Email(e))
-#			mail = Mail(Email(self.sendfrom), self.msg['Subject'], self.to_list, self.msg.as_string())
-#			response = sg.client.mail.send.post(request_body=mail.get())
-#			print(response.status_code)
-#			print(response.body)
-#			print(response.headers)
+				#MIME message generation
+				self.msg = MIMEMultipart("mixed")
+				self.msg['Subject'] = 'Sand Volleyball Match'
+				self.msg['From'] = self.sendfrom
+				self.msg['To']   = ", ".join(self.email_list)
+				
+				#Generate the invite (requires:
+				#					 self.match_date, self.email_list self.startHour,
+				#					 self.durationH, self.location, self.reminderMins,
+				#					 self.match_time, self.sendfrom self.msg_to_plyrs,
+				#					 self.msg
+				GenInvite(self)
+				
+				# Send the message via SendGrid SMTP server.
+				s = smtplib.SMTP('smtp.sendgrid.net', 587)
+				s.login('apikey', keys.API_KEY)
+				s.sendmail(self.sendfrom, self.email_list,self.msg.as_string())
+				s.quit()
+				#RICH ADD END
 		
 			y+=1
 		
