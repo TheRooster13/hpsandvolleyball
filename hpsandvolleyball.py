@@ -17,7 +17,7 @@ from email.MIMEMultipart import MIMEMultipart
 #RICH ADD END
 
 # This is needed for timezone conversion (but not part of standard lib)
-#import dateutil
+import dateutil
 
 from google.appengine.api import users
 from google.appengine.ext import ndb
@@ -891,7 +891,7 @@ class Scheduler(webapp2.RequestHandler):
 			#					 self.durationH, self.location, self.reminderMins,
 			#					 self.match_time, self.sendfrom self.msg_to_plyrs,
 			#					 self.msg
-			self.GenInvite()
+			GenInvite(self)
 			
 			# Send the message via our own SMTP server.
 			# TODO: Needs to be modified for sendgrid
@@ -1090,7 +1090,8 @@ class Notify(webapp2.RequestHandler):
 
 		from_email = Email("noreply@hpsandvolleyball.appspot.com")
 #		to_email = Email("")
-		to_email = list(Email("brian.bartlow@hp.com"))
+		to_email = []
+		to_email.append(Email("brian.bartlow@hp.com"))
 		subject = "Please Ignore"
 		content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
 
@@ -1127,9 +1128,10 @@ class Notify(webapp2.RequestHandler):
 					to_email.append(Email(p.email))
 		
 		elif self.request.get('t') == "test":
-			email_list = ["brian.bartlow@hp.com","richard.w.hernandez@hp.com"]
+			self.email_list = ["brian.bartlow@hp.com","richard.w.hernandez@hp.com"]
 			#RICH ADD START
 			# Required parameters for GenInvite
+			self.match_date = today
 			self.startHour  = 12
 			self.durationH  = 1
 			self.location   = 'N/S Sand Court'
@@ -1147,14 +1149,14 @@ class Notify(webapp2.RequestHandler):
 			self.msg = MIMEMultipart("mixed")
 			self.msg['Subject'] = 'Sand Volleyball Match'
 			self.msg['From'] = self.sendfrom
-			self.msg['To']   = ", ".join(email_list)
+			self.msg['To']   = ", ".join(self.email_list)
 			
 			#Generate the invite (requires:
 			#					 self.match_date, self.email_list self.startHour,
 			#					 self.durationH, self.location, self.reminderMins,
 			#					 self.match_time, self.sendfrom self.msg_to_plyrs,
 			#					 self.msg
-			self.GenInvite()
+			GenInvite(self)
 			
 			# Send the message via our own SMTP server.
 			# TODO: Needs to be modified for sendgrid
@@ -1163,7 +1165,7 @@ class Notify(webapp2.RequestHandler):
 			#s.quit()
 			#RICH ADD END
 			to_email = []
-			for e in email_list:
+			for e in self.email_list:
 				to_email.append(Email(e))
 			from_email = Email("brian.bartlow@hp.com")
 			subject = "Sand Volleyball Match"
