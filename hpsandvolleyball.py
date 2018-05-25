@@ -1049,7 +1049,18 @@ class Notify(webapp2.RequestHandler):
 			for e in email_list:
 				event['attendees'].append({'email': e})
 			event = service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
+		
+		elif self.request.get('t') == "sms":
+			from googlevoice import Voice
+			from googlevoice.util import input
 
+			voice = Voice()
+			voice.login()
+
+			phoneNumber = '2082831663'
+			text = 'Test SMS from hpsandvolleyball'
+
+			voice.send_sms(phoneNumber, text)
 
 		if sendit:
 			mail = Mail(from_email, subject, to_email, content)
