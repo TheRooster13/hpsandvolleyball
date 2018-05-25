@@ -799,7 +799,7 @@ class Scheduler(webapp2.RequestHandler):
 				event['end']['dateTime'] = end_time.isoformat('T')
 				for e in email_list:
 					event['attendees'].append({'email': e})
-				event = service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
+				event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event, sendNotifications=True).execute()
 			y+=1
 		
 		sys.stdout.flush()
