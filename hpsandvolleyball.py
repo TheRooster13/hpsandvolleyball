@@ -566,7 +566,7 @@ class Scheduler(webapp2.RequestHandler):
 		if self.request.get('w'):
 			week = int(self.request.get('w'))
 		else:
-			week = int(math.floor(int((today - startdate).days)/7)+1)
+			week = int(math.floor(int(((today - startdate).days)+4)/7)+1)
 		if week < 1: week = 1
 		player_data = get_player_data(week, self)
 		old_player_list = player_data.keys()
@@ -671,13 +671,14 @@ class Scheduler(webapp2.RequestHandler):
 		
 		
 		# Create a list of players ids on bye this week because of FTO
-		bye_list = []
+		bye_list = list()
+		bye_list.append([]) #Add a list for true bye players (4+ days of conflicts this week)
 		if player_list:
 			for p in player_list:
 				if len(player_data[p].conflicts)>= 4:
-					bye_list.append(p)
+					bye_list[0].append(p)
 					self.response.out.write("Putting %s on a bye.<br>" % player_data[p].name)
-		num_available_players = int(len(player_list) - len(bye_list)) #number of players not on bye
+		num_available_players = int(len(player_list) - len(bye_list[0])) #number of players not on a "true" bye
 		slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
 		if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
 	  
@@ -694,7 +695,8 @@ class Scheduler(webapp2.RequestHandler):
 			tier_list.append([]) #Add list for tier 1 (top players)
 			for p in player_list:
 				if p in bye_list: # player is on a bye and should be added to tier 0
-					tier_list[0].append(p) #add a player to the bye tier
+					pass
+#					tier_list[0].append(p) #add a player to the bye tier
 				else: #player is elligible to play and 
 					# This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
 					counter += 1
@@ -724,8 +726,9 @@ class Scheduler(webapp2.RequestHandler):
 					break
 			
 			for x in range(1, len(tier_list)):
+				bye_list.append([])
 				for p in range(len(tier_list[x])-1, 7, -1):
-					tier_list[0].append(tier_list[x][p]) # Add alternate players to bye list
+					bye_list[x].append(tier_list[x][p]) # Add alternate players to bye list
 					tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
 				tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
 			
@@ -749,6 +752,20 @@ class Scheduler(webapp2.RequestHandler):
 		for r in results:
 			r.key.delete()
 
+		#Store the bye pplayers and alternate players in the database
+		for x in bye_list:
+			z = 0
+			for p in x:
+				s = Schedule(parent=db_key(year)) #database entry
+				s.id = page
+				s.name = player_data[p].name
+				s.week = week
+				s.slot = 0
+				s.tier = 0
+				s.position = tier_slot[x] #using the position variable to store the slot this player can be an alternate for
+				s.put()
+		
+		#store the scheduled players in the database and create calendar events with notifications
 		y=0
 		for x in tier_list:
 			z=0
@@ -799,7 +816,7 @@ class Scheduler(webapp2.RequestHandler):
 				event['end']['dateTime'] = end_time.isoformat('T')
 				for e in email_list:
 					event['attendees'].append({'email': e})
-				event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event, sendNotifications=True).execute()
+#				event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event, sendNotifications=True).execute()
 			y+=1
 		
 		sys.stdout.flush()
