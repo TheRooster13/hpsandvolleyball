@@ -791,11 +791,6 @@ class Scheduler(webapp2.RequestHandler):
 					'attendees': [
 #					{'email': 'brian.bartlow@hp.com'},
 					],
-					'organizer': {
-						'self': True,
-						'email': 'brianbartlow@gmail.com',
-						'displayName': 'HP Sand Volleyball',
-					},
 					'reminders': {
 					'useDefault': True,
 					},
@@ -804,7 +799,7 @@ class Scheduler(webapp2.RequestHandler):
 				event['end']['dateTime'] = end_time.isoformat('T')
 				for e in email_list:
 					event['attendees'].append({'email': e})
-				event = service.events().insert(calendarId='primary', body=event, sendNotifications=True).execute()
+				event = service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
 			y+=1
 		
 		sys.stdout.flush()
@@ -1034,7 +1029,7 @@ class Notify(webapp2.RequestHandler):
 			
 			service = build('calendar', 'v3')
 			event = {
-				'summary': 'Sand VolleyBall Match',
+				'summary': "Week %s Sand VolleyBall Match" % week,
 				'location': 'N/S Sand Court',
 				'description': "Week %s Sand Volleyball Match" % week,
 				'start': {
@@ -1045,11 +1040,6 @@ class Notify(webapp2.RequestHandler):
 					},
 				'attendees': [
 				],
-				'organizer': {
-					'self': True,
-					'email': 'brianbartlow@gmail.com',
-					'displayName': 'HP Sand Volleyball',
-				},
 				'reminders': {
 				'useDefault': True,
 				},
@@ -1058,7 +1048,7 @@ class Notify(webapp2.RequestHandler):
 			event['end']['dateTime'] = end_time.isoformat('T')
 			for e in email_list:
 				event['attendees'].append({'email': e})
-			event = service.events().insert(calendarId='primary', body=event, sendNotifications=True).execute()
+			event = service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
 
 
 		if sendit:
