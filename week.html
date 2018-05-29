@@ -5,44 +5,39 @@
 </div>
 
 <div class="col-md-8"> <!-- center col -->
-    <div class="row">
-    <h2 class="page-header">Week {{week}} Schedule</h2>
-    </div>
+	<div class="row">
+	<h2 class="page-header">Week {{week}} Schedule</h2>
+	</div>
 
-    <div class="row" align="center">
-        <H3>{% if week>1 %}<a href="?w={{week-1}}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} Week {{week}}{% if week < numWeeks %}<a href="?w={{week+1}}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H3>
-    </div>
-    <div class="col-sm-2">
-    <div class="panel panel-danger">
-        <div class="panel-heading">
-            On Bye
-        </div>
-        <ul class="left-aligned">
-            {% for p in schedule_data %}
-            {% if p.tier == 0 %}
-            <li>{{p.name}}</li>
-            {% endif %}
-            {% endfor %}
-        </ul>
-    </div>
-    </div>
-    {% for x in range(5) %}
-    <div class="col-sm-2">
-    <div class="panel linked panel-success">
-        <div class="panel-heading" align="center">
-            {{slots[x].strftime("%a %m/%d")}}
-        </div>
-        <a href="day?w={{week}}&d={{x+1}}"></a>
-        <ol class="left-aligned">
-        {% for p in schedule_data %}
-        {% if p.slot == x+1 %}
-            <li>{{p.name}}</li>
-        {% endif %}
-        {% endfor %}
-        </ol>
-    </div>
-    </div>
-    {% endfor %}
+	<div class="row" align="center">
+		<H3>{% if week>1 %}<a href="?w={{week-1}}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} Week {{week}}{% if week < numWeeks %}<a href="?w={{week+1}}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H3>
+	</div>
+	<div class="col-sm-2">
+	<div class="panel panel-danger">
+		<div class="panel-heading">
+			On Bye
+		</div>
+		<ul class="left-aligned">{% for p in schedule_data %}{% if p.tier == 0 and p.position == 0 %}
+			<li>{{p.name}}</li>{% endif %}{% endfor %}
+		</ul>
+	</div>
+	</div>
+	{% for x in range(5) %}<div class="col-sm-2">
+	<div class="panel linked panel-success">
+		<div class="panel-heading" align="center">
+			{{slots[x].strftime("%a %m/%d")}}
+		</div>
+		<a href="day?w={{week}}&d={{x+1}}"></a>
+		<center><strong>Players</strong></center>
+		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == x+1 %}
+			<li>{{p.name}}</li>{% endif %}{% endfor %}
+		</ol>
+		<center><strong>Alternates</strong></center>
+		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == 0 and p.position == x+1 %}
+			<li>{{p.name}}</li>{% endif %}{% endfor %}
+		</ol>
+	</div>
+	</div>{% endfor %}
 </div>
 
 <div class="col-md-2">

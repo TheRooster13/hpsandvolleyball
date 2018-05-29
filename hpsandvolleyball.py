@@ -668,157 +668,162 @@ class Scheduler(webapp2.RequestHandler):
 		else:
 			player_list = old_player_list
 		
+		#Need to check for existing scores for this week. If there are scores for this week, we should abort.
+		qry = Scores.query(ancestor=db_key(year))
+		qry = qry.filter(Scores.week == (week))
+		if qry.count() == 0:
 		
-		
-		# Create a list of players ids on bye this week because of FTO
-		bye_list = list()
-		bye_list.append([]) #Add a list for true bye players (4+ days of conflicts this week)
-		if player_list:
-			for p in player_list:
-				if len(player_data[p].conflicts)>= 4:
-					bye_list[0].append(p)
-					self.response.out.write("Putting %s on a bye.<br>" % player_data[p].name)
-		num_available_players = int(len(player_list) - len(bye_list[0])) #number of players not on a "true" bye
-		slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
-		if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
-	  
-		valid_schedule = False
-		while valid_schedule == False:
-			if slots_needed == 0: break # Cannot create a schedule (too few players or an incredible number of conflicts)
-			tier_list = list() # List of player ids per tier
-			tier_slot_list = list() # List of available slots per tier after removing conflicts for each player in the tier
-			tier_slot = list() # List of the slot each tier will play in
-			
-			players_per_slot = float(num_available_players) / float(slots_needed) #Put this many players into each tier
-			counter = 0
-			tier_list.append([]) #Add list for tier 0 (bye players)
-			tier_list.append([]) #Add list for tier 1 (top players)
-			for p in player_list:
-				if p in bye_list: # player is on a bye and should be added to tier 0
-					pass
-#					tier_list[0].append(p) #add a player to the bye tier
-				else: #player is elligible to play and 
-					# This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
-					counter += 1
-					if counter > players_per_slot and len(tier_list) < slots_needed+1:
-						counter -= players_per_slot
-						tier_list.append([]) #Add another tier
-					tier_list[len(tier_list)-1].append(p) #Add a player to the current tier
-			
-			tier_slot_list.append([]) # empty set for tier 0 (byes)
-			for x in range(1,len(tier_list)):
-				self.response.out.write("Tier %s: Size %s<br>" % (x, len(tier_list[x])))
-				random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
-				tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
-				tier_slot_list.append(remove_conflicts(tier_list[x], player_data, self))
-			
-			for i in range(25): # Try this up to X times.
-				if not pick_slots(tier_slot, 1, tier_slot_list): #iterate through the slots per tier until a solution is found for every tier.
-					# We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
-#					stc = find_smallest_set(tier_slot_list) #stc = set to cycle ---- This could cause us to not find a solution. ----
-					stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle. --- We don't know which tier is causing problems, so shuffle one at random ---
-					while stc == len(tier_slot_list):
-						stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle.
-					self.response.out.write("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s/25<br>" % (stc,i+1))
-					random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier. (This should probably be a random tier.)
-					tier_slot_list[stc] = remove_conflicts(tier_list[stc], player_data, self)
-				else:
-					break
-			
-			for x in range(1, len(tier_list)):
-				bye_list.append([])
-				for p in range(len(tier_list[x])-1, 7, -1):
-					bye_list[x].append(tier_list[x][p]) # Add alternate players to bye list
-					tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
-				tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
-			
-			# Check to see if we have a valid schedule
-			valid_schedule = True
-			for x in range(1, len(tier_slot)):
-				if not tier_slot[x]: # No valid slots for this tier - bad news
-					valid_schedule = False
-			if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
-				self.response.out.write("We can't find a valid schedule so we're dropping from %s matches to %s and trying again.<br>" % (slots_needed, slots_needed-1))
-				del tier_list[:]
-				del tier_slot_list[:]
-				del tier_slot[:]
-				slots_needed -= 1
-
-		# If we reach this point, we have a valid schedule! Save it to the database.
-		# First delete any existing schedule for this week (in case the scheduler runs more than once)
-		qry = Schedule.query(ancestor=db_key(year))
-		qry = qry.filter(Schedule.week == week)
-		results = qry.fetch()
-		for r in results:
-			r.key.delete()
-
-		#Store the bye pplayers and alternate players in the database
-		for x in bye_list:
-			z = 0
-			for p in x:
-				s = Schedule(parent=db_key(year)) #database entry
-				s.id = page
-				s.name = player_data[p].name
-				s.week = week
-				s.slot = 0
-				s.tier = 0
-				s.position = tier_slot[x] #using the position variable to store the slot this player can be an alternate for
-				s.put()
-		
-		#store the scheduled players in the database and create calendar events with notifications
-		y=0
-		for x in tier_list:
-			z=0
-			name_list = list()
-			email_list = list()
-			for p in x:
-				z+=1
-				s = Schedule(parent=db_key(year)) #database entry
-				s.id = p
-				s.name = player_data[p].name
-				s.week = week
-				s.slot = tier_slot[y]
-				s.tier = y
-				s.position = z #1-8
-				s.put() #Stores the schedule data in the database
+			# Create a list of players ids on bye this week because of FTO
+			bye_list = list()
+			bye_list.append([]) #Add a list for true bye players (4+ days of conflicts this week)
+			if player_list:
+				for p in player_list:
+					if len(player_data[p].conflicts)>= 4:
+						bye_list[0].append(p)
+						self.response.out.write("Putting %s on a bye.<br>" % player_data[p].name)
+			num_available_players = int(len(player_list) - len(bye_list[0])) #number of players not on a "true" bye
+			slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
+			if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
+		  
+			valid_schedule = False
+			while valid_schedule == False:
+				if slots_needed == 0: break # Cannot create a schedule (too few players or an incredible number of conflicts)
+				tier_list = list() # List of player ids per tier
+				tier_slot_list = list() # List of available slots per tier after removing conflicts for each player in the tier
+				tier_slot = list() # List of the slot each tier will play in
 				
-				# Add the player names and emails to some lists for creating and sending an iCalendar event
-				name_list.append(player_data[p].name)
-				email_list.append(player_data[p].email)
-							
-			if y > 0: # If this isn't tier 0 (players on bye)...
-				# Calculate the date for this match
-				match_date = startdate + datetime.timedelta(days=(7*(week-1)+(tier_slot[y]-1)))
-				start_time = datetime.datetime.combine(match_date, datetime.time(12,0,0))
-				end_time = datetime.datetime.combine(match_date, datetime.time(13,0,0))
+				players_per_slot = float(num_available_players) / float(slots_needed) #Put this many players into each tier
+				counter = 0
+				tier_list.append([]) #Add list for tier 0 (bye players)
+				tier_list.append([]) #Add list for tier 1 (top players)
+				for p in player_list:
+					if p in bye_list: # player is on a bye and should be added to tier 0
+						pass
+	#					tier_list[0].append(p) #add a player to the bye tier
+					else: #player is elligible to play and 
+						# This code allocated player slots to the tiers when the players_per_slot number isn't an integer (like 9.5 players per tier)
+						counter += 1
+						if counter > players_per_slot and len(tier_list) < slots_needed+1:
+							counter -= players_per_slot
+							tier_list.append([]) #Add another tier
+						tier_list[len(tier_list)-1].append(p) #Add a player to the current tier
 				
-				service = build('calendar', 'v3')
-				event = {
-					'summary': 'Sand VolleyBall Match',
-					'location': 'N/S Sand Court',
-					'description': "Week %s Sand Volleyball Match" % week,
-					'start': {
-#						'dateTime': '2018-05-28T12:00:00-06:00',
-						'timeZone': 'America/Boise',
+				tier_slot_list.append([]) # empty set for tier 0 (byes)
+				for x in range(1,len(tier_list)):
+					self.response.out.write("Tier %s: Size %s<br>" % (x, len(tier_list[x])))
+					random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
+					tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
+					tier_slot_list.append(remove_conflicts(tier_list[x], player_data, self))
+				
+				for i in range(25): # Try this up to X times.
+					if not pick_slots(tier_slot, 1, tier_slot_list): #iterate through the slots per tier until a solution is found for every tier.
+						# We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
+	#					stc = find_smallest_set(tier_slot_list) #stc = set to cycle ---- This could cause us to not find a solution. ----
+						stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle. --- We don't know which tier is causing problems, so shuffle one at random ---
+						while stc == len(tier_slot_list):
+							stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle.
+						self.response.out.write("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s/25<br>" % (stc,i+1))
+						random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier. (This should probably be a random tier.)
+						tier_slot_list[stc] = remove_conflicts(tier_list[stc], player_data, self)
+					else:
+						break
+				
+				for x in range(1, len(tier_list)):
+					bye_list.append([])
+					for p in range(len(tier_list[x])-1, 7, -1):
+						bye_list[x].append(tier_list[x][p]) # Add alternate players to bye list
+						tier_list[x].remove(tier_list[x][p]) # Remove alternate players from the tier list
+					tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].rank) # Sort the 8 players in each tier by rank
+				
+				# Check to see if we have a valid schedule
+				valid_schedule = True
+				for x in range(1, len(tier_slot)):
+					if not tier_slot[x]: # No valid slots for this tier - bad news
+						valid_schedule = False
+				if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
+					self.response.out.write("We can't find a valid schedule so we're dropping from %s matches to %s and trying again.<br>" % (slots_needed, slots_needed-1))
+					del tier_list[:]
+					del tier_slot_list[:]
+					del tier_slot[:]
+					slots_needed -= 1
+
+			# If we reach this point, we have a valid schedule! Save it to the database.
+			# First delete any existing schedule for this week (in case the scheduler runs more than once)
+			qry = Schedule.query(ancestor=db_key(year))
+			qry = qry.filter(Schedule.week == week)
+			results = qry.fetch()
+			for r in results:
+				r.key.delete()
+
+			#Store the bye pplayers and alternate players in the database
+			for x in bye_list:
+				z = 0
+				for p in x:
+					s = Schedule(parent=db_key(year)) #database entry
+					s.id = page
+					s.name = player_data[p].name
+					s.week = week
+					s.slot = 0
+					s.tier = 0
+					s.position = tier_slot[x] #using the position variable to store the slot this player can be an alternate for
+					s.put()
+			
+			#store the scheduled players in the database and create calendar events with notifications
+			y=0
+			for x in tier_list:
+				z=0
+				name_list = list()
+				email_list = list()
+				for p in x:
+					z+=1
+					s = Schedule(parent=db_key(year)) #database entry
+					s.id = p
+					s.name = player_data[p].name
+					s.week = week
+					s.slot = tier_slot[y]
+					s.tier = y
+					s.position = z #1-8
+					s.put() #Stores the schedule data in the database
+					
+					# Add the player names and emails to some lists for creating and sending an iCalendar event
+					name_list.append(player_data[p].name)
+					email_list.append(player_data[p].email)
+								
+				if y > 0: # If this isn't tier 0 (players on bye)...
+					# Calculate the date for this match
+					match_date = startdate + datetime.timedelta(days=(7*(week-1)+(tier_slot[y]-1)))
+					start_time = datetime.datetime.combine(match_date, datetime.time(12,0,0))
+					end_time = datetime.datetime.combine(match_date, datetime.time(13,0,0))
+					
+					service = build('calendar', 'v3')
+					event = {
+						'summary': 'Sand VolleyBall Match',
+						'location': 'N/S Sand Court',
+						'description': "Week %s Sand Volleyball Match" % week,
+						'start': {
+	#						'dateTime': '2018-05-28T12:00:00-06:00',
+							'timeZone': 'America/Boise',
+							},
+						'end': {
+	#						'dateTime': '2018-05-28T13:00:00-06:00',
+							'timeZone': 'America/Boise',
+							},
+						'attendees': [
+	#					{'email': 'brian.bartlow@hp.com'},
+						],
+						'reminders': {
+						'useDefault': True,
 						},
-					'end': {
-#						'dateTime': '2018-05-28T13:00:00-06:00',
-						'timeZone': 'America/Boise',
-						},
-					'attendees': [
-#					{'email': 'brian.bartlow@hp.com'},
-					],
-					'reminders': {
-					'useDefault': True,
-					},
-					}
-				event['start']['dateTime'] = start_time.isoformat('T')
-				event['end']['dateTime'] = end_time.isoformat('T')
-				for e in email_list:
-					event['attendees'].append({'email': e})
-#				event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event, sendNotifications=True).execute()
-			y+=1
-		
+						}
+					event['start']['dateTime'] = start_time.isoformat('T')
+					event['end']['dateTime'] = end_time.isoformat('T')
+					for e in email_list:
+						event['attendees'].append({'email': e})
+	#				event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event, sendNotifications=True).execute()
+				y+=1
+		else:
+			self.response.out.write("There are scores in the system for this week. Aborting.")
+
 		sys.stdout.flush()
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
 		self.response.write(template.render({}))
@@ -837,7 +842,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 		if self.request.get('w'):
 			week = int(self.request.get('w'))
 		else:
-			week = int(math.floor(int((today - startdate).days+3)/7))
+			week = int(math.floor(int((today - startdate).days+3)/7)+1)
 		if week < 1:
 			week = 1
 		if week > numWeeks:
@@ -1003,7 +1008,7 @@ class Notify(webapp2.RequestHandler):
 		subject = "Please Ignore"
 		content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
 
-		player_data = get_player_data(0, self)
+		player_data = get_player_data(1, self)
 		sendit = False
 		notification_list = []
 		
@@ -1022,9 +1027,9 @@ class Notify(webapp2.RequestHandler):
 					subject = "Reminder to submit scores"
 					content = Content("text/html", "Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores from today's games.")
 					sendit = True
-					for p in schedule_data:
+					for s in schedule_data:
 #						pass
-						notification_list.append(Email(p.email))
+						notification_list.append(Email(s.email))
 
 		elif self.request.get('t') == "fto":
 			subject = "Reminder to check and update your FTO/Conflicts for next week"
@@ -1032,9 +1037,10 @@ class Notify(webapp2.RequestHandler):
 			If that link doesn't work, please log in with the Google account used when you signed up.""")
 			sendit = True
 			for p in player_data:
-				if p.email:
+				self.response.out.write("%s - %s<br>" % (player_data[p].name,player_data[p].email))
+				if player_data[p].email:
 #					pass
-					notification_list.append(Email(p.email))
+					notification_list.append(Email(player_data[p].email))
 		
 		elif self.request.get('t') == "test":
 			week = 2
@@ -1081,10 +1087,11 @@ class Notify(webapp2.RequestHandler):
 
 		if sendit:
 			mail = Mail(from_email, subject, to_email, content)
-			personalization = Personalization()
-			for e in notification_list:
-				personalization.add_to(Email(e))
-			mail.add_personalization(personalization)
+			if len(notification_list):
+				personalization = Personalization()
+				for e in notification_list:
+					personalization.add_to(Email(e))
+				mail.add_personalization(personalization)
 			response = sg.client.mail.send.post(request_body=mail.get())
 			print(response.status_code)
 			print(response.body)
