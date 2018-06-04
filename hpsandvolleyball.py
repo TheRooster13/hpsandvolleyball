@@ -306,6 +306,7 @@ class Signup(webapp2.RequestHandler):
 	
 	def get(self):
 		now = datetime.datetime.today()
+		week = int(math.floor(int(((today - startdate).days)+3)/7)+1)
 		
 		# Get committed entries list
 		qry_p = Player_List.query(ancestor=db_key(now.year))
@@ -322,6 +323,7 @@ class Signup(webapp2.RequestHandler):
 		
 		template_values = {
 			'year': get_year_string(),
+			'week': week,
 			'page': 'signup',
 			'user': user,
 			'player_list': player_list,
@@ -513,7 +515,7 @@ class Admin(webapp2.RequestHandler):
 		if self.request.get('action') == "Holidays":
 			for player in player_list:
 				# Add holidays for all players.
-				qry_f = Fto.query(ancestor=db_key(year))
+				qry_f = Fto.query(ancestor=db_key(now.year))
 				qry_f = qry_f.filter(Fto.user_id == player.id)
 				fto_data = qry_f.fetch()
 				for week_slot in holidays:
@@ -649,8 +651,10 @@ class Scheduler(webapp2.RequestHandler):
 					for p in range(len(old_player_list)):
 						if old_player_list[p] in on_bye:
 							player_list.append(old_player_list[p])
-						else:
+						elif len(temp_rank_list):
 							player_list.append(temp_rank_list.pop(0))
+						else:
+							player_list.append(old_player_list[p])
 					# Store the new ranks in the database
 					qry = Player_List.query(ancestor=db_key(year))
 					pr = qry.fetch()
@@ -697,7 +701,7 @@ class Scheduler(webapp2.RequestHandler):
 				tier_list.append([]) #Add list for tier 0 (bye players)
 				tier_list.append([]) #Add list for tier 1 (top players)
 				for p in player_list:
-					if p in bye_list: # player is on a bye and should be added to tier 0
+					if p in bye_list[0]: # player is on a bye and should be added to tier 0
 						pass
 	#					tier_list[0].append(p) #add a player to the bye tier
 					else: #player is elligible to play and 
@@ -745,6 +749,8 @@ class Scheduler(webapp2.RequestHandler):
 					del tier_list[:]
 					del tier_slot_list[:]
 					del tier_slot[:]
+					for x in range(len(bye_list)-1, 0, -1):
+						del bye_list[x]
 					slots_needed -= 1
 
 			# If we reach this point, we have a valid schedule! Save it to the database.
@@ -755,19 +761,18 @@ class Scheduler(webapp2.RequestHandler):
 			for r in results:
 				r.key.delete()
 
-			#Store the bye pplayers and alternate players in the database
-			for x in bye_list:
+			#Store the bye players and alternate players in the database
+			for x in range(len(bye_list)):
 				z = 0
-				for p in x:
+				for p in bye_list[x]:
 					s = Schedule(parent=db_key(year)) #database entry
-					s.id = page
+					s.id = p
 					s.name = player_data[p].name
 					s.week = week
 					s.slot = 0
 					s.tier = 0
 					s.position = tier_slot[x] #using the position variable to store the slot this player can be an alternate for
 					s.put()
-			
 			#store the scheduled players in the database and create calendar events with notifications
 			y=0
 			for x in tier_list:
@@ -1029,7 +1034,7 @@ class Notify(webapp2.RequestHandler):
 					sendit = True
 					for s in schedule_data:
 #						pass
-						notification_list.append(Email(s.email))
+						notification_list.append(s.email)
 
 		elif self.request.get('t') == "fto":
 			subject = "Reminder to check and update your FTO/Conflicts for next week"
@@ -1040,7 +1045,7 @@ class Notify(webapp2.RequestHandler):
 				self.response.out.write("%s - %s<br>" % (player_data[p].name,player_data[p].email))
 				if player_data[p].email:
 #					pass
-					notification_list.append(Email(player_data[p].email))
+					notification_list.append(player_data[p].email)
 		
 		elif self.request.get('t') == "test":
 			week = 2

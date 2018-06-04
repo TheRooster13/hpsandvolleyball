@@ -10,14 +10,14 @@
   <h2 class="page-header">Sign Up</h2>
   </div>
 
-  <div class="row">
-  {% if is_signed_up %}
-  {% if not active_schedule %}
-  <form class="form-horizontal" action="unsignup" method="post">
-  {% endif %}
-  {% else %}
-  <form class="form-horizontal" action="signup" method="post">
-  {% endif %}
+  <div class="row">{%
+if is_signed_up %}{%
+	if not active_schedule %}
+  <form class="form-horizontal" action="unsignup" method="post">{%
+	endif %}{%
+else %}
+  <form class="form-horizontal" action="signup" method="post">{%
+endif %}
   <div class="col-sm-12">
 
     <!-- Committed -->
@@ -26,22 +26,26 @@
         Registered Players
         <span class="badge pull-right">{{ player_list|length }}</span> 
       </div>
-      <table class="table table-hover">
-      {% if player_list|length %}
-        {% for player in player_list %}
+      <table class="table table-hover">{%
+if player_list|length %}{%
+	for player in player_list %}
           <tr>
-            <td>{{ loop.index }}</td>
-            {% if is_signed_up %}<td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>
-            {% else %}<td>{{player.name}}</td>
-            {% endif %}
-            <td>{% if user %}{% if player.id == user.user_id() %}Phone #: {{ player.phone }}{% endif %}{% endif %}</td>
-          </tr>
-        {% endfor %}
-      {% else %}
+            <td>{{ loop.index }}</td>{%
+		if is_signed_up %}<td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>{%
+		else %}<td>{{player.name}}</td>{%
+		endif %}
+            <td>{%
+		if user %}{%
+			if player.id == user.user_id() %}Phone #: {{ player.phone }}{%
+			endif %}{%
+		endif %}</td>
+          </tr>{%
+	endfor %}{%
+else %}
           <tr>
             <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
-          </tr>
-      {% endif %}
+          </tr>{%
+endif %}
       </table>
     </div>
 
@@ -50,21 +54,20 @@
     	<div class="panel-heading">
     		Player Signup Form
     	</div>
-    	<div class="panel-body">
-
-
-			{% if login.logged_in %}
-			{% if is_signed_up %}
+    	<div class="panel-body">{%
+if login.logged_in %}{%
+	if is_signed_up %}
             <p>If you need to modify your player information (e.g. name, email or phone number), contact the administrator.</p>
-			<p>You can only decommit if the initial schedule hasn't yet posted. Once the schedule has been posted, if you want to quit, you must set your personal schedule to absent for the remaining weeks.</p>
-            {% if not active_schedule %}
+			<p>You can only decommit if the initial schedule hasn't yet posted. Once the schedule has been posted, if you want to quit, you must set your personal schedule to absent for the remaining weeks.</p>{%
+		if not active_schedule %}
 			<button id="commit" name="action" type="submit" class="btn btn-danger btn-block" value="Commit">
-	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Decommit</button>
-			{% else %}
+	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Decommit</button>{%
+		else %}
 			<button id="commit" name="action" type="submit" class="btn disabled btn-block" value="Commit">
-	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Cannot Decommit - The Season Has Started</button>
-			{% endif %}
-	    	{% else %}
+	        	<span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Cannot Decommit - The Season Has Started</button>{%
+		endif %}{%
+	else %}{%
+		if week < 3 %}
 			<H3 class="text-danger">This activity presents the risk of injury. This exculpatory release confirms that the participant who commits below accepts all aspects of that risk.</H2>
 			<div>
 			<ol>
@@ -97,11 +100,13 @@
             <input type="hidden" name="count" value="{{player_list|length+1}}"></input>
 			<button id="commit" name="action" type="submit" class="btn btn-success btn-block" value="Commit">
 				<span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Commit
-			</button>
-	        {% endif %}
-			{% else %}
-			<a role="button" class="btn btn-default btn-block" href="{{ login.url }}">Login to sign up</a>
-			{% endif %}
+			</button>{%
+		else %}<p>The season has entered the 3rd week and signups are now closed.</p>{%
+		end if %}{% 
+	endif %}{%
+else %}
+			<a role="button" class="btn btn-default btn-block" href="{{ login.url }}">Login to sign up</a>{%
+endif %}
      	</div>
     </div>
   </div>
