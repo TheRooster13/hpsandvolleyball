@@ -306,6 +306,7 @@ class Signup(webapp2.RequestHandler):
 	
 	def get(self):
 		now = datetime.datetime.today()
+		today = datetime.date.today()
 		week = int(math.floor(int(((today - startdate).days)+3)/7)+1)
 		
 		# Get committed entries list
