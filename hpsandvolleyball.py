@@ -569,7 +569,7 @@ class Scheduler(webapp2.RequestHandler):
 		if self.request.get('w'):
 			week = int(self.request.get('w'))
 		else:
-			week = int(math.floor(int(((today - startdate).days)+4)/7)+1)
+			week = int(math.floor(int(((today - startdate).days)+3)/7)+1)
 		if week < 1: week = 1
 		player_data = get_player_data(week, self)
 		old_player_list = player_data.keys()
@@ -720,7 +720,7 @@ class Scheduler(webapp2.RequestHandler):
 					tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
 					tier_slot_list.append(remove_conflicts(tier_list[x], player_data, self))
 				
-				for i in range(25): # Try this up to X times.
+				for i in range(50): # Try this up to X times.
 					if not pick_slots(tier_slot, 1, tier_slot_list): #iterate through the slots per tier until a solution is found for every tier.
 						# We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
 	#					stc = find_smallest_set(tier_slot_list) #stc = set to cycle ---- This could cause us to not find a solution. ----
@@ -848,7 +848,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 		if self.request.get('w'):
 			week = int(self.request.get('w'))
 		else:
-			week = int(math.floor(int((today - startdate).days+3)/7)+1)
+			week = int(math.floor(int((today - startdate).days+2)/7)+1)
 		if week < 1:
 			week = 1
 		if week > numWeeks:
