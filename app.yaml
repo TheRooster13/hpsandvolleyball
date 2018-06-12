@@ -2,9 +2,6 @@ runtime: python27
 api_version: 1
 threadsafe: true
 
-env_variables:
-  SENDGRID_API_KEY: ''
-
 # [START handlers]
 handlers:
 - url: /favicon\.ico

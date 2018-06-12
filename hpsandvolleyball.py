@@ -63,22 +63,20 @@ def get_year_string():
 	now = datetime.datetime.utcnow()
 	return now.strftime("%Y")
 
-def get_player(x, pid=""):
+def get_player(x, pid=None):
 	# Get committed entries list
 	now = datetime.datetime.today()
 	login_info = get_login_info(x)
 	user = users.get_current_user()
-	result = Player_List()
-	if pid == "":
+	result = None
+	if pid == None:
 		if user:
 			pid = user.user_id()
-	if pid:
+	if pid != None:
 		qry = Player_List.query(ancestor=db_key(now.year))
 		qry = qry.filter(Player_List.id == pid)
 		result = qry.get()
-	if result:
-		return result
-	return None
+	return result
 
 def set_holidays(x):
 	# Check and set holidays to unavailable
@@ -460,8 +458,10 @@ class FTO(webapp2.RequestHandler):
 		
 		if self.request.get('pid'):
 			pid = self.request.get('pid')
-		else:
+		elif user:
 			pid = user.user_id()
+		else:
+			pid = None
 		player = get_player(self, pid)
 		
 		if player is None:
