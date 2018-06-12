@@ -462,9 +462,12 @@ class FTO(webapp2.RequestHandler):
 			pid = user.user_id()
 		else:
 			pid = None
+		print("pid=%s" % pid)
 		player = get_player(self, pid)
+		print("player=%s" % player)
 		
-		if player is None:
+		if player == None:
+			print("Redirecting")
 			self.redirect('/')
 
 		set_holidays(self)
