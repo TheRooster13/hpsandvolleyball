@@ -46,7 +46,10 @@
             <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-5"{% if fto_week[loop.index-1][4] %} checked{% endif %}></div></td>
         </tr>
         {% endfor %}
-      </table>
+      </table>{%
+	  if player.id != user.user_id() %}
+	  <input type="hidden" name="pid" value="{{player.id}}"></input>{%
+	  endif %}
       <button id="save" name="action" type="submit" class="btn btn-success btn-block" value="Save">
             <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Save
       </button>

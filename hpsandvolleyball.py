@@ -63,18 +63,21 @@ def get_year_string():
 	now = datetime.datetime.utcnow()
 	return now.strftime("%Y")
 
-def get_player(x):
+def get_player(x, pid=""):
 	# Get committed entries list
 	now = datetime.datetime.today()
 	login_info = get_login_info(x)
 	user = users.get_current_user()
 	result = Player_List()
-	if user:
+	if pid == "":
+		if user:
+			pid = user.user_id()
+	if pid:
 		qry = Player_List.query(ancestor=db_key(now.year))
-		qry = qry.filter(Player_List.id == user.user_id())
+		qry = qry.filter(Player_List.id == pid)
 		result = qry.get()
-		if result:
-			return result
+	if result:
+		return result
 	return None
 
 def set_holidays(x):
@@ -406,10 +409,14 @@ class FTO(webapp2.RequestHandler):
 		login_info = get_login_info(self)
 		user = users.get_current_user()
 
-		player = get_player(self)
+		if self.request.get('pid'):
+			pid = self.request.get('pid')
+		else:
+			pid = user.user_id()
+		player = get_player(self, pid)
 		
 		qry_f = Fto.query(ancestor=db_key(now.year))
-		qry_f = qry_f.filter(Fto.user_id == user.user_id())
+		qry_f = qry_f.filter(Fto.user_id == pid)
 		fto_data = qry_f.fetch(100)
 		
 		# Add new slot entries
@@ -418,7 +425,7 @@ class FTO(webapp2.RequestHandler):
 				checkbox_name = str(week+1)+"-"+str(slot+1)
 				if self.request.get(checkbox_name):
 					fto = Fto(parent=db_key(year))
-					fto.user_id = user.user_id()
+					fto.user_id = pid
 					fto.name = player.name
 					fto.week = int(week+1)
 					fto.slot = int(slot+1)
@@ -436,8 +443,11 @@ class FTO(webapp2.RequestHandler):
 				pass
 			else:
 				fto_entry.key.delete()
-			
-		self.redirect("fto")
+		if pid == user.user_id():
+			url = "fto"
+		else:
+			url = "fto?pid=%s" % pid
+		self.redirect(str(url))
 	
 	def get(self):
 		# Filter for this year only
@@ -447,7 +457,13 @@ class FTO(webapp2.RequestHandler):
 		# See if user is logged in and signed up
 		login_info = get_login_info(self)
 		user = users.get_current_user()
-		player = get_player(self)
+		
+		if self.request.get('pid'):
+			pid = self.request.get('pid')
+		else:
+			pid = user.user_id()
+		player = get_player(self, pid)
+		
 		if player is None:
 			self.redirect('/')
 
@@ -469,9 +485,9 @@ class FTO(webapp2.RequestHandler):
 			fto_week.append(list(fto_slot))
 			
 		# Get FTO data
-		if user:
+		if pid:
 			qry_f = Fto.query(ancestor=db_key(now.year))
-			qry_f = qry_f.filter(Fto.user_id == user.user_id())
+			qry_f = qry_f.filter(Fto.user_id == pid)
 			fto_data = qry_f.fetch(100)
 		
 			# for each set of FTO data, change the array item to True

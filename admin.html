@@ -38,7 +38,7 @@
           </tr>
           {% for player in player_list %}
           <tr>
-            <td>{{loop.index}}</td>
+            <td><a href="fto?pid={{player.id}}">{{loop.index}}</a></td>
             <td>
                 <input type="text" class="form-control" id="name-{{player.id}}" name="name-{{player.id}}" value="{{player.name}}"></input>
             </td>
