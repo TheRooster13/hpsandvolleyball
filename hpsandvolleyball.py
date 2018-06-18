@@ -880,20 +880,20 @@ class Sub(webapp2.RequestHandler):
 					tier = x.tier
 					if user:
 						for y in sr:
-							if y.id = user.user_id():
+							if y.id == user.user_id():
 								if y.position == slot:
 									# Make the swap
 									swap_id = y.id
 		if swap_id:
 			success = 'y'
 			for x in sr:
-				if x.slot = slot and x.id != sub_id:
+				if x.slot == slot and x.id != sub_id:
 					player_list.append(x.id) # Add everyone already in this slot to a list except the player being subbed out.
 			player_list.append(swap_id) # Then add the player being swapped in.
 			player_list = sorted(player_list, key=lambda k:player_data[k].rank) # Sort the list by rank
 			# delete the existing schedule for this slot
 			qry = Schedule.query(ancestor=db_key(year))
-			qry = qry.filter(Schedule.week == week, Schedule.slot = slot)
+			qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
 			results = qry.fetch()
 			for r in results:
 				r.key.delete()
@@ -937,7 +937,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 				sendit = False
 				
 				for x in sr:
-					if x.id = sub_id: # Find the slot of the person needing a sub
+					if x.id == sub_id: # Find the slot of the person needing a sub
 						if x.slot != 0:
 							slot = x.slot
 							for y in sr:
