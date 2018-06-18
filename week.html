@@ -8,7 +8,7 @@
 	<div class="row">
 	<h2 class="page-header">Week {{week}} Schedule</h2>
 	</div>
-
+	{% if success == 'y' %}<div class="row"><h3>Substitution Successful</h3></div>{% elif success == 'n' %}<div class="row"><h3>Substitution Unsuccessful</h3></div>{% endif %}
 	<div class="row" align="center">
 		<H3>{% if week>1 %}<a href="?w={{week-1}}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} Week {{week}}{% if week < numWeeks %}<a href="?w={{week+1}}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H3>
 	</div>
@@ -38,6 +38,13 @@
 		</ol>
 	</div>
 	</div>{% endfor %}
+	{% if is_signed_up and active %}
+	<div class="row" align="center">
+		<form class="form-horizontal" action="week" method="post">
+		<input type="hidden" name="w" value={{week}}></input>
+		<input type="hidden" name="id" value={{user.user_id()}}></input>
+		<button class="btn btn-block btn-danger" type="submit" name="action" value="Sub">I can't make my game and need a sub!</button>
+	</div>{% endif %}
 </div>
 
 <div class="col-md-2">

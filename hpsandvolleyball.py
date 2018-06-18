@@ -853,15 +853,120 @@ class Scheduler(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
 		self.response.write(template.render({}))
 
+		
+class Sub(webapp2.RequestHandler):
+	def get(self):
+		user = users.get_current_user()
+		now = datetime.datetime.today()
+		login_info = get_login_info(self)
+		player = get_player(self)
+		week = int(self.request.get('w'))
+		sub_id = self.request.get('id')
+		player_data = get_player_data(week, self)
+		
+		qry = Schedule.query(ancestor=db_key(now.year))
+		qry = qry.filter(Schedule.week == week)
+		sr = qry.fetch()
+		swap_id = None
+		player_list = []
+		success = 'n'
+		
+		# Check to make sure the sub_id is a currently active player (otherwise, someone else may have already accepted the sub request.)
+		for x in sr:
+			if x.id == sub_id:
+				if x.slot != 0:
+					# Check to make sure the logged in player is an alternate for the sub requester's slot
+					slot = x.slot
+					tier = x.tier
+					if user:
+						for y in sr:
+							if y.id = user.user_id():
+								if y.position == slot:
+									# Make the swap
+									swap_id = y.id
+		if swap_id:
+			success = 'y'
+			for x in sr:
+				if x.slot = slot and x.id != sub_id:
+					player_list.append(x.id) # Add everyone already in this slot to a list except the player being subbed out.
+			player_list.append(swap_id) # Then add the player being swapped in.
+			player_list = sorted(player_list, key=lambda k:player_data[k].rank) # Sort the list by rank
+			# delete the existing schedule for this slot
+			qry = Schedule.query(ancestor=db_key(year))
+			qry = qry.filter(Schedule.week == week, Schedule.slot = slot)
+			results = qry.fetch()
+			for r in results:
+				r.key.delete()
+			# Then save the new slot schedule.
+			z = 0
+			for p in player_list:
+				z+=1
+				s = Schedule(parent=db_key(year)) #database entry
+				s.id = p
+				s.name = player_data[p].name
+				s.week = week
+				s.slot = slot
+				s.tier = tier
+				s.position = z #1-8
+				s.put() #Stores the schedule data in the database
+		
+		self.redirect("week?w=%s&m=%s" % (week, success))
+									
 
 class Weekly_Schedule(webapp2.RequestHandler):
+	def post(self):
+		user = users.get_current_user()
+		now = datetime.datetime.today()
+		login_info = get_login_info(self)
+		player = get_player(self)
+		week = int(self.request.get('w'))
+		player_data = get_player_data(week, self)
+		
+		from_email = Email("noreply@hpsandvolleyball.appspot.com")
+		to_email = Email("brian.bartlow@hp.com")
+		subject = "Please Ignore"
+		content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
+		
+		if self.request.get('action') == "Sub":
+			if user:
+				sub_id = user.user_id()
+				qry = Schedule.query(ancestor=db_key(now.year))
+				qry = qry.filter(Schedule.week == week)
+				sr = qry.fetch()
+				notification_list = []
+				sendit = False
+				
+				for x in sr:
+					if x.id = sub_id: # Find the slot of the person needing a sub
+						if x.slot != 0:
+							slot = x.slot
+							for y in sr:
+								if y.slot == 0 and y.position == slot: # find the alternates for the player needing a sub
+									notification_list.append(player_data[y.id].email)
+									sendit = True
+							break
+
+				subject = "Need a Sub"
+				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = 'http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s'>this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule and create your own reminder.</strong>" % (player_data[sub_id].name, startdate + datetime.timedelta(days=(7*(week-1)+(slot-1))), week, sub_id))
+				if sendit:
+					mail = Mail(from_email, subject, to_email, content)
+					if len(notification_list):
+						personalization = Personalization()
+						for e in notification_list:
+							personalization.add_to(Email(e))
+						mail.add_personalization(personalization)
+					response = sg.client.mail.send.post(request_body=mail.get())
+			
+		self.redirect("week?w=%s" % week)
+		
 	def get(self):
 		today = datetime.date.today()
 		year = today.year
 		# See if user is logged in and signed up
 		login_info = get_login_info(self)
 		user = users.get_current_user()
-		player = get_player(self)	  
+		player = get_player(self)
+		success = self.request.get('m')
 		
 		# Calculate what week# next week will be
 		if self.request.get('w'):
@@ -881,6 +986,12 @@ class Weekly_Schedule(webapp2.RequestHandler):
 		qry = qry.order(Schedule.slot, Schedule.position)
 		schedule_data = qry.fetch()
 		
+		active = 0
+		if user:
+			for s in schedule_data:
+				if s.id == user.user_id() and s.slot != 0:
+					active = 1
+		
 		template_values = {
 			'year': get_year_string(),
 			'page': 'week',
@@ -888,6 +999,9 @@ class Weekly_Schedule(webapp2.RequestHandler):
 			'numWeeks': numWeeks,
 			'slots': slots,
 			'schedule_data': schedule_data,
+			'success': success,
+			'active': active,
+			'player': player,
 			'is_signed_up': player is not None,
 			'login': login_info,
 		}
@@ -1132,6 +1246,7 @@ app = webapp2.WSGIApplication([
 	('/fto',				FTO),
 	('/week',				Weekly_Schedule),
 	('/day',				Daily_Schedule),
+	('/sub',				Sub),
 	('/admin',				Admin),
 	('/tasks/notify',		Notify),
 	('/tasks/scheduler',	Scheduler),
