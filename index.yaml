@@ -67,3 +67,16 @@ indexes:
   - name: week
   - name: tier
   - name: game
+
+- kind: Schedule
+  ancestor: yes
+  properties:
+  - name: week
+  - name: slot
+  
+- kind: Schedule
+  ancestor: yes
+  properties:
+  - name: week
+  - name: id
+  - name: slot

@@ -869,7 +869,7 @@ class Sub(webapp2.RequestHandler):
 		sr = qry.fetch()
 		swap_id = None
 		player_list = []
-		success = 'n'
+		success = "n"
 		
 		# Check to make sure the sub_id is a currently active player (otherwise, someone else may have already accepted the sub request.)
 		for x in sr:
@@ -885,14 +885,14 @@ class Sub(webapp2.RequestHandler):
 									# Make the swap
 									swap_id = y.id
 		if swap_id:
-			success = 'y'
+			success = "y"
 			for x in sr:
 				if x.slot == slot and x.id != sub_id:
 					player_list.append(x.id) # Add everyone already in this slot to a list except the player being subbed out.
 			player_list.append(swap_id) # Then add the player being swapped in.
 			player_list = sorted(player_list, key=lambda k:player_data[k].rank) # Sort the list by rank
 			# delete the existing schedule for this slot
-			qry = Schedule.query(ancestor=db_key(year))
+			qry = Schedule.query(ancestor=db_key(now.year))
 			qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
 			results = qry.fetch()
 			for r in results:
@@ -901,7 +901,7 @@ class Sub(webapp2.RequestHandler):
 			z = 0
 			for p in player_list:
 				z+=1
-				s = Schedule(parent=db_key(year)) #database entry
+				s = Schedule(parent=db_key(now.year)) #database entry
 				s.id = p
 				s.name = player_data[p].name
 				s.week = week
@@ -909,12 +909,40 @@ class Sub(webapp2.RequestHandler):
 				s.tier = tier
 				s.position = z #1-8
 				s.put() #Stores the schedule data in the database
+			
+			# delete the swapping player from the schedule where it shows as alternate.
+			qry = Schedule.query(ancestor=db_key(now.year))
+			qry = qry.filter(Schedule.week == week, Schedule.id == swap_id, Schedule.slot == 0)
+			results = qry.fetch()
+			results[0].key.delete()
+			# add the subbed out player to the alternate list.
+			s = Schedule(parent=db_key(now.year))
+			s.id = sub_id
+			s.name = player_data[sub_id].name
+			s.week = week
+			s.slot = 0
+			s.tier = 0
+			s.position = slot
+			s.put()
+			
+			sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
+			from_email = Email("noreply@hpsandvolleyball.appspot.com")
+			to_email = Email("brian.bartlow@hp.com")
+			subject = "Substitution Successful"
+			content = Content("text/html", "This is a notice to inform you that the substitution has been completed successfully. %s, please forward your meeting invitation to %s at %s." % (player_data[sub_id].name, player_data[swap_id].name, player_data[swap_id].email))
+			mail = Mail(from_email, subject, to_email, content)
+			personalization = Personalization()
+			personalization.add_to(Email(player_data[sub_id].email))
+			personalization.add_to(Email(player_data[swap_id].email))
+			mail.add_personalization(personalization)
+			response = sg.client.mail.send.post(request_body=mail.get())
 		
 		self.redirect("week?w=%s&m=%s" % (week, success))
 									
 
 class Weekly_Schedule(webapp2.RequestHandler):
 	def post(self):
+		sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
 		user = users.get_current_user()
 		now = datetime.datetime.today()
 		login_info = get_login_info(self)
@@ -947,7 +975,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 							break
 
 				subject = "Need a Sub"
-				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = 'http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s'>this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule and create your own reminder.</strong>" % (player_data[sub_id].name, startdate + datetime.timedelta(days=(7*(week-1)+(slot-1))), week, sub_id))
+				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = 'http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s'>this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, startdate + datetime.timedelta(days=(7*(week-1)+(slot-1))), week, sub_id))
 				if sendit:
 					mail = Mail(from_email, subject, to_email, content)
 					if len(notification_list):
@@ -957,7 +985,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 						mail.add_personalization(personalization)
 					response = sg.client.mail.send.post(request_body=mail.get())
 			
-		self.redirect("week?w=%s" % week)
+		self.redirect("week?w=%s&m=rs" % week)
 		
 	def get(self):
 		today = datetime.date.today()
@@ -990,7 +1018,9 @@ class Weekly_Schedule(webapp2.RequestHandler):
 		if user:
 			for s in schedule_data:
 				if s.id == user.user_id() and s.slot != 0:
-					active = 1
+					deadline = startdate + datetime.timedelta(days=(7*(week-1))+(s.slot-1))
+					if datetime.datetime.today() < datetime.datetime(deadline.year, deadline.month, deadline.day, 18): # noon Mountain time on the day of the match
+						active = 1
 		
 		template_values = {
 			'year': get_year_string(),
