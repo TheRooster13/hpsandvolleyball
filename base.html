@@ -93,29 +93,34 @@
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
           <ul class="nav navbar-nav">
             {% if page == "signup" %}
-            <li class="active"><a href="#">Signup<span class="sr-only">(current)</span></a></li> 
+            <li class="active"><a href="/signup">Signup<span class="sr-only">(current)</span></a></li> 
             {% else %}
             <li><a href="/signup">Signup</a></li>
             {% endif %}
+            {% if page == "standings" %}
+            <li class="active"><a href="/standings">Standings<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/standings">Standings</a></li>
+            {% endif %}
             {% if page == "week" %}
-            <li class="active"><a href="#">Schedule<span class="sr-only">(current)</span></a></li> 
+            <li class="active"><a href="/week">Schedule<span class="sr-only">(current)</span></a></li> 
             {% else %}
             <li><a href="/week">Schedule</a></li>
             {% endif %}
             {% if page == "day" %}
-            <li class="active"><a href="#">Scores<span class="sr-only">(current)</span></a></li> 
+            <li class="active"><a href="/day">Scores<span class="sr-only">(current)</span></a></li> 
             {% else %}
             <li><a href="/day">Scores</a></li>
             {% endif %}
             {% if is_signed_up %}
             {% if page == "fto" %}
-            <li class="active"><a href="#">FTO<span class="sr-only">(current)</span></a></li> 
+            <li class="active"><a href="/fto">FTO<span class="sr-only">(current)</span></a></li> 
             {% else %}
             <li><a href="/fto">FTO</a></li>
             {% endif %}
             {% endif %}
             {% if page == "info" %}
-            <li class="active"><a href="#">Info<span class="sr-only">(current)</span></a></li> 
+            <li class="active"><a href="/info">Info<span class="sr-only">(current)</span></a></li> 
             {% else %}
             <li><a href="/info">Info</a></li>
             {% endif %}

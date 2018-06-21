@@ -853,7 +853,107 @@ class Scheduler(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
 		self.response.write(template.render({}))
 
+class Elo(webapp2.RequestHandler):
+	def get(self):
+		today = datetime.date.today()
+		now = datetime.datetime.today()
+		year = today.year
+		random.seed(datetime.datetime.now())
+		team_map = ((0,1,0,1,1,0,1,0),(0,1,1,0,0,1,1,0),(0,1,1,0,1,0,0,1))
+		kfactor = 200
 		
+		# Calculate what week# next week will be
+		if self.request.get('w'):
+			week = int(self.request.get('w'))
+		else:
+			week = int(math.floor(int(((today - startdate).days)+3)/7)+1)
+		if week < 1: week = 1
+		self.response.out.write("Week %s</br>" % week)
+		player_data = get_player_data(week, self)
+		
+		qry = Schedule.query(ancestor=db_key(year))
+		qry = qry.filter(Schedule.week == (week-1))
+		qry = qry.order(-Schedule.tier, Schedule.position) # Order based on decending tier so we can get a count of how many tiers there were this week.
+		schedule_results = qry.fetch()
+		tiers = schedule_results[0].tier # The number of tiers is equal to the highest tier from the schedule.
+		
+		# Set up lists to store the average team Elo and scores for each game(3) in each tier(variable).
+		team_elo = []
+		scores = []
+		for x in range(tiers+1):
+			team_elo.append([[0,0],[0,0],[0,0]])
+			scores.append([[0,0],[0,0],[0,0]])
+		
+		# Calculate the average Elo scores for each team
+		for p in schedule_results:
+			if p.tier > 0:
+				for x in range(3):
+					team_elo[p.tier][x][team_map[x][p.position-1]] += float(player_data[p.id].score) # Add elo_score to team_elo[tier][game][team]
+#					self.response.out.write("team_elo = %s (tier %s, game %s, team %s)</br>" % (team_elo[p.tier][x][team_map[x][p.position-1]], p.tier, x+1, team_map[x][p.position-1]+1))
+		for x in range(tiers+1):
+			for y in range(3):
+				for z in range(2):
+					team_elo[x][y][z] /= float(4) # Average Elo_Score for each team
+#					self.response.out.write("team_elo = %s (tier %s, game %s, team %s)</br>" % (team_elo[x][y][z], x, y+1, z+1))
+		
+		# Grab the scores from the database and store them in a list.
+		qry = Scores.query(ancestor=db_key(year))
+		qry = qry.filter(Scores.week == (week-1))
+		qry = qry.order(Scores.tier, Scores.game)
+		results = qry.fetch()
+		if results:
+			for score in results:
+				scores[score.tier][score.game-1][0] = float(score.score1)
+				scores[score.tier][score.game-1][1] = float(score.score2)
+		
+		# Now iterate through each player on the schedule and calculate their new Elo score based on their old Elo score, the game scores, and the teams' average Elo scores.
+		new_elo = {}
+		for p in schedule_results:
+			if p.tier > 0:
+				new_elo[p.id] = player_data[p.id].score
+				for g in range(3):
+					my_team_elo = float(team_elo[p.tier][g][team_map[g][p.position-1]])
+					other_team_elo = float(team_elo[p.tier][g][1 - team_map[g][p.position-1]])
+					my_team_score = float(scores[p.tier][g][team_map[g][p.position-1]])
+					other_team_score = float(scores[p.tier][g][1 - team_map[g][p.position-1]])
+					self.response.out.write("%s - %s vs %s</br>" % (player_data[p.id].name, my_team_score, other_team_score))
+					# Take the old Elo score and add the modifier to it. We'll store it later.
+					if my_team_score > 0 or other_team_score > 0:
+						new_elo[p.id] += int(round(float(kfactor * ((my_team_score/(my_team_score+other_team_score))-(my_team_elo/(my_team_elo+other_team_elo)))))) # Elo magic here
+						self.response.out.write("%s's Elo score(%s) is now %s</br>" % (player_data[p.id].name, player_data[p.id].score, new_elo[p.id]))
+		# Store the new Elo scores in the database
+		qry = Player_List.query(ancestor=db_key(year))
+		pr = qry.fetch()
+		for p in pr:
+			if p.id in new_elo: # Only store new scores if there is a new score to store :)
+				p.elo_score = new_elo[p.id]
+				p.put()
+
+class Standings(webapp2.RequestHandler):
+	def get(self):
+		user = users.get_current_user()
+		now = datetime.datetime.today()
+		login_info = get_login_info(self)
+		player = get_player(self)
+
+		# Get player list
+		qry_p = Player_List.query(ancestor=db_key(now.year))
+		qry_p = qry_p.order(-Player_List.elo_score)
+		player_list = qry_p.fetch()   
+		
+		template_values = {
+			'year': get_year_string(),
+			'page': 'admin',
+			'player_list': player_list,
+			'is_signed_up': True,
+			'login': login_info,
+		}
+
+		template = JINJA_ENVIRONMENT.get_template('standings.html')
+		self.response.write(template.render(template_values))
+		
+		
+					
 class Sub(webapp2.RequestHandler):
 	def get(self):
 		user = users.get_current_user()
@@ -929,7 +1029,7 @@ class Sub(webapp2.RequestHandler):
 			from_email = Email("noreply@hpsandvolleyball.appspot.com")
 			to_email = Email("brian.bartlow@hp.com")
 			subject = "Substitution Successful"
-			content = Content("text/html", "This is a notice to inform you that the substitution has been completed successfully. %s, please forward your meeting invitation to %s at %s." % (player_data[sub_id].name, player_data[swap_id].name, player_data[swap_id].email))
+			content = Content("text/html", "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name))
 			mail = Mail(from_email, subject, to_email, content)
 			personalization = Personalization()
 			personalization.add_to(Email(player_data[sub_id].email))
@@ -952,8 +1052,6 @@ class Weekly_Schedule(webapp2.RequestHandler):
 		
 		from_email = Email("noreply@hpsandvolleyball.appspot.com")
 		to_email = Email("brian.bartlow@hp.com")
-		subject = "Please Ignore"
-		content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
 		
 		if self.request.get('action') == "Sub":
 			if user:
@@ -974,8 +1072,8 @@ class Weekly_Schedule(webapp2.RequestHandler):
 									sendit = True
 							break
 
-				subject = "Need a Sub"
-				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = 'http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s'>this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, startdate + datetime.timedelta(days=(7*(week-1)+(slot-1))), week, sub_id))
+				subject = "%s needs a Sub" % player_data[sub_id].name
+				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, startdate + datetime.timedelta(days=(7*(week-1)+(slot-1))), week, sub_id))
 				if sendit:
 					mail = Mail(from_email, subject, to_email, content)
 					if len(notification_list):
@@ -1276,8 +1374,10 @@ app = webapp2.WSGIApplication([
 	('/fto',				FTO),
 	('/week',				Weekly_Schedule),
 	('/day',				Daily_Schedule),
+	('/standings',			Standings),
 	('/sub',				Sub),
 	('/admin',				Admin),
 	('/tasks/notify',		Notify),
 	('/tasks/scheduler',	Scheduler),
+	('/tasks/elo',			Elo),
 ], debug=True)

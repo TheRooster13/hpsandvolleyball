@@ -33,7 +33,13 @@ indexes:
   ancestor: yes
   properties:
   - name: schedule_rank
-
+  
+- kind: Player_List
+  ancestor: yes
+  properties:
+  - name: elo_score
+    direction: desc
+  
 - kind: Schedule
   ancestor: yes
   properties:
