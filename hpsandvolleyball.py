@@ -181,9 +181,9 @@ def remove_conflicts(player_ids, player_data, self, count=1):
 		for s in player_data[p].conflicts:
 			if s in slots:
 				slots.remove(s)
-	for z in player_ids:
-		logging.info(" %s - %s" % (player_data[z].name, player_data[z].conflicts))
-	if (len(slots) == 0) and (len(player_ids) > 8):
+#	for z in player_ids:
+#		logging.info(" %s - %s" % (player_data[z].name, player_data[z].conflicts))
+	if (len(slots) == 0) and (len(player_ids) > 8): # If there are no valid slots for this group of 8 to play, and there are more than 8 people in the tier, randomly shuffle the players and tray again.
 		logging.info("8 players, no valid slot, shuffling and trying again. Count=%s" % count)
 		random.shuffle(player_ids)
 		return remove_conflicts(player_ids, player_data, self, count+1)
@@ -741,10 +741,10 @@ class Scheduler(webapp2.RequestHandler):
 						# We couldn't find a schedule that works so go back and shuffle the most restrictive player list to get a new set of 8
 	#					stc = find_smallest_set(tier_slot_list) #stc = set to cycle ---- This could cause us to not find a solution. ----
 						stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle. --- We don't know which tier is causing problems, so shuffle one at random ---
-						while stc == len(tier_slot_list):
-							stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle.
+						while stc == len(tier_slot_list): # Just in case the random choice equals the top limit.
+							stc = random.randint(1,len(tier_slot_list)) # Shuffle again
 						logging.info("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s/50" % (stc,i+1))
-						random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier. (This should probably be a random tier.)
+						random.shuffle(tier_list[stc]) # Shuffle the players in a random tier
 						tier_slot_list[stc] = remove_conflicts(tier_list[stc], player_data, self)
 					else:
 						break
