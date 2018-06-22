@@ -13,5 +13,5 @@ cron:
   timezone: America/Boise
 - description: "reminder to check fto"
   url: /tasks/notify?t=fto
-  schedule: every fri 13:00
+  schedule: every fri 11:00
   timezone: America/Boise

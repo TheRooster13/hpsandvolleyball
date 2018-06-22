@@ -144,9 +144,6 @@ def get_player_data(current_week, self):
 					pl[f.user_id].byes += 1
 			if f.week == current_week: #To make things easy, we can populate the weekly conflicts while iterating through the fto list.
 				pl[f.user_id].conflicts.append(f.slot)
-#				self.response.out.write("%s's conflicts: " % f.name)
-#				self.response.out.write(pl[f.user_id].conflicts)
-#				self.response.out.write("<br>")
 				
 	return pl
 			
@@ -185,11 +182,9 @@ def remove_conflicts(player_ids, player_data, self, count=1):
 			if s in slots:
 				slots.remove(s)
 	for z in player_ids:
-		self.response.out.write(" %s " % player_data[z].name)
-		self.response.out.write(player_data[z].conflicts)
-	self.response.out.write("<br>")
+		logging.info(" %s - %s" % (player_data[z].name, player_data[z].conflicts))
 	if (len(slots) == 0) and (len(player_ids) > 8):
-		self.response.out.write("8 players, no valid slot, shuffling and trying again. Count=%s<br>" % count)
+		logging.info("8 players, no valid slot, shuffling and trying again. Count=%s" % count)
 		random.shuffle(player_ids)
 		return remove_conflicts(player_ids, player_data, self, count+1)
 	random.shuffle(slots) #randomize the order of the available slots
@@ -496,7 +491,7 @@ class FTO(webapp2.RequestHandler):
 			# for each set of FTO data, change the array item to True
 			for entry in fto_data:
 				fto_week[(entry.week-1)][(entry.slot-1)] = True
-#				self.response.out.write("Week: "+str(entry.week)+" Slot: "+str(entry.slot)+" = "+str(fto_week[(entry.week-1)][(entry.slot-1)]))
+#				logging.info("Week: "+str(entry.week)+" Slot: "+str(entry.slot)+" = "+str(fto_week[(entry.week-1)][(entry.slot-1)]))
 		
 		template_values = {
 			'year': get_year_string(),
@@ -593,6 +588,7 @@ class Scheduler(webapp2.RequestHandler):
 		player_data = get_player_data(week, self)
 		old_player_list = player_data.keys()
 		old_player_list = sorted(old_player_list, key=lambda k: player_data[k].rank)
+		logging.info("Week %s Scheduler" % week)
 
 		
 		# If there is no existing schedule for this week, we know it is the first time the scheduler has run for this week
@@ -649,6 +645,7 @@ class Scheduler(webapp2.RequestHandler):
 							tier_position[score.tier][7][1] += (score.score2-score.score1)
 					for t in range(1, tiers+1):
 						tier_position[t] = sorted(tier_position[t], key=lambda k: k[1], reverse=True)
+						logging.info("Tier %s Results - Up(%s, %s), Down (%s, %s)" % (t, player_data[tier_position[t][0][0]].name, player_data[tier_position[t][1][0]].name, player_data[tier_position[t][6][0]].name, player_data[tier_position[t][7][0]].name))
 					temp_rank_list = []
 					for x in range(1,tiers+1):
 						if x == 1: # If the top tier, top performers move to the top
@@ -704,7 +701,7 @@ class Scheduler(webapp2.RequestHandler):
 				for p in player_list:
 					if len(player_data[p].conflicts)>= 4:
 						bye_list[0].append(p)
-						self.response.out.write("Putting %s on a bye.<br>" % player_data[p].name)
+						logging.info("Putting %s on a bye." % player_data[p].name)
 			num_available_players = int(len(player_list) - len(bye_list[0])) #number of players not on a "true" bye
 			slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
 			if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
@@ -734,7 +731,7 @@ class Scheduler(webapp2.RequestHandler):
 				
 				tier_slot_list.append([]) # empty set for tier 0 (byes)
 				for x in range(1,len(tier_list)):
-					self.response.out.write("Tier %s: Size %s<br>" % (x, len(tier_list[x])))
+					logging.info("Tier %s: Size %s" % (x, len(tier_list[x])))
 					random.shuffle(tier_list[x]) #randomly shuffle the list so ties in byes are ordered randomly
 					tier_list[x] = sorted(tier_list[x], key=lambda k:player_data[k].byes, reverse=True) #order based on byes (decending order). Future orders will be random.
 					tier_slot_list.append(remove_conflicts(tier_list[x], player_data, self))
@@ -746,7 +743,7 @@ class Scheduler(webapp2.RequestHandler):
 						stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle. --- We don't know which tier is causing problems, so shuffle one at random ---
 						while stc == len(tier_slot_list):
 							stc = random.randint(1,len(tier_slot_list)) #choose a random tier to shuffle.
-						self.response.out.write("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s/25<br>" % (stc,i+1))
+						logging.info("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s/50" % (stc,i+1))
 						random.shuffle(tier_list[stc]) # Shuffle the players in the most restrictive tier. (This should probably be a random tier.)
 						tier_slot_list[stc] = remove_conflicts(tier_list[stc], player_data, self)
 					else:
@@ -765,7 +762,7 @@ class Scheduler(webapp2.RequestHandler):
 					if not tier_slot[x]: # No valid slots for this tier - bad news
 						valid_schedule = False
 				if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
-					self.response.out.write("We can't find a valid schedule so we're dropping from %s matches to %s and trying again.<br>" % (slots_needed, slots_needed-1))
+					logging.info("We can't find a valid schedule so we're dropping from %s matches to %s and trying again." % (slots_needed, slots_needed-1))
 					del tier_list[:]
 					del tier_slot_list[:]
 					del tier_slot[:]
@@ -847,7 +844,7 @@ class Scheduler(webapp2.RequestHandler):
 					event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event, sendNotifications=True).execute()
 				y+=1
 		else:
-			self.response.out.write("There are scores in the system for this week. Aborting.")
+			logging.info("There are scores in the system for this week. Aborting.")
 
 		sys.stdout.flush()
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
@@ -868,7 +865,7 @@ class Elo(webapp2.RequestHandler):
 		else:
 			week = int(math.floor(int(((today - startdate).days)+3)/7)+1)
 		if week < 1: week = 1
-		self.response.out.write("Week %s</br>" % week)
+		logging.info("Week %s Elo Update" % week)
 		player_data = get_player_data(week, self)
 		
 		qry = Schedule.query(ancestor=db_key(year))
@@ -889,12 +886,12 @@ class Elo(webapp2.RequestHandler):
 			if p.tier > 0:
 				for x in range(3):
 					team_elo[p.tier][x][team_map[x][p.position-1]] += float(player_data[p.id].score) # Add elo_score to team_elo[tier][game][team]
-#					self.response.out.write("team_elo = %s (tier %s, game %s, team %s)</br>" % (team_elo[p.tier][x][team_map[x][p.position-1]], p.tier, x+1, team_map[x][p.position-1]+1))
+#					logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[p.tier][x][team_map[x][p.position-1]], p.tier, x+1, team_map[x][p.position-1]+1))
 		for x in range(tiers+1):
 			for y in range(3):
 				for z in range(2):
 					team_elo[x][y][z] /= float(4) # Average Elo_Score for each team
-#					self.response.out.write("team_elo = %s (tier %s, game %s, team %s)</br>" % (team_elo[x][y][z], x, y+1, z+1))
+#					logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[x][y][z], x, y+1, z+1))
 		
 		# Grab the scores from the database and store them in a list.
 		qry = Scores.query(ancestor=db_key(year))
@@ -916,11 +913,11 @@ class Elo(webapp2.RequestHandler):
 					other_team_elo = float(team_elo[p.tier][g][1 - team_map[g][p.position-1]])
 					my_team_score = float(scores[p.tier][g][team_map[g][p.position-1]])
 					other_team_score = float(scores[p.tier][g][1 - team_map[g][p.position-1]])
-					self.response.out.write("%s - %s vs %s</br>" % (player_data[p.id].name, my_team_score, other_team_score))
+					logging.info("%s - %s vs %s" % (player_data[p.id].name, my_team_score, other_team_score))
 					# Take the old Elo score and add the modifier to it. We'll store it later.
 					if my_team_score > 0 or other_team_score > 0:
 						new_elo[p.id] += int(round(float(kfactor * ((my_team_score/(my_team_score+other_team_score))-(my_team_elo/(my_team_elo+other_team_elo)))))) # Elo magic here
-						self.response.out.write("%s's Elo score(%s) is now %s</br>" % (player_data[p.id].name, player_data[p.id].score, new_elo[p.id]))
+						logging.info("%s's Elo score(%s) is now %s" % (player_data[p.id].name, player_data[p.id].score, new_elo[p.id]))
 		# Store the new Elo scores in the database
 		qry = Player_List.query(ancestor=db_key(year))
 		pr = qry.fetch()
@@ -945,7 +942,7 @@ class Standings(webapp2.RequestHandler):
 			'year': get_year_string(),
 			'page': 'admin',
 			'player_list': player_list,
-			'is_signed_up': True,
+			'is_signed_up': player is not None,
 			'login': login_info,
 		}
 
@@ -1304,7 +1301,7 @@ class Notify(webapp2.RequestHandler):
 			If that link doesn't work, please log in with the Google account used when you signed up.""")
 			sendit = True
 			for p in player_data:
-				self.response.out.write("%s - %s<br>" % (player_data[p].name,player_data[p].email))
+#				logging.info("%s - %s" % (player_data[p].name,player_data[p].email))
 				if player_data[p].email:
 #					pass
 					notification_list.append(player_data[p].email)
@@ -1351,6 +1348,11 @@ class Notify(webapp2.RequestHandler):
 			text = 'Test SMS from hpsandvolleyball'
 
 			voice.send_sms(phoneNumber, text)
+		
+		elif self.request.get('t') == "log":
+			logging.info('This is an info log message')
+			self.response.out.write('Logging example.')
+			
 
 		if sendit:
 			mail = Mail(from_email, subject, to_email, content)
