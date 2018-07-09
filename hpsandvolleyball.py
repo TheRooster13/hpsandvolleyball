@@ -1071,6 +1071,8 @@ class Weekly_Schedule(webapp2.RequestHandler):
 
 				subject = "%s needs a Sub" % player_data[sub_id].name
 				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, startdate + datetime.timedelta(days=(7*(week-1)+(slot-1))), week, sub_id))
+				logging.info(subject)
+				logging.info("sending to: %s" % notification_list)
 				if sendit:
 					mail = Mail(from_email, subject, to_email, content)
 					if len(notification_list):
@@ -1148,6 +1150,8 @@ class Daily_Schedule(webapp2.RequestHandler):
 		tier = int(self.request.get('t'))
 		
 		if self.request.get('action') == "Scores":
+			if player:
+				logging.info("%s is entering scores." % player.name)
 			qry = Scores.query(ancestor=db_key(now.year))
 			qry = qry.filter(Scores.week == week, Scores.slot == day)
 			sr = qry.fetch()
@@ -1169,6 +1173,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 				else:
 					score.score2 = 0
 				if score.score1 or score.score2:
+					logging.info("Game %s: %s - %s" % (g, score.score1, score.score2))
 					score.put() # Save the new scores
 		
 		self.redirect("day?w=%s&d=%s" % (week, day))
