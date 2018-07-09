@@ -1284,16 +1284,20 @@ class Notify(webapp2.RequestHandler):
 			schedule_data = qry.fetch()
 			if schedule_data: # If there is a match scheduled for today
 				# Check to see if scores have been entered for today's match
+				logging.info("There are games scheduled today.")
 				qry = Scores.query(ancestor=db_key(year))
 				qry = qry.filter(Scores.week == week, Scores.slot == day)
 				sr = qry.count()
-				if sr == 0: # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
+				logging.info("%s scores have been entered today." % sr)
+				if sr < 3: # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
 					subject = "Reminder to submit scores"
 					content = Content("text/html", "Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores from today's games.")
 					sendit = True
 					for s in schedule_data:
 #						pass
 						notification_list.append(s.email)
+			else:
+				logging.info("There are no games scheduled for today.")
 
 		elif self.request.get('t') == "fto":
 			subject = "Reminder to check and update your FTO/Conflicts for next week"
