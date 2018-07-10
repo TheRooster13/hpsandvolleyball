@@ -184,7 +184,7 @@ def remove_conflicts(player_ids, player_data, self, count=1):
 #	for z in player_ids:
 #		logging.info(" %s - %s" % (player_data[z].name, player_data[z].conflicts))
 	if (len(slots) == 0) and (len(player_ids) > 8): # If there are no valid slots for this group of 8 to play, and there are more than 8 people in the tier, randomly shuffle the players and tray again.
-		logging.info("8 players, no valid slot, shuffling and trying again. Count=%s" % count)
+		logging.info("No slot for this tier, shuffling and trying again. Count=%s" % count)
 		random.shuffle(player_ids)
 		return remove_conflicts(player_ids, player_data, self, count+1)
 	random.shuffle(slots) #randomize the order of the available slots
@@ -341,7 +341,6 @@ class Unsignup(webapp2.RequestHandler):
 	def post(self):
 		user = users.get_current_user()
 		if user:
-			logging.info("in user section")
 			now = datetime.datetime.today()
 			qry = Player_List.query(ancestor=db_key(now.year))
 			player_list = qry.fetch(100)
@@ -701,7 +700,7 @@ class Scheduler(webapp2.RequestHandler):
 				for p in player_list:
 					if len(player_data[p].conflicts)>= 4:
 						bye_list[0].append(p)
-						logging.info("Putting %s on a bye." % player_data[p].name)
+						logging.info("%s is on bye." % player_data[p].name)
 			num_available_players = int(len(player_list) - len(bye_list[0])) #number of players not on a "true" bye
 			slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
 			if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
@@ -762,7 +761,7 @@ class Scheduler(webapp2.RequestHandler):
 					if not tier_slot[x]: # No valid slots for this tier - bad news
 						valid_schedule = False
 				if valid_schedule == False: #clear the lists, reduce the number of matches, and try again
-					logging.info("We can't find a valid schedule so we're dropping from %s matches to %s and trying again." % (slots_needed, slots_needed-1))
+					logging.info("No valid schedule. Dropping from %s matches to %s and trying again." % (slots_needed, slots_needed-1))
 					del tier_list[:]
 					del tier_slot_list[:]
 					del tier_slot[:]
@@ -1150,7 +1149,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 		tier = int(self.request.get('t'))
 		
 		if self.request.get('action') == "Scores":
-			if player:
+			if player is not None:
 				logging.info("%s is entering scores." % player.name)
 			qry = Scores.query(ancestor=db_key(now.year))
 			qry = qry.filter(Scores.week == week, Scores.slot == day)
