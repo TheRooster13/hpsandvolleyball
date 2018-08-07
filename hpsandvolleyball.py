@@ -25,7 +25,7 @@ from sendgrid.helpers.mail import *
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
 startdate = datetime.date(2018, 5, 21)
-holidays = ((2,1),(3,4),(7,3)) #Memorial Day, BYITW Day, Independance Day
+holidays = ((2,1),(3,4),(7,3), (11,4)) #Memorial Day, BYITW Day, Independance Day, Canon Alliance Event
 ms = ((0,1,0,1,1,0,1,0),(0,1,1,0,0,1,1,0),(0,1,1,0,1,0,0,1))
 
 random.seed(datetime.datetime.now())
@@ -510,6 +510,7 @@ class Admin(webapp2.RequestHandler):
 	def post(self):
 		user = users.get_current_user()
 		now = datetime.datetime.today()
+		year = now.year
 		
 		# Get player list
 		qry_p = Player_List.query(ancestor=db_key(now.year))
@@ -1069,7 +1070,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 							break
 
 				subject = "%s needs a Sub" % player_data[sub_id].name
-				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, startdate + datetime.timedelta(days=(7*(week-1)+(slot-1))), week, sub_id))
+				content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7*(week-1)+(slot-1)))).strftime("%A %m/%d"), week, sub_id))
 				logging.info(subject)
 				logging.info("sending to: %s" % notification_list)
 				if sendit:
@@ -1267,8 +1268,8 @@ class Notify(webapp2.RequestHandler):
 		year = today.year
 		
 		# Calculate what week and day it is
-		week = int(math.floor(int((today - startdate).days)/7))
-		day = today.weekday() + 1
+		week = int(math.floor(int((today - startdate).days)/7)+1)
+		day = today.isoweekday()
 
 		from_email = Email("noreply@hpsandvolleyball.appspot.com")
 #		to_email = Email("")
@@ -1286,6 +1287,7 @@ class Notify(webapp2.RequestHandler):
 			qry = qry.filter(Schedule.week == week, Schedule.slot == day)
 			qry = qry.order(Schedule.position)
 			schedule_data = qry.fetch()
+			logging.info("Week %s, Slot %s" % (week, day))
 			if schedule_data: # If there is a match scheduled for today
 				# Check to see if scores have been entered for today's match
 				logging.info("There are games scheduled today.")
@@ -1294,6 +1296,7 @@ class Notify(webapp2.RequestHandler):
 				sr = qry.count()
 				logging.info("%s scores have been entered today." % sr)
 				if sr < 3: # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
+					logging.info("Sending email reminder to enter scores.")
 					subject = "Reminder to submit scores"
 					content = Content("text/html", "Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores from today's games.")
 					sendit = True
