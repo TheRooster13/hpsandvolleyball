@@ -1298,11 +1298,11 @@ class Notify(webapp2.RequestHandler):
 				if sr < 3: # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
 					logging.info("Sending email reminder to enter scores.")
 					subject = "Reminder to submit scores"
-					content = Content("text/html", "Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores from today's games.")
+					content = Content("text/html", "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard.")
 					sendit = True
 					for s in schedule_data:
 #						pass
-						notification_list.append(s.email)
+						notification_list.append(player_data[s.id].email)
 			else:
 				logging.info("There are no games scheduled for today.")
 
