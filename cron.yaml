@@ -1,17 +1,17 @@
 cron:
-- description: "create the weekly schedule"
-  url: /tasks/scheduler
-  schedule: every fri 14:00
-  timezone: America/Boise
-- description: "update Elo scores weekly"
-  url: /tasks/elo
-  schedule: every fri 13:50
-  timezone: America/Boise
-- description: "reminder to enter scores"
-  url: /tasks/notify?t=score
-  schedule: every mon,tue,wed,thu,fri 13:30
-  timezone: America/Boise
-- description: "reminder to check fto"
-  url: /tasks/notify?t=fto
-  schedule: every fri 11:00
-  timezone: America/Boise
+#- description: "create the weekly schedule"
+#  url: /tasks/scheduler
+#  schedule: every fri 14:00
+#  timezone: America/Boise
+#- description: "update Elo scores weekly"
+#  url: /tasks/elo
+#  schedule: every fri 13:50
+#  timezone: America/Boise
+#- description: "reminder to enter scores"
+#  url: /tasks/notify?t=score
+#  schedule: every mon,tue,wed,thu,fri 13:30
+#  timezone: America/Boise
+#- description: "reminder to check fto"
+#  url: /tasks/notify?t=fto
+#  schedule: every fri 11:00
+#  timezone: America/Boise
