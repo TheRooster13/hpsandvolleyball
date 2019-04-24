@@ -1086,7 +1086,10 @@ class Weekly_Schedule(webapp2.RequestHandler):
 		
 	def get(self):
 		today = datetime.date.today()
-		year = today.year
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = today.year
 		# See if user is logged in and signed up
 		login_info = get_login_info(self)
 		user = users.get_current_user()
@@ -1120,7 +1123,7 @@ class Weekly_Schedule(webapp2.RequestHandler):
 						active = 1
 		
 		template_values = {
-			'year': get_year_string(),
+			'year': year,
 			'page': 'week',
 			'week': week,
 			'numWeeks': numWeeks,
@@ -1145,6 +1148,10 @@ class Daily_Schedule(webapp2.RequestHandler):
 		user = users.get_current_user()
 		player = get_player(self)
 		
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = now.year
 		week = int(self.request.get('w'))
 		day = int(self.request.get('d'))
 		tier = int(self.request.get('t'))
@@ -1152,14 +1159,14 @@ class Daily_Schedule(webapp2.RequestHandler):
 		if self.request.get('action') == "Scores":
 			if player is not None:
 				logging.info("%s is entering scores." % player.name)
-			qry = Scores.query(ancestor=db_key(now.year))
+			qry = Scores.query(ancestor=db_key(year))
 			qry = qry.filter(Scores.week == week, Scores.slot == day)
 			sr = qry.fetch()
 			for s in sr:
 				s.key.delete() # Delete the old scores
 			
 			for g in range(1,4):
-				score = Scores(parent=db_key(now.year))
+				score = Scores(parent=db_key(year))
 				score.week = week
 				score.slot = day
 				score.tier = tier
@@ -1176,11 +1183,14 @@ class Daily_Schedule(webapp2.RequestHandler):
 					logging.info("Game %s: %s - %s" % (g, score.score1, score.score2))
 					score.put() # Save the new scores
 		
-		self.redirect("day?w=%s&d=%s" % (week, day))
+		self.redirect("day?w=%s&d=%s&y=%s" % (week, day, year))
 						
 	def get(self):
 		today = datetime.date.today()
-		year = today.year		
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = today.year
 		# See if user is logged in and signed up
 		login_info = get_login_info(self)
 		user = users.get_current_user()
@@ -1241,7 +1251,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 			is_today = True		
 	
 		template_values = {
-			'year': get_year_string(),
+			'year': year,
 			'page': 'day',
 			'week': week,
 			'day': day,

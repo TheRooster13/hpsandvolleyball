@@ -6,13 +6,13 @@
 
 <div class="col-md-8"> <!-- center col -->
     <div class="row">
-    <h2 class="page-header"><a href="week?w={{week}}">Week {{week}}</a>, Day {{day}} Schedule</h2>
+    <h2 class="page-header"><a href="week?w={{week}}&y={{year}}">Week {{week}}</a>, Day {{day}} Schedule</h2>
     </div>
 	{% if is_today %}
     <form class="form-horizontal" action="day" method="post">
 	{% endif %}
     <div class="row" align="center">
-        <H3>{% if week>1 or day>1 %}<a href="?w={% if day>1 %}{{week}}{% else %}{{week-1}}{% endif %}&d={% if day-1 > 0 %}{{day-1}}{% else %}5{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} {{schedule_day.strftime("%a %m/%d")}} {% if week<numWeeks or day<5 %}<a href="?w={% if day<5 %}{{week}}{% else %}{{week+1}}{% endif %}&d={% if day<5 %}{{day+1}}{% else %}1{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H4>
+        <H3>{% if week>1 or day>1 %}<a href="?w={% if day>1 %}{{week}}{% else %}{{week-1}}{% endif %}&d={% if day-1 > 0 %}{{day-1}}{% else %}5{% endif %}&y={{year}}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} {{schedule_day.strftime("%a %m/%d")}} {% if week<numWeeks or day<5 %}<a href="?w={% if day<5 %}{{week}}{% else %}{{week+1}}{% endif %}&d={% if day<5 %}{{day+1}}{% else %}1{% endif %}&y={{year}}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H4>
     </div>{% 
     if games %} 
     <div class="list-group">{%
@@ -39,6 +39,7 @@
     else %}
     <p class="text-danger"><strong>There are no matches scheduled for this day.</strong></p>{% 
     endif %}
+	<input type="hidden" name="y" value={{year}}></input>
     <input type="hidden" name="w" value={{week}}></input>
     <input type="hidden" name="d" value={{day}}></input>
     <input type="hidden" name="t" value={{tier}}></input>
