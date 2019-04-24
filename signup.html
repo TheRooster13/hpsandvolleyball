@@ -34,11 +34,6 @@ if player_list|length %}{%
 		if is_signed_up %}<td><a href="mailto:{{ player.email }}">{{player.name}}</a></td>{%
 		else %}<td>{{player.name}}</td>{%
 		endif %}
-            <td>{%
-		if user %}{%
-			if player.id == user.user_id() %}Phone #: {{ player.phone }}{%
-			endif %}{%
-		endif %}</td>
           </tr>{%
 	endfor %}{%
 else %}
@@ -57,7 +52,7 @@ endif %}
     	<div class="panel-body">{%
 if login.logged_in %}{%
 	if is_signed_up %}
-            <p>If you need to modify your player information (e.g. name, email or phone number), contact the administrator.</p>
+            <p>If you need to modify your player information (e.g. name or email), contact the administrator.</p>
 			<p>You can only decommit if the initial schedule hasn't yet posted. Once the schedule has been posted, if you want to quit, you must set your personal schedule to absent for the remaining weeks.</p>{%
 		if not active_schedule %}
 			<button id="commit" name="action" type="submit" class="btn btn-danger btn-block" value="Commit">

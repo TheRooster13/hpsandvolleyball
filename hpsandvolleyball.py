@@ -25,7 +25,7 @@ from sendgrid.helpers.mail import *
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
 startdate = datetime.date(2019, 5, 20)
-holidays = ((2,1),(3,4),(7,3), (11,4)) #Memorial Day, BYITW Day, Independance Day, Canon Alliance Event
+holidays = ((2,1),(3,4),(7,4)) #Memorial Day, BYITW Day?, Independance Day
 ms = ((0,1,0,1,1,0,1,0),(0,1,1,0,0,1,1,0),(0,1,1,0,1,0,0,1)) #How to team up the players for each of the three games
 
 random.seed(datetime.datetime.now())
@@ -510,10 +510,13 @@ class Admin(webapp2.RequestHandler):
 	def post(self):
 		user = users.get_current_user()
 		now = datetime.datetime.today()
-		year = now.year
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = now.year
 		
 		# Get player list
-		qry_p = Player_List.query(ancestor=db_key(now.year))
+		qry_p = Player_List.query(ancestor=db_key(year))
 		qry_p = qry_p.order(Player_List.schedule_rank)
 		player_list = qry_p.fetch()		 
 		
@@ -530,7 +533,7 @@ class Admin(webapp2.RequestHandler):
 		if self.request.get('action') == "Holidays":
 			for player in player_list:
 				# Add holidays for all players.
-				qry_f = Fto.query(ancestor=db_key(now.year))
+				qry_f = Fto.query(ancestor=db_key(year))
 				qry_f = qry_f.filter(Fto.user_id == player.id)
 				fto_data = qry_f.fetch()
 				for week_slot in holidays:
@@ -552,16 +555,19 @@ class Admin(webapp2.RequestHandler):
 	def get(self):
 		# Filter for this year only
 		now = datetime.datetime.today()
-		year = now.year
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = now.year
 		login_info = get_login_info(self)
 
 		# Get player list
-		qry_p = Player_List.query(ancestor=db_key(now.year))
+		qry_p = Player_List.query(ancestor=db_key(year))
 		qry_p = qry_p.order(Player_List.schedule_rank)
 		player_list = qry_p.fetch()   
 		
 		template_values = {
-			'year': get_year_string(),
+			'year': year,
 			'page': 'admin',
 			'player_list': player_list,
 			'is_signed_up': True,
@@ -857,7 +863,7 @@ class Elo(webapp2.RequestHandler):
 		year = today.year
 		random.seed(datetime.datetime.now())
 		team_map = ((0,1,0,1,1,0,1,0),(0,1,1,0,0,1,1,0),(0,1,1,0,1,0,0,1))
-		kfactor = 200
+		kfactor = 500 # 2018 = 200, 2019 = ?
 		
 		# Calculate what week# next week will be
 		if self.request.get('w'):
@@ -930,16 +936,20 @@ class Standings(webapp2.RequestHandler):
 	def get(self):
 		user = users.get_current_user()
 		now = datetime.datetime.today()
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = now.year
 		login_info = get_login_info(self)
 		player = get_player(self)
 
 		# Get player list
-		qry_p = Player_List.query(ancestor=db_key(now.year))
+		qry_p = Player_List.query(ancestor=db_key(year))
 		qry_p = qry_p.order(-Player_List.elo_score)
 		player_list = qry_p.fetch()   
 		
 		template_values = {
-			'year': get_year_string(),
+			'year': year,
 			'page': 'admin',
 			'player_list': player_list,
 			'is_signed_up': player is not None,
