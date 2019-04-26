@@ -6,6 +6,7 @@ import string
 import math
 import random
 import sys
+import json
 
 # For Google Calendar
 from apiclient.discovery import build
@@ -22,6 +23,7 @@ import keys
 import sendgrid
 from sendgrid.helpers.mail import *
 
+from google.
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
 startdate = datetime.date(2019, 5, 20)
@@ -35,12 +37,14 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 	extensions=['jinja2.ext.autoescape'],
 	autoescape=True)
 
+
 def db_key(db_name):
 	"""
 	Constructs a Datastore key for a player list.
 	We use the list name as the key.
 	"""
 	return ndb.Key("Entries", db_name)
+
 
 def get_login_info(h):
 	user = users.get_current_user()
@@ -59,30 +63,33 @@ def get_login_info(h):
 	}
 	return info
 
+
 def get_year_string():
 	now = datetime.datetime.utcnow()
 	return now.strftime("%Y")
 
+
 def get_player(x, pid=None):
 	# Get committed entries list
 	now = datetime.datetime.today()
-	login_info = get_login_info(x)
+	get_login_info(x)
 	user = users.get_current_user()
 	result = None
 	if pid == None:
 		if user:
 			pid = user.user_id()
 	if pid != None:
-		qry = Player_List.query(ancestor=db_key(now.year))
-		qry = qry.filter(Player_List.id == pid)
+		qry = PlayerList.query(ancestor=db_key(now.year))
+		qry = qry.filter(PlayerList.id == pid)
 		result = qry.get()
 	return result
+
 
 def set_holidays(x):
 	# Check and set holidays to unavailable
 	now = datetime.datetime.today()
 	year = now.year
-	login_info = get_login_info(x)
+	get_login_info(x)
 	user = users.get_current_user()
 	player = get_player(x)
 	if player:
@@ -95,7 +102,7 @@ def set_holidays(x):
 			fto.name = player.name
 			fto.week = week_slot[0]
 			fto.slot = week_slot[1]
-							
+
 			matchFound = False
 			for fto_entry in fto_data:
 				if fto_entry == fto:
@@ -103,14 +110,15 @@ def set_holidays(x):
 			if matchFound == False:
 				fto.put()
 
+
 def get_player_data(current_week, self):
 	now = datetime.datetime.today()
 	year = now.year
 	pl = {}
 	fto_count = {}
 	# Get player list
-	qry = Player_List.query(ancestor=db_key(now.year))
-	qry = qry.order(Player_List.schedule_rank)
+	qry = PlayerList.query(ancestor=db_key(now.year))
+	qry = qry.order(PlayerList.schedule_rank)
 	plr = qry.fetch(100)
 	for player in plr:
 		pl[player.id] = Player()
@@ -160,6 +168,7 @@ def pick_slots(tier_slot, tier, tier_slot_list):
 	tier_slot[tier]=0 #...reset this tier's slot to 0 so we can try again.
 	return False #We've failed. Back up and try another slot in the prior tier's list.
 
+
 def find_smallest_set(set_list):
 	smallest_set = len(set_list[1])
 	smallest_set_pos = 1
@@ -170,6 +179,7 @@ def find_smallest_set(set_list):
 			smallest_set = len(set_list[p])
 			smallest_set_pos = p
 	return smallest_set_pos
+
 
 def remove_conflicts(player_ids, player_data, self, count=1):
 	if count > 20: return []
@@ -190,6 +200,7 @@ def remove_conflicts(player_ids, player_data, self, count=1):
 	random.shuffle(slots) #randomize the order of the available slots
 	return slots
 
+
 class Player(object):
 	def __init__(self):
 		self.name = None
@@ -199,8 +210,8 @@ class Player(object):
 		self.score = 1000
 		self.byes = 0
 		self.conflicts = []
-	
-   
+
+
 class Fto(ndb.Model):
 	"""
 	A model for storing conflicting days per player.
@@ -213,9 +224,10 @@ class Fto(ndb.Model):
 	def __eq__(self, other):
 		"""Overrides the default implementation"""
 		if isinstance(self, other.__class__):
-			return (self.user_id == other.user_id and self.week == other.week and self.slot == other.slot)
+			return self.user_id == other.user_id and self.week == other.week and self.slot == other.slot
 		return NotImplemented
-   
+
+
 class Schedule(ndb.Model):
 	"""
 	A model for tracking the weekly and daily schedule
@@ -226,8 +238,9 @@ class Schedule(ndb.Model):
 	slot		= ndb.IntegerProperty(indexed=True)
 	tier		= ndb.IntegerProperty(indexed=True)
 	position	= ndb.IntegerProperty(indexed=True)
-	
-class Player_List(ndb.Model):
+
+
+class PlayerList(ndb.Model):
 	"""
 	A model for tracking the ordered list for scheduling
 	"""
@@ -237,6 +250,7 @@ class Player_List(ndb.Model):
 	phone		   = ndb.StringProperty(indexed=False)
 	schedule_rank	= ndb.IntegerProperty(indexed=True)
 	elo_score		= ndb.IntegerProperty(indexed=True)
+
 
 class Scores(ndb.Model):
 	"""
@@ -248,15 +262,15 @@ class Scores(ndb.Model):
 	game			= ndb.IntegerProperty(indexed=True)
 	score1  		= ndb.IntegerProperty(indexed=False)
 	score2  		= ndb.IntegerProperty(indexed=False)
-	
-	
+
+
 class MainPage(webapp2.RequestHandler):
 	"""
 	Reads the database and creates the data for rendering the signup list
 	"""
 	def get(self):
 		# Filter for this year only
-		now = datetime.datetime.today()
+		datetime.datetime.today()
 
 		# See if user is logged in and signed up
 		login_info = get_login_info(self)
@@ -274,6 +288,7 @@ class MainPage(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('mainpage.html')
 		self.response.write(template.render(template_values))
 
+
 class Signup(webapp2.RequestHandler):
 	"""
 	Manages adding a new player to the signup list for this season.
@@ -284,7 +299,7 @@ class Signup(webapp2.RequestHandler):
 		# get the number of currently signed up players
 		
 		if user:
-			player = Player_List(parent=db_key(now.year))
+			player = PlayerList(parent=db_key(now.year))
 			player.id = user.user_id()
 			player.name = self.request.get('name')
 			player.email = self.request.get('email')
@@ -306,8 +321,8 @@ class Signup(webapp2.RequestHandler):
 		week = int(math.floor(int(((today - startdate).days)+3)/7)+1)
 		
 		# Get committed entries list
-		qry_p = Player_List.query(ancestor=db_key(now.year))
-		qry_p = qry_p.order(Player_List.name)
+		qry_p = PlayerList.query(ancestor=db_key(now.year))
+		qry_p = qry_p.order(PlayerList.name)
 		player_list = qry_p.fetch(100)
 
 		# See if user is logged in and signed up
@@ -333,6 +348,7 @@ class Signup(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('signup.html')
 		self.response.write(template.render(template_values))
 
+
 class Unsignup(webapp2.RequestHandler):
 	"""
 	Manages removing the current logged in user from the signup
@@ -342,12 +358,13 @@ class Unsignup(webapp2.RequestHandler):
 		user = users.get_current_user()
 		if user:
 			now = datetime.datetime.today()
-			qry = Player_List.query(ancestor=db_key(now.year))
+			qry = PlayerList.query(ancestor=db_key(now.year))
 			player_list = qry.fetch(100)
 			for player in player_list:
 				if player.id == user.user_id(): 
 					player.key.delete()
 		self.redirect('signup')
+
 
 class Info(webapp2.RequestHandler):
 	"""
@@ -363,6 +380,7 @@ class Info(webapp2.RequestHandler):
 		}
 		template = JINJA_ENVIRONMENT.get_template('info.html')
 		self.response.write(template.render(template_values))
+
 
 class Ftolog(webapp2.RequestHandler):
 	"""
@@ -389,7 +407,8 @@ class Ftolog(webapp2.RequestHandler):
 		}
 		template = JINJA_ENVIRONMENT.get_template('ftolog.html')
 		self.response.write(template.render(template_values))
-	  
+
+
 class FTO(webapp2.RequestHandler):
 	"""
 	Renders Schedule page
@@ -506,6 +525,7 @@ class FTO(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('fto.html')
 		self.response.write(template.render(template_values))
 
+
 class Admin(webapp2.RequestHandler):
 	def post(self):
 		user = users.get_current_user()
@@ -516,8 +536,8 @@ class Admin(webapp2.RequestHandler):
 			year = now.year
 		
 		# Get player list
-		qry_p = Player_List.query(ancestor=db_key(year))
-		qry_p = qry_p.order(Player_List.schedule_rank)
+		qry_p = PlayerList.query(ancestor=db_key(year))
+		qry_p = qry_p.order(PlayerList.schedule_rank)
 		player_list = qry_p.fetch()		 
 		
 		if self.request.get('action') == "Submit":
@@ -562,8 +582,8 @@ class Admin(webapp2.RequestHandler):
 		login_info = get_login_info(self)
 
 		# Get player list
-		qry_p = Player_List.query(ancestor=db_key(year))
-		qry_p = qry_p.order(Player_List.schedule_rank)
+		qry_p = PlayerList.query(ancestor=db_key(year))
+		qry_p = qry_p.order(PlayerList.schedule_rank)
 		player_list = qry_p.fetch()   
 		
 		template_values = {
@@ -576,6 +596,7 @@ class Admin(webapp2.RequestHandler):
 
 		template = JINJA_ENVIRONMENT.get_template('admin.html')
 		self.response.write(template.render(template_values))
+
 
 class Scheduler(webapp2.RequestHandler):
 	# This will run on Fridays for the next week
@@ -679,7 +700,7 @@ class Scheduler(webapp2.RequestHandler):
 						else:
 							player_list.append(old_player_list[p])
 					# Store the new ranks in the database
-					qry = Player_List.query(ancestor=db_key(year))
+					qry = PlayerList.query(ancestor=db_key(year))
 					pr = qry.fetch()
 					for p in pr:
 						for i,x in enumerate(player_list):
@@ -856,6 +877,7 @@ class Scheduler(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('scheduler.html')
 		self.response.write(template.render({}))
 
+
 class Elo(webapp2.RequestHandler):
 	def get(self):
 		today = datetime.date.today()
@@ -925,12 +947,13 @@ class Elo(webapp2.RequestHandler):
 						new_elo[p.id] += int(round(float(kfactor * ((my_team_score/(my_team_score+other_team_score))-(my_team_elo/(my_team_elo+other_team_elo)))))) # Elo magic here
 						logging.info("%s's Elo score(%s) is now %s" % (player_data[p.id].name, player_data[p.id].score, new_elo[p.id]))
 		# Store the new Elo scores in the database
-		qry = Player_List.query(ancestor=db_key(year))
+		qry = PlayerList.query(ancestor=db_key(year))
 		pr = qry.fetch()
 		for p in pr:
 			if p.id in new_elo: # Only store new scores if there is a new score to store :)
 				p.elo_score = new_elo[p.id]
 				p.put()
+
 
 class Standings(webapp2.RequestHandler):
 	def get(self):
@@ -944,8 +967,8 @@ class Standings(webapp2.RequestHandler):
 		player = get_player(self)
 
 		# Get player list
-		qry_p = Player_List.query(ancestor=db_key(year))
-		qry_p = qry_p.order(-Player_List.elo_score)
+		qry_p = PlayerList.query(ancestor=db_key(year))
+		qry_p = qry_p.order(-PlayerList.elo_score)
 		player_list = qry_p.fetch()   
 		
 		template_values = {
@@ -958,9 +981,8 @@ class Standings(webapp2.RequestHandler):
 
 		template = JINJA_ENVIRONMENT.get_template('standings.html')
 		self.response.write(template.render(template_values))
-		
-		
-					
+
+
 class Sub(webapp2.RequestHandler):
 	def get(self):
 		user = users.get_current_user()
@@ -1042,12 +1064,12 @@ class Sub(webapp2.RequestHandler):
 			personalization.add_to(Email(player_data[sub_id].email))
 			personalization.add_to(Email(player_data[swap_id].email))
 			mail.add_personalization(personalization)
-			response = sg.client.mail.send.post(request_body=mail.get())
+			sg.client.mail.send.post(request_body=mail.get())
 		
 		self.redirect("week?w=%s&m=%s" % (week, success))
-									
 
-class Weekly_Schedule(webapp2.RequestHandler):
+
+class WeeklySchedule(webapp2.RequestHandler):
 	def post(self):
 		sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
 		user = users.get_current_user()
@@ -1149,13 +1171,14 @@ class Weekly_Schedule(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('week.html')
 		self.response.write(template.render(template_values))
 
-class Daily_Schedule(webapp2.RequestHandler):
+
+class DailySchedule(webapp2.RequestHandler):
 	def post(self):
 		user = users.get_current_user()
 		now = datetime.datetime.today()
 		# See if user is logged in and signed up
-		login_info = get_login_info(self)
-		user = users.get_current_user()
+		get_login_info(self)
+		users.get_current_user()
 		player = get_player(self)
 		
 		if self.request.get('y'):
@@ -1203,7 +1226,7 @@ class Daily_Schedule(webapp2.RequestHandler):
 			year = today.year
 		# See if user is logged in and signed up
 		login_info = get_login_info(self)
-		user = users.get_current_user()
+		users.get_current_user()
 		player = get_player(self)	  
 		
 		day = 0
@@ -1278,6 +1301,137 @@ class Daily_Schedule(webapp2.RequestHandler):
 
 		template = JINJA_ENVIRONMENT.get_template('day.html')
 		self.response.write(template.render(template_values))
+
+
+class DailySchedule2(webapp2.RequestHandler):
+	def post(self):
+		users.get_current_user()
+		now = datetime.datetime.today()
+		# See if user is logged in and signed up
+		get_login_info(self)
+		users.get_current_user()
+		player = get_player(self)
+
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = now.year
+		week = int(self.request.get('w'))
+		day = int(self.request.get('d'))
+		tier = int(self.request.get('t'))
+
+		if self.request.get('action') == "Scores":
+			if player is not None:
+				logging.info("%s is entering scores." % player.name)
+			qry = Scores.query(ancestor=db_key(year))
+			qry = qry.filter(Scores.week == week, Scores.slot == day)
+			sr = qry.fetch()
+			for s in sr:
+				s.key.delete() # Delete the old scores
+
+			for g in range(1,4):
+				score = Scores(parent=db_key(year))
+				score.week = week
+				score.slot = day
+				score.tier = tier
+				score.game = g
+				if self.request.get("score-%s-1" % g):
+					score.score1 = int(self.request.get("score-%s-1" % g))
+				else:
+					score.score1 = 0
+				if self.request.get("score-%s-2" % g):
+					score.score2 = int(self.request.get("score-%s-2" % g))
+				else:
+					score.score2 = 0
+				if score.score1 or score.score2:
+					logging.info("Game %s: %s - %s" % (g, score.score1, score.score2))
+					score.put() # Save the new scores
+
+		self.redirect("day?w=%s&d=%s&y=%s" % (week, day, year))
+
+	def get(self):
+		today = datetime.date.today()
+		if self.request.get('y'):
+			year = int(self.request.get('y'))
+		else:
+			year = today.year
+		# See if user is logged in and signed up
+		login_info = get_login_info(self)
+		users.get_current_user()
+		player = get_player(self)
+
+		day = 0
+		# Calculate what week and day it is
+		if self.request.get('w'):
+			week = int(self.request.get('w'))
+		else:
+			week = int(math.floor(int((today - startdate).days)/7)+1)
+		if week < 1 :
+			week = 1
+			day = 1
+		if week > numWeeks :
+			week = numWeeks
+
+		if self.request.get('d'):
+			day = int(self.request.get('d'))
+		else:
+			if not day:
+				day = today.weekday() + 1
+		if day > 5 :
+			day = 1
+			week += 1
+
+		schedule_day = startdate + datetime.timedelta(days=(7*(week-1)+(day-1)))
+
+
+		qry = Schedule.query(ancestor=db_key(year))
+		qry = qry.filter(Schedule.week == week, Schedule.slot == day)
+		qry = qry.order(Schedule.position)
+		schedule_data = qry.fetch()
+		if len(schedule_data)>0:
+			games = True
+			tier = schedule_data[0].tier
+		else:
+			games = False
+			tier = 0
+
+		game_team = [[],[]],[[],[]],[[],[]]
+		for p in schedule_data:
+			for x in range(3):
+				game_team[x][ms[x][p.position-1]].append(p.name)
+
+		qry = Scores.query(ancestor=db_key(year))
+		qry = qry.filter(Scores.week == week, Scores.slot == day)
+		sr = qry.fetch()
+
+		score = [['',''],['',''],['','']]
+		if sr:
+			for s in sr:
+				score[s.game-1][0] = s.score1
+				score[s.game-1][1] = s.score2
+
+		is_today = False
+		if today == schedule_day or not score[2][1]:
+			is_today = True
+
+		template_values = {
+			'year': year,
+			'page': 'day',
+			'week': week,
+			'day': day,
+			'tier': tier,
+			'games': games,
+			'score': score,
+			'numWeeks': numWeeks,
+			'schedule_day': schedule_day,
+			'is_today': is_today,
+			'game_team': game_team,
+			'is_signed_up': player is not None,
+			'login': login_info,
+		}
+
+		json_data = json.dumps(template_values)
+		self.response.write(json_data)
 
 
 class Notify(webapp2.RequestHandler):
@@ -1397,7 +1551,7 @@ class Notify(webapp2.RequestHandler):
 			print(response.body)
 			print(response.headers)
 
-		
+
 app = webapp2.WSGIApplication([
 	('/',					MainPage),
 	('/signup',				Signup),
@@ -1405,8 +1559,9 @@ app = webapp2.WSGIApplication([
 	('/info',				Info),
 	('/ftolog',				Ftolog),
 	('/fto',				FTO),
-	('/week',				Weekly_Schedule),
-	('/day',				Daily_Schedule),
+	('/week',               WeeklySchedule),
+	('/day',                DailySchedule),
+	('/day2',               DailySchedule2),
 	('/standings',			Standings),
 	('/sub',				Sub),
 	('/admin',				Admin),
