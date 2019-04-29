@@ -10,7 +10,7 @@
 	</div>
 	{% if success == 'y' %}<div class="row"><h3>Substitution Successful</h3></div>{% elif success == 'n' %}<div class="row"><h3>Substitution Unsuccessful (Are you logged in? Maybe someone else accepted first.)</h3></div>{% elif success == 'rs'%}<div class="row"><h3>Request Sent</h3></div>{% endif %}
 	<div class="row" align="center">
-		<H3>{% if week>1 %}<a href="?w={{week-1}}&y={{year}}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} Week {{week}}{% if week < numWeeks %}<a href="?w={{week+1}}&y={{year}}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H3>
+		<H3>{% if week>1 %}<a href="?w={{week-1}}{% if year != current_year %}&y={{year}}{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} Week {{week}}{% if week < numWeeks %}<a href="?w={{week+1}}{% if year != current_year %}&y={{year}}{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H3>
 	</div>
 	<div class="col-sm-2">
 	<div class="panel panel-danger">
@@ -27,7 +27,7 @@
 		<div class="panel-heading" align="center">
 			{{slots[x].strftime("%a %m/%d")}}
 		</div>
-		<a href="day?w={{week}}&d={{x+1}}&y={{year}}"></a>
+		<a href="day?w={{week}}&d={{x+1}}{% if year != current_year %}&y={{year}}{% endif %}"></a>
 		<center><strong>Players</strong></center>
 		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == x+1 %}
 			<li>{{p.name}}</li>{% endif %}{% endfor %}
