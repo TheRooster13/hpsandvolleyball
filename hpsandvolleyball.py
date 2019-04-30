@@ -1427,7 +1427,7 @@ class DailySchedule2(webapp2.RequestHandler):
 			'games': games,
 			'score': score,
 			'numWeeks': numWeeks,
-			'schedule_day': schedule_daystrftime('%m/%d/%Y'),
+			'schedule_day': schedule_day.strftime('%m/%d/%Y'),
 			'is_today': is_today,
 			'game_team': game_team,
 			'is_signed_up': player is not None,
