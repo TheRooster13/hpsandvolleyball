@@ -308,7 +308,7 @@ class Signup(webapp2.RequestHandler):
 			tp = None
 			tp = get_player(self, player.id, (now.year-1))
 			if tp:
-				player.elo.score = tp.elo_score
+				player.elo_score = tp.elo_score
 			else:
 				player.elo_score = 0
 			if player.name == "":
@@ -719,7 +719,8 @@ class Scheduler(webapp2.RequestHandler):
 #			else:
 #				player_list = old_player_list
 #		else:
-			player_list = old_player_list
+#			player_list = old_player_list
+		player_list = old_player_list
 		
 		#Need to check for existing scores for this week. If there are scores for this week, we should abort.
 		qry = Scores.query(ancestor=db_key(year))
