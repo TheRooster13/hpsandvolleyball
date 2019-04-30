@@ -250,6 +250,14 @@ class Player_List(ndb.Model):
 	schedule_rank	= ndb.IntegerProperty(indexed=True)
 	elo_score		= ndb.IntegerProperty(indexed=True)
 
+class PlayerStandings(ndb.Model):
+	"""
+	A model for tracking player standings (resets each year)
+	"""
+	id				= ndb.StringProperty(indexed=True)
+	name			= ndb.StringProperty(indexed=True)
+	points			= ndb.StringProperty(indexed=True)
+	games			= ndb.StringProperty(indexed=True)
 
 class Scores(ndb.Model):
 	"""
@@ -308,7 +316,7 @@ class Signup(webapp2.RequestHandler):
 			tp = None
 			tp = get_player(self, player.id, (now.year-1))
 			if tp:
-				player.elo_score = tp.elo_score
+				player.elo_score = int((tp.elo_score+1000)/2)
 			else:
 				player.elo_score = 0
 			if player.name == "":
