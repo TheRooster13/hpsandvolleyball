@@ -69,9 +69,8 @@ def get_year_string():
 	return now.strftime("%Y")
 
 
-def get_player(x, pid=None):
+def get_player(x, pid=None, year=datetime.datetime.today().year):
 	# Get committed entries list
-	now = datetime.datetime.today()
 	get_login_info(x)
 	user = users.get_current_user()
 	result = None
@@ -79,7 +78,7 @@ def get_player(x, pid=None):
 		if user:
 			pid = user.user_id()
 	if pid != None:
-		qry = Player_List.query(ancestor=db_key(now.year))
+		qry = Player_List.query(ancestor=db_key(year))
 		qry = qry.filter(Player_List.id == pid)
 		result = qry.get()
 	return result
@@ -305,7 +304,13 @@ class Signup(webapp2.RequestHandler):
 			player.email = self.request.get('email')
 			player.phone = str(self.request.get('phonenumber')).translate(None, string.punctuation)
 			player.schedule_rank = int(self.request.get('count'))
-			player.elo_score = 1000
+			# Check to see if player played previously, if so, import ELO score
+			tp = None
+			tp = get_player(self, player.id, (now.year-1))
+			if tp:
+				player.elo.score = tp.elo_score
+			else:
+				player.elo_score = 0
 			if player.name == "":
 				player.name = user.nickname()
 			if player.email == "":
@@ -614,106 +619,106 @@ class Scheduler(webapp2.RequestHandler):
 		if week < 1: week = 1
 		player_data = get_player_data(week, self)
 		old_player_list = player_data.keys()
-		old_player_list = sorted(old_player_list, key=lambda k: player_data[k].rank)
+#		old_player_list = sorted(old_player_list, key=lambda k: player_data[k].rank)
+		old_player_list = sorted(old_player_list, key=lambda k: player_data[k].score, reverse=True)
 		logging.info("Week %s Scheduler" % week)
 
 		
 		# If there is no existing schedule for this week, we know it is the first time the scheduler has run for this week
 		# So we should first reorder the players based on the previous week's results. Unless this is week 1
-		if week > 1:
-			qry = Schedule.query(ancestor=db_key(year))
-			qry = qry.filter(Schedule.week == week)
-			if qry.count() == 0: #Check if there is already a schedule for this week, if there isn't, we must reorder the player list based on last week's scores
-				qry = Schedule.query(ancestor=db_key(year))
-				qry = qry.filter(Schedule.week == (week-1))
-				qry = qry.order(-Schedule.tier, Schedule.position)
-				schedule_results = qry.fetch()
-				tiers = schedule_results[0].tier
-				tier_position = []
-				for x in range(tiers+1):
-					tier_position.append([])
-				on_bye = []
-				for p in schedule_results:
-					tier_position[p.tier].append([p.id, 0]) # Fill with the player IDs
-					if p.tier == 0:
-						on_bye.append(p.id)
-				qry = Scores.query(ancestor=db_key(year))
-				qry = qry.filter(Scores.week == (week-1))
-				qry = qry.order(Scores.tier, Scores.game)
-				results = qry.fetch()
-				if results:
-					for score in results:
-						if score.game == 1:
-							tier_position[score.tier][0][1] += (score.score1-score.score2)
-							tier_position[score.tier][2][1] += (score.score1-score.score2)
-							tier_position[score.tier][5][1] += (score.score1-score.score2)
-							tier_position[score.tier][7][1] += (score.score1-score.score2)
-							tier_position[score.tier][1][1] += (score.score2-score.score1)
-							tier_position[score.tier][3][1] += (score.score2-score.score1)
-							tier_position[score.tier][4][1] += (score.score2-score.score1)
-							tier_position[score.tier][6][1] += (score.score2-score.score1)
-						if score.game == 2:
-							tier_position[score.tier][0][1] += (score.score1-score.score2)
-							tier_position[score.tier][3][1] += (score.score1-score.score2)
-							tier_position[score.tier][4][1] += (score.score1-score.score2)
-							tier_position[score.tier][7][1] += (score.score1-score.score2)
-							tier_position[score.tier][1][1] += (score.score2-score.score1)
-							tier_position[score.tier][2][1] += (score.score2-score.score1)
-							tier_position[score.tier][5][1] += (score.score2-score.score1)
-							tier_position[score.tier][6][1] += (score.score2-score.score1)
-						if score.game == 3:
-							tier_position[score.tier][0][1] += (score.score1-score.score2)
-							tier_position[score.tier][3][1] += (score.score1-score.score2)
-							tier_position[score.tier][5][1] += (score.score1-score.score2)
-							tier_position[score.tier][6][1] += (score.score1-score.score2)
-							tier_position[score.tier][1][1] += (score.score2-score.score1)
-							tier_position[score.tier][2][1] += (score.score2-score.score1)
-							tier_position[score.tier][4][1] += (score.score2-score.score1)
-							tier_position[score.tier][7][1] += (score.score2-score.score1)
-					for t in range(1, tiers+1):
-						tier_position[t] = sorted(tier_position[t], key=lambda k: k[1], reverse=True)
-						logging.info("Tier %s Results - Up(%s, %s), Down (%s, %s)" % (t, player_data[tier_position[t][0][0]].name, player_data[tier_position[t][1][0]].name, player_data[tier_position[t][6][0]].name, player_data[tier_position[t][7][0]].name))
-					temp_rank_list = []
-					for x in range(1,tiers+1):
-						if x == 1: # If the top tier, top performers move to the top
-							temp_rank_list.append(tier_position[x][0][0])
-							temp_rank_list.append(tier_position[x][1][0])
-						temp_rank_list.append(tier_position[x][2][0])
-						temp_rank_list.append(tier_position[x][3][0])
-						if x > 1: # If not the top tier, bottom performers from tier above move down here
-							temp_rank_list.append(tier_position[x-1][6][0])
-							temp_rank_list.append(tier_position[x-1][7][0])						
-						if x < tiers: # If not the bottom tier, top performers from tier below move up here
-							temp_rank_list.append(tier_position[x+1][0][0])
-							temp_rank_list.append(tier_position[x+1][1][0])
-						temp_rank_list.append(tier_position[x][4][0])
-						temp_rank_list.append(tier_position[x][5][0])
-						if x == tiers: # If the bottom tier, bottom performers move to the bottom
-							temp_rank_list.append(tier_position[x][6][0])
-							temp_rank_list.append(tier_position[x][7][0])
-					player_list = []
-					for p in range(len(old_player_list)):
-						if old_player_list[p] in on_bye:
-							player_list.append(old_player_list[p])
-						elif len(temp_rank_list):
-							player_list.append(temp_rank_list.pop(0))
-						else:
-							player_list.append(old_player_list[p])
-					# Store the new ranks in the database
-					qry = Player_List.query(ancestor=db_key(year))
-					pr = qry.fetch()
-					for p in pr:
-						for i,x in enumerate(player_list):
-							if x == p.id:
-								p.schedule_rank = i
-								p.put()
-					player_data = get_player_data(week,self) # Refresh the player_data with the new ranks
-					
-				else:
-					player_list = old_player_list
-			else:
-				player_list = old_player_list
-		else:
+#		if week > 1:
+#			qry = Schedule.query(ancestor=db_key(year))
+#			qry = qry.filter(Schedule.week == week)
+#			if qry.count() == 0: #Check if there is already a schedule for this week, if there isn't, we must reorder the player list based on last week's scores
+#				qry = Schedule.query(ancestor=db_key(year))
+#				qry = qry.filter(Schedule.week == (week-1))
+#				qry = qry.order(-Schedule.tier, Schedule.position)
+#				schedule_results = qry.fetch()
+#				tiers = schedule_results[0].tier
+#				tier_position = []
+#				for x in range(tiers+1):
+#					tier_position.append([])
+#				on_bye = []
+#				for p in schedule_results:
+#					tier_position[p.tier].append([p.id, 0]) # Fill with the player IDs
+#					if p.tier == 0:
+#						on_bye.append(p.id)
+#				qry = Scores.query(ancestor=db_key(year))
+#				qry = qry.filter(Scores.week == (week-1))
+#				qry = qry.order(Scores.tier, Scores.game)
+#				results = qry.fetch()
+#				if results:
+#					for score in results:
+#						if score.game == 1:
+#							tier_position[score.tier][0][1] += (score.score1-score.score2)
+#							tier_position[score.tier][2][1] += (score.score1-score.score2)
+#							tier_position[score.tier][5][1] += (score.score1-score.score2)
+#							tier_position[score.tier][7][1] += (score.score1-score.score2)
+#							tier_position[score.tier][1][1] += (score.score2-score.score1)
+#							tier_position[score.tier][3][1] += (score.score2-score.score1)
+#							tier_position[score.tier][4][1] += (score.score2-score.score1)
+#							tier_position[score.tier][6][1] += (score.score2-score.score1)
+#						if score.game == 2:
+#							tier_position[score.tier][0][1] += (score.score1-score.score2)
+#							tier_position[score.tier][3][1] += (score.score1-score.score2)
+#							tier_position[score.tier][4][1] += (score.score1-score.score2)
+#							tier_position[score.tier][7][1] += (score.score1-score.score2)
+#							tier_position[score.tier][1][1] += (score.score2-score.score1)
+#							tier_position[score.tier][2][1] += (score.score2-score.score1)
+#							tier_position[score.tier][5][1] += (score.score2-score.score1)
+#							tier_position[score.tier][6][1] += (score.score2-score.score1)
+#						if score.game == 3:
+#							tier_position[score.tier][0][1] += (score.score1-score.score2)
+#							tier_position[score.tier][3][1] += (score.score1-score.score2)
+#							tier_position[score.tier][5][1] += (score.score1-score.score2)
+#							tier_position[score.tier][6][1] += (score.score1-score.score2)
+#							tier_position[score.tier][1][1] += (score.score2-score.score1)
+#							tier_position[score.tier][2][1] += (score.score2-score.score1)
+#							tier_position[score.tier][4][1] += (score.score2-score.score1)
+#							tier_position[score.tier][7][1] += (score.score2-score.score1)
+#					for t in range(1, tiers+1):
+#						tier_position[t] = sorted(tier_position[t], key=lambda k: k[1], reverse=True)
+#						logging.info("Tier %s Results - Up(%s, %s), Down (%s, %s)" % (t, player_data[tier_position[t][0][0]].name, player_data[tier_position[t][1][0]].name, player_data[tier_position[t][6][0]].name, player_data[tier_position[t][7][0]].name))
+#					temp_rank_list = []
+#					for x in range(1,tiers+1):
+#						if x == 1: # If the top tier, top performers move to the top
+#							temp_rank_list.append(tier_position[x][0][0])
+#							temp_rank_list.append(tier_position[x][1][0])
+#						temp_rank_list.append(tier_position[x][2][0])
+#						temp_rank_list.append(tier_position[x][3][0])
+#						if x > 1: # If not the top tier, bottom performers from tier above move down here
+#							temp_rank_list.append(tier_position[x-1][6][0])
+#							temp_rank_list.append(tier_position[x-1][7][0])						
+#						if x < tiers: # If not the bottom tier, top performers from tier below move up here
+#							temp_rank_list.append(tier_position[x+1][0][0])
+#							temp_rank_list.append(tier_position[x+1][1][0])
+#						temp_rank_list.append(tier_position[x][4][0])
+#						temp_rank_list.append(tier_position[x][5][0])
+#						if x == tiers: # If the bottom tier, bottom performers move to the bottom
+#							temp_rank_list.append(tier_position[x][6][0])
+#							temp_rank_list.append(tier_position[x][7][0])
+#					player_list = []
+#					for p in range(len(old_player_list)):
+#						if old_player_list[p] in on_bye:
+#							player_list.append(old_player_list[p])
+#						elif len(temp_rank_list):
+#							player_list.append(temp_rank_list.pop(0))
+#						else:
+#							player_list.append(old_player_list[p])
+#					# Store the new ranks in the database
+#					qry = Player_List.query(ancestor=db_key(year))
+#					pr = qry.fetch()
+#					for p in pr:
+#						for i,x in enumerate(player_list):
+#							if x == p.id:
+#								p.schedule_rank = i
+#								p.put()
+#					
+#				else:
+#					player_list = old_player_list
+#			else:
+#				player_list = old_player_list
+#		else:
 			player_list = old_player_list
 		
 		#Need to check for existing scores for this week. If there are scores for this week, we should abort.
@@ -729,8 +734,8 @@ class Scheduler(webapp2.RequestHandler):
 					if len(player_data[p].conflicts)>= 4:
 						bye_list[0].append(p)
 						logging.info("%s is on bye." % player_data[p].name)
-			num_available_players = int(len(player_list) - len(bye_list[0])) #number of players not on a "true" bye
-			slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we can limit to 8 players per tier.
+			num_available_players = int(len(player_list) - len(bye_list[0])) #number of players not on an FTO bye
+			slots_needed = math.floor(num_available_players / 8) # Since we are automatically reducing the slots required if we fail at finding a valid schedule, we only need a minimum of 8 players per tier.
 			if slots_needed > 5: slots_needed = 5  # Max of 5 matches per week. We only have 5 slots available.
 		  
 			valid_schedule = False
