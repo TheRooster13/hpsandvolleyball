@@ -301,7 +301,7 @@ class MainPage(webapp2.RequestHandler):
             'login': login_info,
         }
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
@@ -373,7 +373,7 @@ class Signup(webapp2.RequestHandler):
             'login': login_info,
         }
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
@@ -414,7 +414,7 @@ class Info(webapp2.RequestHandler):
             'is_signed_up': get_player(self) is not None,
         }
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
@@ -448,7 +448,7 @@ class Ftolog(webapp2.RequestHandler):
             'is_signed_up': player is not None,
         }
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
@@ -570,7 +570,7 @@ class FTO(webapp2.RequestHandler):
             'fto_week': fto_week,
         }
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
@@ -1051,7 +1051,7 @@ class Standings(webapp2.RequestHandler):
             'login': login_info,
         }
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
@@ -1254,7 +1254,7 @@ class WeeklySchedule(webapp2.RequestHandler):
             'login': login_info,
         }
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
@@ -1373,7 +1373,7 @@ class DailySchedule(webapp2.RequestHandler):
         if today == schedule_day or not score[2][1]:
             is_today = True
 
-        os = self.request.headers['x-api-os']
+        os = self.request.headers.get('x-api-os')
         day_schedule = schedule_day
         if os is not None:
             day_schedule = schedule_day.strftime('%m/%d/%Y')
