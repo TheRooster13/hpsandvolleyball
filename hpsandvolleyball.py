@@ -1221,6 +1221,7 @@ class WeeklySchedule(webapp2.RequestHandler):
             week = 1
         if week > numWeeks:
             week = numWeeks
+
         os = self.request.headers.get('x-api-os')
         slots = []
         for d in range(5):
@@ -1232,7 +1233,11 @@ class WeeklySchedule(webapp2.RequestHandler):
         qry = Schedule.query(ancestor=db_key(year))
         qry = qry.filter(Schedule.week == week)
         qry = qry.order(Schedule.slot, Schedule.position)
-        schedule_data = qry.fetch()
+
+        if os is None:
+            schedule_data = qry.fetch()
+        else:
+            schedule_data = ""
 
         active = 0
         if user:
