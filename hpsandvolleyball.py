@@ -1083,6 +1083,8 @@ class Sub(webapp2.RequestHandler):
         get_login_info(self)
         get_player(self)
         week = int(self.request.get('w'))
+        slot = int(self.request.get('s'))
+        tier = int(self.request.get('t'))
         sub_id = self.request.get('id')
         player_data = get_player_data(week, self)
 
@@ -1096,25 +1098,19 @@ class Sub(webapp2.RequestHandler):
         # Check to make sure the sub_id is a currently active player
         # (otherwise, someone else may have already accepted the sub request.)
         for x in sr:
-            if x.id == sub_id:
+            if x.id == sub_id and x.slot == slot and x.tier == tier:
                 if x.slot != 0:
-                    # Check to make sure the logged in player is an alternate for the sub requester's slot
-                    slot = x.slot
-                    tier = x.tier
                     if user:
-                        for y in sr:
-                            if y.id == user.user_id():
-                                if y.position == slot:
-                                    # Make the swap
-                                    swap_id = y.id
-        if swap_id:
+                        # Make the swap
+                        swap_id = y.id
+        if swap_id is not None:
             success = "y"
             for x in sr:
                 if x.slot == slot and x.id != sub_id:
                     # Add everyone already in this slot to a list except the player being subbed out.
                     player_list.append(x.id)
             player_list.append(swap_id)  # Then add the player being swapped in.
-            player_list = sorted(player_list, key=lambda k: player_data[k].rank)  # Sort the list by rank
+            player_list = sorted(player_list, key=lambda k: player_data[k].score, reverse=True)  # Sort the list by rank
             # delete the existing schedule for this slot
             qry = Schedule.query(ancestor=db_key(now.year))
             qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
@@ -1191,14 +1187,14 @@ class WeeklySchedule(webapp2.RequestHandler):
                         if x.slot != 0:
                             slot = x.slot
                             for y in sr:
-                                # find the alternates for the player needing a sub
-                                if y.slot == 0 and y.position == slot:
+                                # send to everyone not already playing in this slot or on a bye week
+                                if y.slot != slot and y.slot != 0:
                                     notification_list.append(player_data[y.id].email)
                                     sendit = True
                             break
 
                 subject = "%s needs a Sub" % player_data[sub_id].name
-                content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime( "%A %m/%d"), week, sub_id))
+                content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime( "%A %m/%d"), week, sub_id))
                 logging.info(subject)
                 logging.info("sending to: %s" % notification_list)
                 if sendit:

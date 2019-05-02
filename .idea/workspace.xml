@@ -18,8 +18,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/hpsandvolleyball.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="193">
-              <caret line="1016" selection-start-line="1016" selection-end-line="1016" />
+            <state relative-caret-position="763">
+              <caret line="1197" column="37" lean-forward="true" selection-start-line="1197" selection-start-column="37" selection-end-line="1197" selection-end-column="37" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -50,8 +50,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="461" />
-    <option name="y" value="328" />
+    <option name="x" value="361" />
+    <option name="y" value="308" />
     <option name="width" value="1688" />
     <option name="height" value="1072" />
   </component>
@@ -76,6 +76,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
   </component>
@@ -105,14 +106,14 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="461" y="328" width="1688" height="1072" extended-state="0" />
+    <frame x="361" y="308" width="1688" height="1072" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Favorites" side_tool="true" />
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.2060606" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Version Control" />
-      <window_info active="true" anchor="bottom" id="Inspection Results" visible="true" weight="0.3290735" />
+      <window_info anchor="bottom" id="Inspection Results" weight="0.3290735" />
       <window_info anchor="bottom" id="Python Console" />
       <window_info anchor="bottom" id="Terminal" />
       <window_info anchor="bottom" id="Event Log" side_tool="true" />
@@ -131,8 +132,8 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/hpsandvolleyball.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="193">
-          <caret line="1016" selection-start-line="1016" selection-end-line="1016" />
+        <state relative-caret-position="763">
+          <caret line="1197" column="37" lean-forward="true" selection-start-line="1197" selection-start-column="37" selection-end-line="1197" selection-end-column="37" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
