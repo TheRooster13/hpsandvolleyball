@@ -26,8 +26,7 @@ from sendgrid.helpers.mail import *
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year. For now, hard-coded is okay.
 numWeeks = 14
 startdate = datetime.date(2019, 5, 20)
-
-holidays = ((2, 1), (7, 4))  # Memorial Day, BYITW Day?, Independence Day
+holidays = ((2, 1), (7, 4))  # Memorial Day, Independence Day, BYITW Day?
 ms = ((0, 1, 0, 1, 1, 0, 1, 0), (0, 1, 1, 0, 0, 1, 1, 0),
       (0, 1, 1, 0, 1, 0, 0, 1))  # How to team up the players for each of the three games
 
@@ -647,8 +646,13 @@ class Admin(webapp2.RequestHandler):
             'login': login_info,
         }
 
-        template = JINJA_ENVIRONMENT.get_template('admin.html')
-        self.response.write(template.render(template_values))
+        os = self.request.headers.get('x-api-os')
+        if os is not None:
+            json_data = json.dumps(template_values, indent=4)
+            self.response.write(json_data)
+        else:
+            template = JINJA_ENVIRONMENT.get_template('admin.html')
+            self.response.write(template.render(template_values))
 
 
 class Scheduler(webapp2.RequestHandler):
@@ -1198,14 +1202,23 @@ class WeeklySchedule(webapp2.RequestHandler):
             week = 1
         if week > numWeeks:
             week = numWeeks
+
+        os = self.request.headers.get('x-api-os')
         slots = []
         for d in range(5):
-            slots.append(startdate + datetime.timedelta(days=(7 * (week - 1) + d)))
+            if os is None:
+                slots.append(startdate + datetime.timedelta(days=(7 * (week - 1) + d)))
+            else:
+                slots.append((startdate + datetime.timedelta(days=(7 * (week - 1) + d))).strftime('%m/%d/%Y'))
 
         qry = Schedule.query(ancestor=db_key(year))
         qry = qry.filter(Schedule.week == week)
         qry = qry.order(Schedule.slot, Schedule.position)
-        schedule_data = qry.fetch()
+
+        if os is None:
+            schedule_data = qry.fetch()
+        else:
+            schedule_data = ""
 
         active = 0
         if user:
@@ -1230,7 +1243,6 @@ class WeeklySchedule(webapp2.RequestHandler):
             'login': login_info,
         }
 
-        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
