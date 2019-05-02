@@ -1221,9 +1221,13 @@ class WeeklySchedule(webapp2.RequestHandler):
             week = 1
         if week > numWeeks:
             week = numWeeks
+        os = self.request.headers.get('x-api-os')
         slots = []
         for d in range(5):
-            slots.append(startdate + datetime.timedelta(days=(7 * (week - 1) + d)))
+            if os is None:
+                slots.append(startdate + datetime.timedelta(days=(7 * (week - 1) + d)))
+            else:
+                slots.append((startdate + datetime.timedelta(days=(7 * (week - 1) + d))).strftime('%m/%d/%Y'))
 
         qry = Schedule.query(ancestor=db_key(year))
         qry = qry.filter(Schedule.week == week)
@@ -1254,7 +1258,6 @@ class WeeklySchedule(webapp2.RequestHandler):
             'login': login_info,
         }
 
-        os = self.request.headers.get('x-api-os')
         if os is not None:
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
