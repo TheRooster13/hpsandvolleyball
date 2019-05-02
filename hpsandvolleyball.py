@@ -605,7 +605,7 @@ class Admin(webapp2.RequestHandler):
             for player in player_list:
                 player.name = self.request.get('name-' + player.id)
                 player.email = self.request.get('email-' + player.id)
-#                player.phone = str(self.request.get('phone-' + player.id)).translate(None,
+                #                player.phone = str(self.request.get('phone-' + player.id)).translate(None,
                 #                string.punctuation).translate(None, string.whitespace)
                 player.schedule_rank = int(self.request.get('rank-' + player.id))
                 player.elo_score = int(self.request.get('score-' + player.id))
@@ -851,7 +851,9 @@ class Scheduler(webapp2.RequestHandler):
                         stc = random.randint(1, len(tier_slot_list))
                         while stc == len(tier_slot_list):  # Just in case the random choice equals the top limit.
                             stc = random.randint(1, len(tier_slot_list))  # Shuffle again
-                        logging.info("Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s/50" % (stc, i + 1))
+                        logging.info(
+                            "Could not find a valid schedule. Shuffling tier %s and trying again. Count=%s/50" % (
+                                stc, i + 1))
                         random.shuffle(tier_list[stc])  # Shuffle the players in a random tier
                         tier_slot_list[stc] = remove_conflicts(tier_list[stc], player_data, self)
                     else:
@@ -871,7 +873,8 @@ class Scheduler(webapp2.RequestHandler):
                     if not tier_slot[x]:  # No valid slots for this tier - bad news
                         valid_schedule = False
                 if not valid_schedule:  # clear the lists, reduce the number of matches, and try again
-                    logging.info("No valid schedule. Dropping from %s matches to %s and trying again." % (slots_needed, slots_needed - 1))
+                    logging.info("No valid schedule. Dropping from %s matches to %s and trying again." % (
+                        slots_needed, slots_needed - 1))
                     del tier_list[:]
                     del tier_slot_list[:]
                     del tier_slot[:]
@@ -951,7 +954,8 @@ class Scheduler(webapp2.RequestHandler):
                     event['end']['dateTime'] = end_time.isoformat('T')
                     for e in email_list:
                         event['attendees'].append({'email': e})
-                    event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event, sendNotifications=True).execute()
+                    event = service.events().insert(calendarId='brianbartlow@gmail.com', body=event,
+                                                    sendNotifications=True).execute()
                 y += 1
         else:
             logging.info("There are scores in the system for this week. Aborting.")
@@ -1030,7 +1034,9 @@ class Elo(webapp2.RequestHandler):
                     logging.info("%s - %s vs %s" % (player_data[p.id].name, my_team_score, other_team_score))
                     # Take the old Elo score and add the modifier to it. We'll store it later.
                     if my_team_score > 0 or other_team_score > 0:
-                        new_elo[p.id] += int(round(float(kfactor * ((my_team_score / (my_team_score + other_team_score)) - (my_team_elo / (my_team_elo + other_team_elo))))))  # Elo magic here
+                        new_elo[p.id] += int(round(float(kfactor * (
+                                (my_team_score / (my_team_score + other_team_score)) - (
+                                my_team_elo / (my_team_elo + other_team_elo))))))  # Elo magic here
                         logging.info("%s's Elo score(%s) is now %s" % (
                             player_data[p.id].name, player_data[p.id].score, new_elo[p.id]))
         # Store the new Elo scores in the database
@@ -1149,7 +1155,9 @@ class Sub(webapp2.RequestHandler):
             from_email = Email("noreply@hpsandvolleyball.appspot.com")
             to_email = Email("brian.bartlow@hp.com")
             subject = "Substitution Successful"
-            content = Content("text/html", "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name))
+            content = Content("text/html",
+                              "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (
+                                  player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name))
             mail = Mail(from_email, subject, to_email, content)
             personalization = Personalization()
             personalization.add_to(Email(player_data[sub_id].email))
@@ -1186,6 +1194,7 @@ class WeeklySchedule(webapp2.RequestHandler):
                     if x.id == sub_id:  # Find the slot of the person needing a sub
                         if x.slot != 0:
                             slot = x.slot
+                            tier = x.tier
                             for y in sr:
                                 # send to everyone not already playing in this slot or on a bye week
                                 if y.slot != slot and y.slot != 0:
@@ -1194,7 +1203,11 @@ class WeeklySchedule(webapp2.RequestHandler):
                             break
 
                 subject = "%s needs a Sub" % player_data[sub_id].name
-                content = Content("text/html", "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime( "%A %m/%d"), week, sub_id))
+                content = Content("text/html",
+                                  "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
+                                      player_data[sub_id].name,
+                                      (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime(
+                                          "%A %m/%d"), week, slot, tier, sub_id))
                 logging.info(subject)
                 logging.info("sending to: %s" % notification_list)
                 if sendit:
