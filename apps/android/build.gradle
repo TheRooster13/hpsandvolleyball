@@ -1,0 +1,104 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext.kotlin_version = '1.3.30'
+    repositories {
+        google()
+        jcenter()
+        
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.4.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.google.gms:google-services:4.2.0'
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+ext.compileSdkVersion = 'android-28'
+ext.minSupportedSdkVersion=21
+ext.minSdkVersion = 23
+ext.projectBuildTools = '28.0.3'
+ext.supportLibVersion = '28.0.0'
+ext.targetSdkVersion = 28
+ext.timberVersion='4.7.0'
+ext.junitVersion='4.12'
+ext.kotlinVersion=kotlin_version
+ext.timberktVersion='1.5.1'
+ext.airbnbAndroidLottieVersion="2.8.0"
+
+// AndroidX
+ext.androidXVersion='1.0.0'
+ext.androidXConstraintLayoutVersion='1.1.3'
+ext.androidXTestCoreVersion="1.1.0"
+ext.androidXTestRunnerVersion="1.1.0"
+ext.androidXTestRulesVersion="1.1.0"
+ext.androidXTestExtJUnitVersion="1.1.0"
+ext.androidXTestOrchestratorVersion="1.1.0"
+ext.androidXEspressoCoreVersion="3.1.0"
+ext.androidXRoomVersion="2.0.0"
+ext.androidXTestUIAutomatorVersion="2.2.0"
+ext.androidXMultidexVersion="2.0.0"
+ext.androidXLifecycleVersion="2.0.0"
+ext.androidXArchCoreVersion="2.0.0"
+ext.androidXAnnotationVersion="1.0.0"
+ext.androidXAppCompatVersion="1.0.2"
+ext.androidXBrowserVersion="1.0.0"
+ext.androidXCardViewVersion="1.0.0"
+ext.androidXCoordinatorLayoutVersion="1.0.0"
+ext.androidXCoreVersion="1.0.0"
+ext.androidXExifInterfaceVersion="1.0.0"
+ext.androidXLegacyPreferenceV14Version="1.0.0"
+ext.androidXLegacySupportCoreUtilsVersion="1.0.0"
+ext.androidXLegacySupportV13Version="1.0.0"
+ext.androidXLegacySupportV4Version="1.0.0"
+ext.androidXMaterialDesignVersion="1.0.0"
+ext.androidXMediaVersion="1.0.0"
+ext.androidXPaletteVersion="1.0.0"
+ext.androidXPercentLayoutVersion="1.0.0"
+ext.androidXPreferenceVersion="1.0.0"
+ext.androidXRecyclerViewVersion="1.0.0"
+ext.androidXSwipeRefreshVersion="1.0.0"
+ext.androidXVectorDrawableVersion="1.0.1"
+ext.androidXViewPagerVersion="1.0.0"
+
+// Google GMS
+ext.googlePlayServicesAnalyticsVersion='16.0.5'
+ext.googlePlayServicesAuthVersion='16.0.1'
+ext.googlePlayServicesBaseVersion='16.1.0'
+ext.googlePlayServicesLocationVersion='16.0.0'
+ext.googlePlayServicesMapsVersion='16.0.0'
+ext.googlePlayServicesNearbyVersion='16.0.0'
+ext.googlePlayServicesOSSLicenses='16.0.1'
+ext.googlePlayServicesPlacesVersion='16.0.0'
+
+// Firebase
+ext.firebaseConfigVersion='16.1.0'
+ext.firebaseCoreVersion='16.0.7'
+ext.firebaseIIDVersion='17.0.4'
+ext.firebaseMessagingVersion='17.3.4'
+
+// Networking
+ext.reactiveRXJavaAndroidVersion='2.1.1'
+ext.reactiveRXJavaVersion='2.2.7'
+ext.reactiveNetworkVersion="3.0.2"
+ext.rxkotlinVersion="2.3.0"
+ext.retrofitVersion="2.4.0"
+ext.okhttp3Version="3.11.0"
+ext.googleCodeGsonVersion="2.8.5"
+
+// ble
+ext.rxAndroidBleVersion="1.8.0"
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
