@@ -36,16 +36,17 @@
 		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == 0 and p.position == x+1 %}
 			<li>{{p.name}}</li>{% endif %}{% endfor %}
 		</ol>
+
 	</div>
-	</div>{% endfor %}
-	{% if is_signed_up and active %}
-	<div class="row" align="center">
+	{% if is_signed_up and (x+1) in active %}
+	<div align="center">
 		<form class="form-horizontal" action="week" method="post">
 		<input type="hidden" name="y" value={{year}}></input>
 		<input type="hidden" name="w" value={{week}}></input>
+		<input type="hidden" name="s" value={{x+1}}></input>
 		<input type="hidden" name="id" value={{player.id}}></input>
-		<button class="btn btn-block btn-danger" type="submit" name="action" value="Sub">I can't make my game and need a sub!</button>
-	</div>{% endif %}
+		<button class="btn btn-block btn-danger" type="submit" name="action" value="Sub">I need a sub!</button>
+	</div>{% endif %}	</div>{% endfor %}
 </div>
 
 <div class="col-md-2">

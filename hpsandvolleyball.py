@@ -1176,6 +1176,7 @@ class WeeklySchedule(webapp2.RequestHandler):
         get_login_info(self)
         get_player(self)
         week = int(self.request.get('w'))
+        slot = int(self.request.get('s'))
         player_data = get_player_data(week, self)
 
         from_email = Email("noreply@hpsandvolleyball.appspot.com")
@@ -1192,8 +1193,7 @@ class WeeklySchedule(webapp2.RequestHandler):
 
                 for x in sr:
                     if x.id == sub_id:  # Find the slot of the person needing a sub
-                        if x.slot != 0:
-                            slot = x.slot
+                        if x.slot == slot:
                             tier = x.tier
                             for y in sr:
                                 # send to everyone not already playing in this slot or on a bye week
@@ -1260,14 +1260,14 @@ class WeeklySchedule(webapp2.RequestHandler):
         else:
             schedule_data = ""
 
-        active = 0
-        if user:
+        active = []
+        if user and year == today.year:
             for s in schedule_data:
                 if s.id == user.user_id() and s.slot != 0:
                     deadline = startdate + datetime.timedelta(days=(7 * (week - 1)) + (s.slot - 1))
                     # noon Mountain time on the day of the match
                     if datetime.datetime.today() < datetime.datetime(deadline.year, deadline.month, deadline.day, 18):
-                        active = 1
+                        active.append(s.slot)
 
         template_values = {
             'current_year': today.year,
