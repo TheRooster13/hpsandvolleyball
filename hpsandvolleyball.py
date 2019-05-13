@@ -1192,7 +1192,7 @@ class WeeklySchedule(webapp2.RequestHandler):
                 sendit = False
 
                 for x in sr:
-                    if x.id == sub_id:  # Find the slot of the person needing a sub
+                    if x.id == sub_id:
                         if x.slot == slot:
                             tier = x.tier
                             for y in sr:
@@ -1204,7 +1204,7 @@ class WeeklySchedule(webapp2.RequestHandler):
 
                 subject = "%s needs a Sub" % player_data[sub_id].name
                 content = Content("text/html",
-                                  "<p>%s needs a sub on %s. If you can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
+                                  "<p>%s needs a sub on %s. This email is sent to everyone. If you are an alternate for this match, can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should let the alternates have first choice. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
                                       player_data[sub_id].name,
                                       (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime(
                                           "%A %m/%d"), week, slot, tier, sub_id))
