@@ -644,14 +644,14 @@ class Admin(webapp2.RequestHandler):
                 print("%s is now rank %s" % (player.name, player.schedule_rank))
                 player.put()
 
-#                if not any(player.id == psr.id for psr in ps_list):
-#                    ps = PlayerStandings(parent=db_key(year))
-#                    ps.id = player.id
-#                    ps.name = player.name
-#                    ps.points = 0
-#                    ps.games = 0
-#                    ps.points_per_game = 0
-#                    ps.put()
+                if not any(player.id == psr.id for psr in ps_list):
+                    ps = PlayerStandings(parent=db_key(year))
+                    ps.id = player.id
+                    ps.name = player.name
+                    ps.points = 0
+                    ps.games = 0
+                    ps.points_per_game = 0
+                    ps.put()
 
 
         if self.request.get('action') == "Holidays":
