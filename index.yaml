@@ -92,3 +92,8 @@ indexes:
   properties:
   - name: points_per_game
     direction: desc
+
+- kind: Player_List
+  ancestor: yes
+  properties:
+  - name: games

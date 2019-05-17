@@ -868,8 +868,8 @@ class Scheduler(webapp2.RequestHandler):
                     for p in range(len(tier_list[x]) - 1, 7, -1):
                         bye_list[x].append(tier_list[x][p])  # Add alternate players to bye list
                         tier_list[x].remove(tier_list[x][p])  # Remove alternate players from the tier list
-                    # Sort the 8 players in each tier by rank
-                    tier_list[x] = sorted(tier_list[x], key=lambda k: player_data[k].rank)
+                    # Sort the 8 players in each tier by elo score
+                    tier_list[x] = sorted(tier_list[x], key=lambda k: player_data[k].score)
 
                 # Check to see if we have a valid schedule
                 valid_schedule = True
@@ -1070,6 +1070,9 @@ class Standings(webapp2.RequestHandler):
     def get(self):
         users.get_current_user()
         now = datetime.datetime.today()
+        today = datetime.date.today()
+        week = int(math.floor(int((today - startdate).days + 3) / 7))
+        if week < 1: week = 1
         if self.request.get('y'):
             year = int(self.request.get('y'))
         else:
@@ -1079,14 +1082,20 @@ class Standings(webapp2.RequestHandler):
 
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(year))
-        qry_p = qry_p.order(-Player_List.elo_score)
-        player_list = qry_p.fetch()
+        if self.request.get('sort') == 'ppg':
+            qry_p = qry_p.filter(Player_List.games >= int(week/2))
+            player_list = qry_p.fetch()
+            player_list = sorted(player_list, key=lambda k: k.points_per_game, reverse=True)
+        else:
+            qry_p = qry_p.order(-Player_List.elo_score)
+            player_list = qry_p.fetch()
 
         template_values = {
             'current_year': now.year,
             'year': year,
             'page': 'admin',
             'player_list': player_list,
+            'min_weeks': int(week/2),
             'is_signed_up': player is not None,
             'login': login_info,
         }
@@ -1134,7 +1143,7 @@ class Sub(webapp2.RequestHandler):
                     # Add everyone already in this slot to a list except the player being subbed out.
                     player_list.append(x.id)
             player_list.append(swap_id)  # Then add the player being swapped in.
-            player_list = sorted(player_list, key=lambda k: player_data[k].score, reverse=True)  # Sort the list by rank
+            player_list = sorted(player_list, key=lambda k: player_data[k].score, reverse=True)  # Sort the list by elo
             # delete the existing schedule for this slot
             qry = Schedule.query(ancestor=db_key(now.year))
             qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
