@@ -86,3 +86,9 @@ indexes:
   - name: week
   - name: id
   - name: slot
+
+- kind: PlayerStandings
+  ancestor: yes
+  properties:
+  - name: points_per_game
+    direction: desc
