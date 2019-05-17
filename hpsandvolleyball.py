@@ -788,7 +788,16 @@ class Scheduler(webapp2.RequestHandler):
 		else:
 			player_list = old_player_list
         """
+
         player_list = old_player_list
+        # Update ranks based on ELO Score
+        qry = Player_List.query(ancestor=db_key(year))
+        pr = qry.fetch()
+        for p in pr:
+            for i, x in enumerate(old_player_list):
+                if x == p.id:
+                    p.schedule_rank = i
+                    p.put()
 
         # Need to check for existing scores for this week. If there are scores for this week, we should abort.
         qry = Scores.query(ancestor=db_key(year))
