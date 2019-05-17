@@ -87,7 +87,7 @@ indexes:
   - name: id
   - name: slot
 
-- kind: PlayerStandings
+- kind: Player_List
   ancestor: yes
   properties:
   - name: points_per_game

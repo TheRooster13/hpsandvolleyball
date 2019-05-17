@@ -127,9 +127,9 @@ def get_player_data(current_week, self):
         pl[player.id].phone = player.phone
         pl[player.id].rank = player.schedule_rank
         pl[player.id].score = player.elo_score
-        pl[player.id].points = 0 # initialize to 0
-        pl[player.id].games = 0 # initialize to 0
-        pl[player.id].points_per_game = 0  # initialize to 0
+        pl[player.id].points = player.points
+        pl[player.id].games = player.games
+        pl[player.id].points_per_game = player.points_per_game
 
         # Need a dict of lists to count the conflicts for each week per player. Initialized with zeros.
         fto_count[player.id] = [0] * numWeeks
@@ -155,16 +155,8 @@ def get_player_data(current_week, self):
                 if fto_count[f.user_id][f.week - 1] == 4:
                     pl[f.user_id].byes += 1
             # To make things easy, we can populate the weekly conflicts while iterating through the fto list.
-            if f.week == current_week:
+            if f.week == current_week and f.user_id in fto_count:
                 pl[f.user_id].conflicts.append(f.slot)
-
-    qry = PlayerStandings.query(ancestor=db_key(year))
-    qry = qry.order(-PlayerStandings.points_per_game)
-    st = qry.fetch()
-    for player in st:
-        pl[player.id].points = player.points
-        pl[player.id].games = player.games
-        pl[player.id].points_per_game = player.points_per_game
 
     return pl
 
@@ -276,14 +268,6 @@ class Player_List(ndb.Model):
     phone = ndb.StringProperty(indexed=False)
     schedule_rank = ndb.IntegerProperty(indexed=True)
     elo_score = ndb.IntegerProperty(indexed=True)
-
-
-class PlayerStandings(ndb.Model):
-    """
-    A model for tracking player standings (resets each year)
-    """
-    id = ndb.StringProperty(indexed=True)
-    name = ndb.StringProperty(indexed=True)
     points = ndb.IntegerProperty(indexed=True)
     games = ndb.IntegerProperty(indexed=True)
     points_per_game = ndb.FloatProperty(indexed=True)
@@ -347,7 +331,6 @@ class Signup(webapp2.RequestHandler):
             player.id = user.user_id()
             player.name = self.request.get('name')
             player.email = self.request.get('email')
-            player.phone = str(self.request.get('phonenumber')).translate(None, string.punctuation)
             player.schedule_rank = int(self.request.get('count'))
             # Check to see if player played previously, if so, import ELO score
             tp = None
@@ -360,17 +343,12 @@ class Signup(webapp2.RequestHandler):
                 player.name = user.nickname()
             if player.email == "":
                 player.email = user.email()
-
-            ps = PlayerStandings(parent=db_key(year))
-            ps.id = player.id
-            ps.name = player.name
-            ps.points = 0
-            ps.games = 0
-            ps.points_per_game = 0
+            player.points = 0
+            player.games = 0
+            player.points_per_game = 0
 
             if self.request.get('action') == "Commit":
                 player.put()
-                ps.put()
             set_holidays(self)
         self.redirect('signup')
 
@@ -425,11 +403,6 @@ class Unsignup(webapp2.RequestHandler):
             now = datetime.datetime.today()
             qry = Player_List.query(ancestor=db_key(now.year))
             player_list = qry.fetch(100)
-            for player in player_list:
-                if player.id == user.user_id():
-                    player.key.delete()
-            qry = PlayerStandings.query(ancestor=db_key(now.year))
-            player_list = qry.fetch()
             for player in player_list:
                 if player.id == user.user_id():
                     player.key.delete()
@@ -630,28 +603,17 @@ class Admin(webapp2.RequestHandler):
         qry_p = qry_p.order(Player_List.schedule_rank)
         player_list = qry_p.fetch()
 
-        qry_ps = PlayerStandings.query(ancestor=db_key(year))
-        ps_list = qry_ps.fetch()
-
         if self.request.get('action') == "Submit":
             for player in player_list:
                 player.name = self.request.get('name-' + player.id)
                 player.email = self.request.get('email-' + player.id)
-                #                player.phone = str(self.request.get('phone-' + player.id)).translate(None,
-                #                string.punctuation).translate(None, string.whitespace)
                 player.schedule_rank = int(self.request.get('rank-' + player.id))
                 player.elo_score = int(self.request.get('score-' + player.id))
-                print("%s is now rank %s" % (player.name, player.schedule_rank))
+                player.points = int(self.request.get('points-' + player.id))
+                player.games = int(self.request.get('games-' + player.id))
+                player.points_per_game = float(self.request.get('points_per_game-' + player.id))
+#                print("%s is now rank %s" % (player.name, player.schedule_rank))
                 player.put()
-
-                if not any(player.id == psr.id for psr in ps_list):
-                    ps = PlayerStandings(parent=db_key(year))
-                    ps.id = player.id
-                    ps.name = player.name
-                    ps.points = 0
-                    ps.games = 0
-                    ps.points_per_game = 0
-                    ps.put()
 
 
         if self.request.get('action') == "Holidays":
@@ -1030,27 +992,28 @@ class Elo(webapp2.RequestHandler):
         # Order based on decending tier so we can get a count of how many tiers there were this week.
         qry = qry.order(-Schedule.tier, Schedule.position)
         schedule_results = qry.fetch()
-        tiers = schedule_results[0].tier  # The number of tiers is equal to the highest tier from the schedule.
+        if schedule_results:
+            tiers = schedule_results[0].tier  # The number of tiers is equal to the highest tier from the schedule.
 
-        # Set up lists to store the average team Elo and scores for each game(3) in each tier(variable).
-        team_elo = []
-        scores = []
-        for x in range(tiers + 1):
-            team_elo.append([[0, 0], [0, 0], [0, 0]])
-            scores.append([[0, 0], [0, 0], [0, 0]])
+            # Set up lists to store the average team Elo and scores for each game(3) in each tier(variable).
+            team_elo = []
+            scores = []
+            for x in range(tiers + 1):
+                team_elo.append([[0, 0], [0, 0], [0, 0]])
+                scores.append([[0, 0], [0, 0], [0, 0]])
 
-        # Calculate the average Elo scores for each team
-        for p in schedule_results:
-            if p.tier > 0:
-                for x in range(3):
-                    # Add elo_score to team_elo[tier][game][team]
-                    team_elo[p.tier][x][team_map[x][p.position - 1]] += float(player_data[p.id].score)
-        # logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[p.tier][x][team_map[x][p.position-1]], p.tier, x+1, team_map[x][p.position-1]+1))
-        for x in range(tiers + 1):
-            for y in range(3):
-                for z in range(2):
-                    team_elo[x][y][z] /= float(4)  # Average Elo_Score for each team
-        # logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[x][y][z], x, y+1, z+1))
+            # Calculate the average Elo scores for each team
+            for p in schedule_results:
+                if p.tier > 0:
+                    for x in range(3):
+                        # Add elo_score to team_elo[tier][game][team]
+                        team_elo[p.tier][x][team_map[x][p.position - 1]] += float(player_data[p.id].score)
+            # logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[p.tier][x][team_map[x][p.position-1]], p.tier, x+1, team_map[x][p.position-1]+1))
+            for x in range(tiers + 1):
+                for y in range(3):
+                    for z in range(2):
+                        team_elo[x][y][z] /= float(4)  # Average Elo_Score for each team
+            # logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[x][y][z], x, y+1, z+1))
 
         # Grab the scores from the database and store them in a list.
         qry = Scores.query(ancestor=db_key(year))
@@ -1095,12 +1058,6 @@ class Elo(webapp2.RequestHandler):
         for p in pr:
             if p.id in new_elo:  # Only store new scores if there is a new score to store
                 p.elo_score = new_elo[p.id]
-                p.put()
-        # Store the new Standings points in the database
-        qry = PlayerStandings.query(ancestor=db_key(year))
-        st = qry.fetch()
-        for p in st:
-            if p.id in new_points:  # Only store new scores if there is a new score to store
                 p.points = new_points[p.id]
                 p.games = new_games[p.id]
                 if p.games == 0:
@@ -1510,7 +1467,7 @@ class Notify(webapp2.RequestHandler):
         subject = "Please Ignore"
         content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
 
-        player_data = get_player_data(1, self)
+        player_data = get_player_data(0, self)
         sendit = False
         notification_list = []
 

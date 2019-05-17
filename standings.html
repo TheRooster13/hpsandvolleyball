@@ -24,12 +24,14 @@
             <th>Rank</th>
             <th>Name</th>
             <th>Elo Score</th>
+            <th>Points Per Game</th>
           </tr>{%
 		for player in player_list %}
           <tr>
             <td>{{loop.index}}</td>
             <td>{{player.name}}</td>
             <td>{{player.elo_score}}</td>
+            <td>{{player.points_per_game}}</td>
           </tr>{%
 		endfor %}{%
 	else %}

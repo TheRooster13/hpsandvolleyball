@@ -46,13 +46,19 @@
                 <input type="text" class="form-control" id="email-{{player.id}}" name="email-{{player.id}}" value="{{player.email}}"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="phone-{{player.id}}" name="phone-{{player.id}}" value="{{player.phone}}"></input>
-            </td>
-            <td>
                 <input type="text" class="form-control" id="rank-{{player.id}}" name="rank-{{player.id}}" value="{{loop.index}}"></input>
             </td>
             <td>
                 <input type="text" class="form-control" id="score-{{player.id}}" name="score-{{player.id}}" value="{{player.elo_score}}"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="score-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="score-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="score-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}"></input>
             </td>
           </tr>
         {% endfor %}
