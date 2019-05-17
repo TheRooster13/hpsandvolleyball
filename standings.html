@@ -24,7 +24,7 @@
             <th>Rank</th>
             <th>Name</th>
               <th><a href="?sort=elo">Elo Score</a></th>
-              <th><a href="?sort=ppg">Avg Per Game</a></th>
+              <th><a href="?sort=ppg" data-toggle="tooltip" title="Minimum {{min_games}} Games">Avg Per Game</a></th>
           </tr>{%
 		for player in player_list %}
           <tr>

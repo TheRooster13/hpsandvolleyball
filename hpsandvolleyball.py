@@ -1092,7 +1092,7 @@ class Standings(webapp2.RequestHandler):
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(year))
         if self.request.get('sort') == 'ppg':
-            qry_p = qry_p.filter(Player_List.games >= int(week/2))
+            qry_p = qry_p.filter(Player_List.games >= int(week/2)*3)
             player_list = qry_p.fetch()
             player_list = sorted(player_list, key=lambda k: k.points_per_game, reverse=True)
         else:
@@ -1104,7 +1104,7 @@ class Standings(webapp2.RequestHandler):
             'year': year,
             'page': 'admin',
             'player_list': player_list,
-            'min_weeks': int(week/2),
+            'min_games': int(week/2)*3,
             'is_signed_up': player is not None,
             'login': login_info,
         }
