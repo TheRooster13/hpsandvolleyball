@@ -1144,7 +1144,7 @@ class Sub(webapp2.RequestHandler):
                 if x.slot != 0:
                     if user:
                         # Make the swap
-                        swap_id = y.id
+                        swap_id = user.user_id()
         if swap_id is not None:
             success = "y"
             for x in sr:
@@ -1176,7 +1176,8 @@ class Sub(webapp2.RequestHandler):
             qry = Schedule.query(ancestor=db_key(now.year))
             qry = qry.filter(Schedule.week == week, Schedule.id == swap_id, Schedule.slot == 0)
             results = qry.fetch()
-            results[0].key.delete()
+            if results:
+                results[0].key.delete()
             # add the subbed out player to the alternate list.
             s = Schedule(parent=db_key(now.year))
             s.id = sub_id
@@ -1240,7 +1241,7 @@ class WeeklySchedule(webapp2.RequestHandler):
 
                 subject = "%s needs a Sub" % player_data[sub_id].name
                 content = Content("text/html",
-                                  "<p>%s needs a sub on %s. This email is sent to everyone. If you are an alternate for this match, can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should let the alternates have first choice. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not currently able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
+                                  "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match (or there aren't any alternates), you can still sub, but you should let the alternates have first choice. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
                                       player_data[sub_id].name,
                                       (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime(
                                           "%A %m/%d"), week, slot, tier, sub_id))
