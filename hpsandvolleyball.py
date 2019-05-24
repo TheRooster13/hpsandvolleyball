@@ -878,7 +878,7 @@ class Scheduler(webapp2.RequestHandler):
                         bye_list[x].append(tier_list[x][p])  # Add alternate players to bye list
                         tier_list[x].remove(tier_list[x][p])  # Remove alternate players from the tier list
                     # Sort the 8 players in each tier by elo score
-                    tier_list[x] = sorted(tier_list[x], key=lambda k: player_data[k].score)
+                    tier_list[x] = sorted(tier_list[x], key=lambda k: player_data[k].score, reverse=True)
 
                 # Check to see if we have a valid schedule
                 valid_schedule = True
@@ -985,7 +985,7 @@ class Elo(webapp2.RequestHandler):
         year = today.year
         random.seed(datetime.datetime.now())
         team_map = ((0, 1, 0, 1, 1, 0, 1, 0), (0, 1, 1, 0, 0, 1, 1, 0), (0, 1, 1, 0, 1, 0, 0, 1))
-        kfactor = 500  # 2018 = 200, 2019 = 500
+        kfactor = 400  # 2018 = 200, 2019 = 400
 
         # Calculate what week# next week will be
         if self.request.get('w'):
@@ -1041,9 +1041,10 @@ class Elo(webapp2.RequestHandler):
         new_games = {}
         for p in schedule_results:
             if p.tier > 0:
-                new_elo[p.id] = player_data[p.id].score
-                new_points[p.id] = player_data[p.id].points
-                new_games[p.id] = player_data[p.id].games
+                if p.id not in new_elo:
+                    new_elo[p.id] = player_data[p.id].score
+                    new_points[p.id] = player_data[p.id].points
+                    new_games[p.id] = player_data[p.id].games
                 for g in range(3):
                     my_team_elo = float(team_elo[p.tier][g][team_map[g][p.position - 1]])
                     other_team_elo = float(team_elo[p.tier][g][1 - team_map[g][p.position - 1]])
@@ -1067,12 +1068,12 @@ class Elo(webapp2.RequestHandler):
         for p in pr:
             if p.id in new_elo:  # Only store new scores if there is a new score to store
                 p.elo_score = new_elo[p.id]
-                p.points = new_points[p.id]
+                p.points = int(new_points[p.id])
                 p.games = new_games[p.id]
                 if p.games == 0:
                     p.points_per_game = 0
                 else:
-                    p.points_per_game = float(new_points[p.id]/new_games[p.id])
+                    p.points_per_game = round(float(new_points[p.id]/new_games[p.id]),1)
                 p.put()
 
 class Standings(webapp2.RequestHandler):
