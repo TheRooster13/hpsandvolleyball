@@ -1081,7 +1081,7 @@ class Standings(webapp2.RequestHandler):
         users.get_current_user()
         now = datetime.datetime.today()
         today = datetime.date.today()
-        week = int(math.floor(int((today - startdate).days + 3) / 7))
+        week = int(math.floor(int((today - startdate).days + 3) / 7))+1
         if week < 1: week = 1
         if self.request.get('y'):
             year = int(self.request.get('y'))
@@ -1093,7 +1093,7 @@ class Standings(webapp2.RequestHandler):
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(year))
         if self.request.get('sort') == 'ppg':
-            qry_p = qry_p.filter(Player_List.games >= int(week/2)*3)
+            qry_p = qry_p.filter(Player_List.games >= int(3*week/2))
             player_list = qry_p.fetch()
             player_list = sorted(player_list, key=lambda k: k.points_per_game, reverse=True)
         else:
@@ -1105,7 +1105,7 @@ class Standings(webapp2.RequestHandler):
             'year': year,
             'page': 'admin',
             'player_list': player_list,
-            'min_games': int(week/2)*3,
+            'min_games': int(3*week/2),
             'is_signed_up': player is not None,
             'login': login_info,
         }
@@ -1235,7 +1235,7 @@ class WeeklySchedule(webapp2.RequestHandler):
                             tier = x.tier
                             for y in sr:
                                 # send to everyone not already playing in this slot or on a bye week
-                                if y.slot != slot and y.slot != 0:
+                                if y.slot != slot and y.position != 0:
                                     notification_list.append(player_data[y.id].email)
                                     sendit = True
                             break
