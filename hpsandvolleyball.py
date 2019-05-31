@@ -1081,7 +1081,7 @@ class Standings(webapp2.RequestHandler):
         users.get_current_user()
         now = datetime.datetime.today()
         today = datetime.date.today()
-        week = int(math.floor(int((today - startdate).days + 3) / 7))+1
+        week = int(math.floor(int((today - startdate).days + 3) / 7))
         if week < 1: week = 1
         if self.request.get('y'):
             year = int(self.request.get('y'))
