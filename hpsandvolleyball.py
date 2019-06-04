@@ -1437,7 +1437,8 @@ class DailySchedule(webapp2.RequestHandler):
                 score[s.game - 1][1] = s.score2
 
         is_today = False
-        if today == schedule_day or not score[2][1]:
+#        if today == schedule_day or not score[2][1]:
+        if today == schedule_day:
             is_today = True
 
         os = self.request.headers.get('x-api-os')

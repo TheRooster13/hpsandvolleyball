@@ -34,7 +34,7 @@
         </div>{%
     endfor %}
     </div>
-	{% if is_today %}
+	{% if is_today and is_signed_up %}
     <button class="btn btn-block btn-success" type="submit" name="action" value="Scores">Submit Scores</button>{% endif %}{% 
     else %}
     <p class="text-danger"><strong>There are no matches scheduled for this day.</strong></p>{% 
