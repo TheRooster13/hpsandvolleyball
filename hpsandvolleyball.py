@@ -1240,9 +1240,11 @@ class WeeklySchedule(webapp2.RequestHandler):
                                     sendit = True
                             break
 
+                notification_list.append(player_data[sub_id].email) #Send a copy to the requestor.
+
                 subject = "%s needs a Sub" % player_data[sub_id].name
                 content = Content("text/html",
-                                  "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should let the alternates have first choice. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
+                                  "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
                                       player_data[sub_id].name,
                                       (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime(
                                           "%A %m/%d"), week, slot, tier, sub_id))
@@ -1438,6 +1440,9 @@ class DailySchedule(webapp2.RequestHandler):
 
         is_today = False
 #        if today == schedule_day or not score[2][1]:
+#        if today > schedule_day and not score[2][1]:
+#            # If a match gets rescheduled and played later.
+#            is_today = True
         if today == schedule_day:
             is_today = True
 
