@@ -1007,13 +1007,16 @@ class Elo(webapp2.RequestHandler):
             # Set up lists to store the average team Elo and scores for each game(3) in each tier(variable).
             team_elo = []
             scores = []
+            player_count = []
             for x in range(tiers + 1):
                 team_elo.append([[0, 0], [0, 0], [0, 0]])
                 scores.append([[0, 0], [0, 0], [0, 0]])
+                player_count.append(0)
 
             # Calculate the average Elo scores for each team
             for p in schedule_results:
                 if p.tier > 0:
+                    player_count[p.tier] += 1
                     for x in range(3):
                         # Add elo_score to team_elo[tier][game][team]
                         team_elo[p.tier][x][team_map[x][p.position - 1]] += float(player_data[p.id].score)
@@ -1021,7 +1024,8 @@ class Elo(webapp2.RequestHandler):
             for x in range(tiers + 1):
                 for y in range(3):
                     for z in range(2):
-                        team_elo[x][y][z] /= float(4)  # Average Elo_Score for each team
+                        if player_count[x]:
+                            team_elo[x][y][z] /= float(player_count[x]/2)  # Average Elo_Score for each team
             # logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[x][y][z], x, y+1, z+1))
 
         # Grab the scores from the database and store them in a list.
@@ -1233,6 +1237,7 @@ class WeeklySchedule(webapp2.RequestHandler):
                     if x.id == sub_id:
                         if x.slot == slot:
                             tier = x.tier
+                            notification_list.append(player_data[x.id].email)
                             for y in sr:
                                 # send to everyone not already playing in this slot or on a bye week
                                 if y.slot != slot and y.position != 0:
@@ -1240,15 +1245,10 @@ class WeeklySchedule(webapp2.RequestHandler):
                                     sendit = True
                             break
 
-                notification_list.append(player_data[sub_id].email) #Send a copy to the requestor.
-
                 subject = "%s needs a Sub" % player_data[sub_id].name
-                content = Content("text/html",
-                                  "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (
-                                      player_data[sub_id].name,
-                                      (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime(
-                                          "%A %m/%d"), week, slot, tier, sub_id))
+                content = Content("text/html", "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id))
                 logging.info(subject)
+                logging.info(content)
                 logging.info("sending to: %s" % notification_list)
                 if sendit:
                     mail = Mail(from_email, subject, to_email, content)
@@ -1257,8 +1257,10 @@ class WeeklySchedule(webapp2.RequestHandler):
                         for e in notification_list:
                             personalization.add_to(Email(e))
                         mail.add_personalization(personalization)
-                    sg.client.mail.send.post(request_body=mail.get())
-
+                    response = sg.client.mail.send.post(request_body=mail.get())
+                    print(response.status_code)
+                    print(response.body)
+                    print(response.headers)
         self.redirect("week?w=%s&m=rs" % week)
 
     def get(self):
