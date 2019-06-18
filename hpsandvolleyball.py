@@ -1134,6 +1134,7 @@ class Sub(webapp2.RequestHandler):
         tier = int(self.request.get('t'))
         sub_id = self.request.get('id')
         player_data = get_player_data(week, self)
+        player = get_player(self)
 
         qry = Schedule.query(ancestor=db_key(now.year))
         qry = qry.filter(Schedule.week == week)
@@ -1147,9 +1148,9 @@ class Sub(webapp2.RequestHandler):
         for x in sr:
             if x.id == sub_id and x.slot == slot and x.tier == tier:
                 if x.slot != 0:
-                    if user:
+                    if player:
                         # Make the swap
-                        swap_id = user.user_id()
+                        swap_id = player.id
         if swap_id is not None:
             success = "y"
             for x in sr:
