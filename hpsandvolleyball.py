@@ -1217,7 +1217,7 @@ class WeeklySchedule(webapp2.RequestHandler):
         user = users.get_current_user()
         now = datetime.datetime.today()
         get_login_info(self)
-        get_player(self)
+        player = get_player(self)
         week = int(self.request.get('w'))
         slot = int(self.request.get('s'))
         player_data = get_player_data(week, self)
@@ -1225,43 +1225,42 @@ class WeeklySchedule(webapp2.RequestHandler):
         from_email = Email("noreply@hpsandvolleyball.appspot.com")
         to_email = Email("brian.bartlow@hp.com")
 
-        if self.request.get('action') == "Sub":
-            if user:
-                sub_id = user.user_id()
-                qry = Schedule.query(ancestor=db_key(now.year))
-                qry = qry.filter(Schedule.week == week)
-                sr = qry.fetch()
-                notification_list = []
-                sendit = False
+        if self.request.get('action') == "Sub" and user and player is not None:
+            sub_id = user.user_id()
+            qry = Schedule.query(ancestor=db_key(now.year))
+            qry = qry.filter(Schedule.week == week)
+            sr = qry.fetch()
+            notification_list = []
+            sendit = False
 
-                for x in sr:
-                    if x.id == sub_id:
-                        if x.slot == slot:
-                            tier = x.tier
-                            notification_list.append(player_data[x.id].email)
-                            for y in sr:
-                                # send to everyone not already playing in this slot or on a bye week
-                                if y.slot != slot and y.position != 0:
-                                    notification_list.append(player_data[y.id].email)
-                                    sendit = True
-                            break
+            for x in sr:
+                if x.id == sub_id:
+                    if x.slot == slot:
+                        tier = x.tier
+                        notification_list.append(player_data[x.id].email)
+                        for y in sr:
+                            # send to everyone not already playing in this slot or on a bye week
+                            if y.slot != slot and y.position != 0:
+                                notification_list.append(player_data[y.id].email)
+                                sendit = True
+                        break
 
-                subject = "%s needs a Sub" % player_data[sub_id].name
-                content = Content("text/html", "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id))
-                logging.info(subject)
-                logging.info(content)
-                logging.info("sending to: %s" % notification_list)
-                if sendit:
-                    mail = Mail(from_email, subject, to_email, content)
-                    if len(notification_list):
-                        personalization = Personalization()
-                        for e in notification_list:
-                            personalization.add_to(Email(e))
-                        mail.add_personalization(personalization)
-                    response = sg.client.mail.send.post(request_body=mail.get())
-                    print(response.status_code)
-                    print(response.body)
-                    print(response.headers)
+            subject = "%s needs a Sub" % player_data[sub_id].name
+            content = Content("text/html", "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id))
+            logging.info(subject)
+            logging.info(content)
+            logging.info("sending to: %s" % notification_list)
+            if sendit:
+                mail = Mail(from_email, subject, to_email, content)
+                if len(notification_list):
+                    personalization = Personalization()
+                    for e in notification_list:
+                        personalization.add_to(Email(e))
+                    mail.add_personalization(personalization)
+                response = sg.client.mail.send.post(request_body=mail.get())
+                print(response.status_code)
+                print(response.body)
+                print(response.headers)
         self.redirect("week?w=%s&m=rs" % week)
 
     def get(self):

@@ -18,8 +18,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/hpsandvolleyball.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="287">
-              <caret line="1152" column="43" lean-forward="true" selection-start-line="1152" selection-start-column="43" selection-end-line="1152" selection-end-column="43" />
+            <state relative-caret-position="-477">
+              <caret line="1227" column="59" lean-forward="true" selection-start-line="1227" selection-start-column="59" selection-end-line="1227" selection-end-column="59" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -93,7 +93,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/week.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="680">
+            <state relative-caret-position="578">
               <caret line="40" column="40" selection-start-line="40" selection-start-column="40" selection-end-line="40" selection-end-column="40" />
             </state>
           </provider>
@@ -154,8 +154,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="1">
-    <option name="x" value="631" />
-    <option name="y" value="306" />
+    <option name="x" value="319" />
+    <option name="y" value="22" />
     <option name="width" value="1688" />
     <option name="height" value="1072" />
   </component>
@@ -210,7 +210,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="631" y="306" width="1688" height="1072" extended-state="1" />
+    <frame x="319" y="22" width="1688" height="1072" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2060606" />
@@ -234,16 +234,6 @@
     </layout>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/hpsandvolleyball.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="287">
-          <caret line="1152" column="43" lean-forward="true" selection-start-line="1152" selection-start-column="43" selection-end-line="1152" selection-end-column="43" />
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/base.html">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2193">
@@ -295,8 +285,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/week.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="680">
+        <state relative-caret-position="578">
           <caret line="40" column="40" selection-start-line="40" selection-start-column="40" selection-end-line="40" selection-end-column="40" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/hpsandvolleyball.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-477">
+          <caret line="1227" column="59" lean-forward="true" selection-start-line="1227" selection-start-column="59" selection-end-line="1227" selection-end-column="59" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
