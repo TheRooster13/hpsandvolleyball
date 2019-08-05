@@ -27,7 +27,7 @@
                     for p in game_team[g][t] %}
                     <li class="list-group-item">{{p}}</li>{% 
                     endfor %}
-                    <li class="list-group-item"><div class="input-group row"><span class="input-group-addon" id="ba1">Score</span><input class="form-control col-xs-12" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}" value={{score[g][t]}} {% if is_today and is_signed_up %}{% else %}disabled{% endif %}></input></div></li>
+                    <li class="list-group-item"><div class="input-group row"><span class="input-group-addon" id="ba1">Score</span><input class="form-control col-xs-12" aria-describedby="ba1" name="score-{{g+1}}-{{t+1}}" {% if is_today and is_signed_up %}{% else %}disabled {% endif %}value={{score[g][t]}} ></input></div></li>
                 </ul>
             </div>{% 
             endfor %}

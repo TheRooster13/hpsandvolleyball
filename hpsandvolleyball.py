@@ -1240,7 +1240,7 @@ class WeeklySchedule(webapp2.RequestHandler):
                         notification_list.append(player_data[x.id].email)
                         for y in sr:
                             # send to everyone not already playing in this slot or on a bye week
-                            if y.slot != slot and y.position != 0:
+                            if y.slot != slot and y.position != 0 and player_data[y.id].email not in notification_list:
                                 notification_list.append(player_data[y.id].email)
                                 sendit = True
                         break
