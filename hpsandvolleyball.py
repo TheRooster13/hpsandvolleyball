@@ -23,6 +23,7 @@ import keys
 import sendgrid
 from sendgrid.helpers.mail import *
 
+
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year.
 # For now, hard-coded is okay.
 numWeeks = 14
@@ -128,6 +129,7 @@ def get_player_data(current_week, self):
         pl[player.id].rank = player.schedule_rank
         pl[player.id].score = player.elo_score
         pl[player.id].points = player.points
+        pl[player.id].wins = player.wins
         pl[player.id].games = player.games
         pl[player.id].points_per_game = player.points_per_game
 
@@ -226,6 +228,7 @@ class Player(object):
         self.byes = 0
         self.conflicts = []
         self.points = 0
+        self.wins = 0
         self.games = 0
         self.points_per_game = 0
 
@@ -269,6 +272,7 @@ class Player_List(ndb.Model):
     schedule_rank = ndb.IntegerProperty(indexed=True)
     elo_score = ndb.IntegerProperty(indexed=True)
     points = ndb.IntegerProperty(indexed=True)
+    wins = ndb.IntegerProperty(indexed=True)
     games = ndb.IntegerProperty(indexed=True)
     points_per_game = ndb.FloatProperty(indexed=True)
 
@@ -610,6 +614,7 @@ class Admin(webapp2.RequestHandler):
                 player.schedule_rank = int(self.request.get('rank-' + player.id))
                 player.elo_score = int(self.request.get('score-' + player.id))
                 player.points = int(self.request.get('points-' + player.id))
+                player.wins = int(self.request.get('wins-' + player.id))
                 player.games = int(self.request.get('games-' + player.id))
                 player.points_per_game = float(self.request.get('points_per_game-' + player.id))
 #                print("%s is now rank %s" % (player.name, player.schedule_rank))
@@ -1042,12 +1047,14 @@ class Elo(webapp2.RequestHandler):
         # their old Elo score, the game scores, and the teams' average Elo scores.
         new_elo = {}
         new_points = {}
+        new_wins = {}
         new_games = {}
         for p in schedule_results:
             if p.tier > 0:
                 if p.id not in new_elo:
                     new_elo[p.id] = player_data[p.id].score
                     new_points[p.id] = player_data[p.id].points
+                    new_wins[p.id] = player_data[p.id].wins
                     new_games[p.id] = player_data[p.id].games
                 for g in range(3):
                     my_team_elo = float(team_elo[p.tier][g][team_map[g][p.position - 1]])
@@ -1066,6 +1073,7 @@ class Elo(webapp2.RequestHandler):
                     # If this player's team won, add the ELO score of the losing team
                     if my_team_score > other_team_score:
                         new_points[p.id] += other_team_elo
+                        new_wins[p.id] += 1
         # Store the new Elo scores in the database
         qry = Player_List.query(ancestor=db_key(year))
         pr = qry.fetch()
@@ -1073,6 +1081,7 @@ class Elo(webapp2.RequestHandler):
             if p.id in new_elo:  # Only store new scores if there is a new score to store
                 p.elo_score = new_elo[p.id]
                 p.points = int(new_points[p.id])
+                p.wins = new_wins[p.id]
                 p.games = new_games[p.id]
                 if p.games == 0:
                     p.points_per_game = 0
@@ -1104,11 +1113,16 @@ class Standings(webapp2.RequestHandler):
             qry_p = qry_p.order(-Player_List.elo_score)
             player_list = qry_p.fetch()
 
+        win_percentage = {}
+        for p in player_list:
+            win_percentage[p.id] = round(100 * float(p.wins) / float(p.games), 1)
+
         template_values = {
             'current_year': now.year,
             'year': year,
             'page': 'admin',
             'player_list': player_list,
+            'win_percentage': win_percentage,
             'min_games': int(3*week/2),
             'is_signed_up': player is not None,
             'login': login_info,

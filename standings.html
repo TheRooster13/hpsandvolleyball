@@ -25,6 +25,7 @@
             <th>Name</th>
               <th><a href="?sort=elo">Elo Score</a></th>
               <th><a href="?sort=ppg" data-toggle="tooltip" title="Minimum {{min_games}} Games">Avg Per Game</a></th>
+              <th>Win-Loss (Win%)</th>
           </tr>{%
 		for player in player_list %}
           <tr>
@@ -32,6 +33,7 @@
             <td>{{player.name}}</td>
             <td>{{player.elo_score}}</td>
             <td>{{player.points_per_game}}</td>
+            <td>{{player.wins}}-{{player.games - player.wins}} ({{win_percentage[player.id]}}%)</td>
           </tr>{%
 		endfor %}{%
 	else %}

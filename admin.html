@@ -35,6 +35,7 @@
             <th>Rank</th>
             <th>Score</th>
             <th>Points</th>
+            <th>Wins</th>
             <th>Games</th>
             <th>Points Per Game</th>
           </tr>
@@ -54,13 +55,16 @@
                 <input type="text" class="form-control" id="score-{{player.id}}" name="score-{{player.id}}" value="{{player.elo_score}}"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="score-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}"></input>
+                <input type="text" class="form-control" id="points-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="score-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}"></input>
+                <input type="text" class="form-control" id="wins-{{player.id}}" name="wins-{{player.id}}" value="{{player.wins}}"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="score-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}"></input>
+                <input type="text" class="form-control" id="games-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="points_per_game-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}"></input>
             </td>
           </tr>
         {% endfor %}
