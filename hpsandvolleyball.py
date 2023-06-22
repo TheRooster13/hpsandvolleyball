@@ -28,7 +28,7 @@ from sendgrid.helpers.mail import *
 # For now, hard-coded is okay.
 numWeeks = 8
 startdate = datetime.date(2023, 7, 10)
-holidays = ()  # ((week,day),(week,day),(week,day)) - Memorial Day, Independence Day, BYITW Day
+holidays = ()  # ((week,slot),(week,slot),(week,slot)) - Memorial Day, Independence Day, BYITW Day
 # How to team up the players for each of the three games
 ms = ((0, 1, 0, 1, 1, 0, 1, 0), (0, 1, 1, 0, 0, 1, 1, 0), (0, 1, 1, 0, 1, 0, 0, 1))
 
