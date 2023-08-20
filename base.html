@@ -55,19 +55,25 @@
             opacity: 0; /* Fix to make div clickable in IE */
             filter: alpha(opacity=1); /* Fix to make div clickable in IE */
         }
-        .square {
-            width: 30px; /* Adjust dimensions as needed */
-            height: 30px;
+        .cell {
             border: 1px solid black;
             cursor: pointer;
         }
 
-        .green {
-            background-color: green;
+        .red {
+          background-color: red;
         }
 
-        .red {
-            background-color: red;
+        .green {
+          background-color: green;
+        }
+
+        .highlight-red {
+          background-color: rgba(255, 0, 0, 0.5); /* 50% desaturated red */
+        }
+
+        .highlight-green {
+          background-color: rgba(0, 255, 0, 0.5); /* 50% desaturated green */
         }
     </style>
 

@@ -2,23 +2,78 @@
 {% block title %}FTO{% endblock %}
 {% block content %}
 
-// script.js
-document.addEventListener("DOMContentLoaded", function() {
-    const squares = document.querySelectorAll(".square");
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const cells = document.querySelectorAll(".cell");
+  let firstClickedCell = null;
+  let secondClickedCell = null;
 
-    squares.forEach(square => {
-        square.addEventListener("click", function() {
-            square.classList.toggle("red");
-            square.classList.toggle("green");
-
-            // Update the corresponding checkbox value (assuming it's a binary value)
-            const weekData = square.getAttribute("data-week");
-            const [week, day] = weekData.split("-");
-            const checkbox = document.querySelector(`input[name="${week}-${day}"]`);
-            checkbox.checked = !checkbox.checked;
-        });
+  cells.forEach((cell) => {
+    cell.addEventListener("click", function () {
+      if (!firstClickedCell) {
+        firstClickedCell = cell;
+        highlightCells(firstClickedCell);
+      } else if (!secondClickedCell) {
+        secondClickedCell = cell;
+        applyColorChange(firstClickedCell, secondClickedCell);
+        firstClickedCell = null;
+        secondClickedCell = null;
+        clearHighlighting();
+      }
     });
+
+    cell.addEventListener("mouseover", function () {
+      if (firstClickedCell && !secondClickedCell) {
+        highlightCells(cell);
+      }
+    });
+
+    cell.addEventListener("mouseout", function () {
+      if (!firstClickedCell || secondClickedCell) {
+        clearHighlighting();
+        if (firstClickedCell) {
+          highlightCells(firstClickedCell);
+        }
+      }
+    });
+  });
+
+  function highlightCells(targetCell) {
+    const startIndex = Array.from(cells).indexOf(firstClickedCell);
+    const endIndex = Array.from(cells).indexOf(targetCell);
+
+    cells.forEach((cell, index) => {
+      if (index >= Math.min(startIndex, endIndex) && index <= Math.max(startIndex, endIndex)) {
+        const originalColor = cell.getAttribute("data-original");
+        const highlightColorClass = originalColor === "red" ? "highlight-red" : "highlight-green";
+        cell.classList.add(highlightColorClass);
+      } else {
+        cell.classList.remove("highlight-red", "highlight-green");
+      }
+    });
+  }
+
+  function applyColorChange(startCell, endCell) {
+    const colorToApply = startCell.getAttribute("data-original") === "red" ? "green" : "red";
+    const startIndex = Array.from(cells).indexOf(startCell);
+    const endIndex = Array.from(cells).indexOf(endCell);
+
+    cells.forEach((cell, index) => {
+      if (index >= Math.min(startIndex, endIndex) && index <= Math.max(startIndex, endIndex)) {
+        cell.classList.remove("red", "green", "highlight-red", "highlight-green");
+        cell.classList.add(colorToApply);
+        cell.setAttribute("data-original", colorToApply);
+      }
+    });
+  }
+
+  function clearHighlighting() {
+    cells.forEach((cell) => {
+      cell.classList.remove("highlight-red", "highlight-green");
+    });
+  }
 });
+</script>
 
 <div class="col-md-2">
 </div>
@@ -48,7 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <table class="table table-striped table-condensed">
         <tr>
             <td></td>
-            <th><div style="vertical-align:middle; text-align:center">Mon @ 12</div></thd>
+            <th><div style="vertical-align:middle; text-align:center">Mon @ 12</div></th>
             <th><div style="vertical-align:middle; text-align:center">Tue @ 12</div></th>
             <th><div style="vertical-align:middle; text-align:center">Wed @ 12</div></th>
             <th><div style="vertical-align:middle; text-align:center">Thu @ 12</div></th>
@@ -57,11 +112,11 @@ document.addEventListener("DOMContentLoaded", function() {
         {% for week in weeks %}
         <tr>
             <th>Week {{ loop.index }} <small>({{ week }})</small></th>
-            <td><div class="square {% if fto_week[loop.index-1][0] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-1"></div></td>
-            <td><div class="square {% if fto_week[loop.index-1][1] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-2"></div></td>
-            <td><div class="square {% if fto_week[loop.index-1][2] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-3"></div></td>
-            <td><div class="square {% if fto_week[loop.index-1][3] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-4"></div></td>
-            <td><div class="square {% if fto_week[loop.index-1][4] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-5"></div></td>
+            <td class="cell {% if fto_week[loop.index-1][0] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-1" data-original="{% if fto_week[loop.index-1][0] %}green{% else %}red{% endif %}"></td>
+            <td class="cell {% if fto_week[loop.index-1][1] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-2" data-original="{% if fto_week[loop.index-1][1] %}green{% else %}red{% endif %}"></td>
+            <td class="cell {% if fto_week[loop.index-1][2] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-3" data-original="{% if fto_week[loop.index-1][2] %}green{% else %}red{% endif %}"></td>
+            <td class="cell {% if fto_week[loop.index-1][3] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-4" data-original="{% if fto_week[loop.index-1][3] %}green{% else %}red{% endif %}"></td>
+            <td class="cell {% if fto_week[loop.index-1][4] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-5" data-original="{% if fto_week[loop.index-1][4] %}green{% else %}red{% endif %}"></td>
         </tr>
         {% endfor %}
        </table>{%

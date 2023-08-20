@@ -22,7 +22,7 @@ from google.appengine.api import mail
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year.
 # For now, hard-coded is okay.
 numWeeks = 6
-startdate = datetime.date(2023, 7, 10)
+startdate = datetime.date(2023, 8, 21)
 holidays = ()  # ((week,slot),(week,slot),(week,slot)) - Memorial Day, Independence Day, BYITW Day
 # How to team up the players for each of the three games
 ms = ((0, 1, 0, 1, 1, 0, 1, 0), (0, 1, 1, 0, 0, 1, 1, 0), (0, 1, 1, 0, 1, 0, 0, 1))
@@ -331,13 +331,16 @@ class Signup(webapp2.RequestHandler):
             player.name = self.request.get('name')
             player.email = self.request.get('email')
             player.schedule_rank = int(self.request.get('count'))
-            # Check to see if player played previously, if so, import ELO score
-            tp = None
-            tp = get_player(self, player.id, (now.year - 4)) # Will need to change this back to now.year - 1 next year!
-            if tp:
-                player.elo_score = int((tp.elo_score + 1000) / 2)
-            else:
-                player.elo_score = 750
+            
+             # Check previous years back to 2016 for player's ELO score
+            player.elo_score = 800  # Default ELO score if no previous data found
+
+            for year in range(now.year - 1, 2015, -1):  # Iterate from (current year - 1) to 2016
+                tp = get_player(self, player.id, year)
+                if tp and tp.elo_score:  # Check if player and ELO score data exist for that year
+                    player.elo_score = int((tp.elo_score + 1000) / 2)
+                    break  # If data found, stop checking previous years
+                    
             if player.name == "":
                 player.name = user.nickname()
             if player.email == "":
