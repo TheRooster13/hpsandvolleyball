@@ -2,6 +2,24 @@
 {% block title %}FTO{% endblock %}
 {% block content %}
 
+// script.js
+document.addEventListener("DOMContentLoaded", function() {
+    const squares = document.querySelectorAll(".square");
+
+    squares.forEach(square => {
+        square.addEventListener("click", function() {
+            square.classList.toggle("red");
+            square.classList.toggle("green");
+
+            // Update the corresponding checkbox value (assuming it's a binary value)
+            const weekData = square.getAttribute("data-week");
+            const [week, day] = weekData.split("-");
+            const checkbox = document.querySelector(`input[name="${week}-${day}"]`);
+            checkbox.checked = !checkbox.checked;
+        });
+    });
+});
+
 <div class="col-md-2">
 </div>
 
@@ -39,14 +57,14 @@
         {% for week in weeks %}
         <tr>
             <th>Week {{ loop.index }} <small>({{ week }})</small></th>
-            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-1"{% if fto_week[loop.index-1][0] %} checked{% endif %}></div></td>
-            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-2"{% if fto_week[loop.index-1][1] %} checked{% endif %}></div></td>
-            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-3"{% if fto_week[loop.index-1][2] %} checked{% endif %}></div></td>
-            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-4"{% if fto_week[loop.index-1][3] %} checked{% endif %}></div></td>
-            <td><div style="text-align:center"><input type="checkbox" value="1" name="{{ loop.index }}-5"{% if fto_week[loop.index-1][4] %} checked{% endif %}></div></td>
+            <td><div class="square {% if fto_week[loop.index-1][0] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-1"></div></td>
+            <td><div class="square {% if fto_week[loop.index-1][1] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-2"></div></td>
+            <td><div class="square {% if fto_week[loop.index-1][2] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-3"></div></td>
+            <td><div class="square {% if fto_week[loop.index-1][3] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-4"></div></td>
+            <td><div class="square {% if fto_week[loop.index-1][4] %}green{% else %}red{% endif %}" data-week="{{ loop.index }}-5"></div></td>
         </tr>
         {% endfor %}
-      </table>{%
+       </table>{%
       if user %}{%
 	  if player.id != user.user_id() %}
 	  <input type="hidden" name="pid" value="{{player.id}}"></input>{%
