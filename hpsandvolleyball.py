@@ -17,16 +17,11 @@ from google.appengine.ext import ndb
 import jinja2
 import webapp2
 
-# using SendGrid's Python Library
-# https://github.com/sendgrid/sendgrid-python
-import keys
-import sendgrid
-from sendgrid.helpers.mail import *
-
+from google.appengine.api import mail
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year.
 # For now, hard-coded is okay.
-numWeeks = 8
+numWeeks = 6
 startdate = datetime.date(2023, 7, 10)
 holidays = ()  # ((week,slot),(week,slot),(week,slot)) - Memorial Day, Independence Day, BYITW Day
 # How to team up the players for each of the three games
@@ -338,17 +333,18 @@ class Signup(webapp2.RequestHandler):
             player.schedule_rank = int(self.request.get('count'))
             # Check to see if player played previously, if so, import ELO score
             tp = None
-            tp = get_player(self, player.id, (now.year - 1))
+            tp = get_player(self, player.id, (now.year - 4)) # Will need to change this back to now.year - 1 next year!
             if tp:
                 player.elo_score = int((tp.elo_score + 1000) / 2)
             else:
-                player.elo_score = 0
+                player.elo_score = 750
             if player.name == "":
                 player.name = user.nickname()
             if player.email == "":
                 player.email = user.email()
             player.points = 0
             player.games = 0
+            player.wins = 0
             player.points_per_game = 0
 
             if self.request.get('action') == "Commit":
@@ -689,6 +685,8 @@ class Scheduler(webapp2.RequestHandler):
             week = int(math.floor(int(((today - startdate).days) + 3) / 7) + 1)
         if week < 1:
             week = 1
+        if week > numWeeks:
+            return
         player_data = get_player_data(week, self)
         old_player_list = player_data.keys()
         #		old_player_list = sorted(old_player_list, key=lambda k: player_data[k].rank)
@@ -952,7 +950,7 @@ class Scheduler(webapp2.RequestHandler):
                     event = {
                         'summary': 'Sand VolleyBall Match',
                         'location': 'N/S Sand Court',
-                        'description': "Week %s Sand Volleyball Match" % week,
+                        'description': "Week %s Sand Volleyball Match. If you cannot make the match, please go to https://hpsandvolleyball.appspot.com/week (make sure you are logged in) and click the \"I need a sub\" button." % week,
                         'start': {
                             #						'dateTime': '2018-05-28T12:00:00-06:00',
                             'timeZone': 'America/Boise',
@@ -990,7 +988,7 @@ class Elo(webapp2.RequestHandler):
         year = today.year
         random.seed(datetime.datetime.now())
         team_map = ((0, 1, 0, 1, 1, 0, 1, 0), (0, 1, 1, 0, 0, 1, 1, 0), (0, 1, 1, 0, 1, 0, 0, 1))
-        kfactor = 400  # 2018 = 200, 2019 = 400
+        kfactor = 400  # 2018 = 200, 2019 = 400, 2023 = 400
 
         # Calculate what week# next week will be
         if self.request.get('w'):
@@ -1115,7 +1113,10 @@ class Standings(webapp2.RequestHandler):
 
         win_percentage = {}
         for p in player_list:
-            win_percentage[p.id] = round(100 * float(p.wins) / float(p.games), 1)
+            if p.games > 0:
+                win_percentage[p.id] = round(100 * float(p.wins) / float(p.games), 1)
+            else:
+                win_percentage[p.id] = 0
 
         template_values = {
             'current_year': now.year,
@@ -1208,26 +1209,38 @@ class Sub(webapp2.RequestHandler):
             s.position = slot
             s.put()
 
-            sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
-            from_email = Email("noreply@hpsandvolleyball.appspot.com")
-            to_email = Email("brian.bartlow@hp.com")
-            subject = "Substitution Successful"
-            content = Content("text/html",
-                              "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (
-                                  player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name))
-            mail = Mail(from_email, subject, to_email, content)
-            personalization = Personalization()
-            personalization.add_to(Email(player_data[sub_id].email))
-            personalization.add_to(Email(player_data[swap_id].email))
-            mail.add_personalization(personalization)
-            sg.client.mail.send.post(request_body=mail.get())
+#            sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
+            # Send an email confirmation out to the admin and the substituting players
+            message = mail.EmailMessage()
+            message.sender = "noreply@hpsandvolleyball.appspotmail.com"
+            message.to = [str(player_data[sub_id].email), str(player_data[swap_id].email), "brian.bartlow@hp.com"]
+            message.subject = "Substitution Successful"
+            message.body = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to %s at %s." % (
+                            player_data[sub_id].name, player_data[swap_id].name, player_data[swap_id].email)
+            message.html = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (
+                            player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name)
+            message.check_initialized()
+            message.send()
+            
+#            from_email = Email("noreply@hpsandvolleyball.appspotmail.com")
+#            to_email = Email("brian.bartlow@hp.com")
+#            subject = "Substitution Successful"
+#            content = Content("text/html",
+#                              "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (
+#                                  player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name))
+#            mail = Mail(from_email, subject, to_email, content)
+#            personalization = Personalization()
+#            personalization.add_to(Email(player_data[sub_id].email))
+#            personalization.add_to(Email(player_data[swap_id].email))
+#            mail.add_personalization(personalization)
+#            sg.client.mail.send.post(request_body=mail.get())
 
         self.redirect("week?w=%s&m=%s" % (week, success))
 
 
 class WeeklySchedule(webapp2.RequestHandler):
     def post(self):
-        sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
+#        sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
         user = users.get_current_user()
         now = datetime.datetime.today()
         get_login_info(self)
@@ -1236,8 +1249,9 @@ class WeeklySchedule(webapp2.RequestHandler):
         slot = int(self.request.get('s'))
         player_data = get_player_data(week, self)
 
-        from_email = Email("noreply@hpsandvolleyball.appspot.com")
-        to_email = Email("brian.bartlow@hp.com")
+
+#        from_email = Email("noreply@hpsandvolleyball.appspot.com")
+#        to_email = Email("brian.bartlow@hp.com")
 
         if self.request.get('action') == "Sub" and user and player is not None:
             sub_id = user.user_id()
@@ -1259,22 +1273,31 @@ class WeeklySchedule(webapp2.RequestHandler):
                                 sendit = True
                         break
 
-            subject = "%s needs a Sub" % player_data[sub_id].name
-            content = Content("text/html", "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id))
-            logging.info(subject)
-            logging.info(content)
-            logging.info("sending to: %s" % notification_list)
+            message = mail.EmailMessage()
+            message.sender = "noreply@hpsandvolleyball.appspotmail.com"
+            message.to = ["brian.bartlow@hp.com"]
+            message.subject = "%s needs a Sub" % player_data[sub_id].name
+            message.body = """%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click this link http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.
+                                NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.""" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id)
+            message.html = "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id)
+
             if sendit:
-                mail = Mail(from_email, subject, to_email, content)
-                if len(notification_list):
-                    personalization = Personalization()
-                    for e in notification_list:
-                        personalization.add_to(Email(e))
-                    mail.add_personalization(personalization)
-                response = sg.client.mail.send.post(request_body=mail.get())
-                print(response.status_code)
-                print(response.body)
-                print(response.headers)
+                logging.info(message.subject)
+                logging.info(message.html)
+                logging.info("sending to: %s" % notification_list)
+#                mail = Mail(from_email, subject, to_email, content)
+                for e in notification_list:
+                    message.to.append(str(e))
+#                    personalization = Personalization()
+#                    for e in notification_list:
+#                        personalization.add_to(Email(e))
+#                    mail.add_personalization(personalization)
+                message.check_initialized()
+                message.send()
+#                response = sg.client.mail.send.post(request_body=mail.get())
+#                print(response.status_code)
+#                print(response.body)
+#                print(response.headers)
         self.redirect("week?w=%s&m=rs" % week)
 
     def get(self):
@@ -1494,7 +1517,7 @@ class DailySchedule(webapp2.RequestHandler):
 
 class Notify(webapp2.RequestHandler):
     def get(self):
-        sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
+#        sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
 
         today = datetime.date.today()
         year = today.year
@@ -1503,14 +1526,21 @@ class Notify(webapp2.RequestHandler):
         week = int(math.floor(int((today - startdate).days) / 7) + 1)
         day = today.isoweekday()
 
-        from_email = Email("noreply@hpsandvolleyball.appspot.com")
-        # to_email = Email("")
-        to_email = Email("brian.bartlow@hp.com")
-        subject = "Please Ignore"
-        content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
+        message = mail.EmailMessage()
+        message.sender = "noreply@hpsandvolleyball.appspotmail.com"
+        message.to = ["brian.bartlow@hp.com"]
+        message.subject = "Please Ignore"
+        message.body = "Please ignore this email. I am testing new functionality on the website."
+        message.html = "<p>Please ignore this email.</p><p>I am testing new functionality on the website.</p>"
+
+#        from_email = Email("noreply@hpsandvolleyball.appspot.com")
+#        # to_email = Email("")
+#        to_email = Email("brian.bartlow@hp.com")
+#        subject = "Please Ignore"
+#        content = Content("text/html", "Please ignore this email, I am testing new functionality on the website.")
 
         player_data = get_player_data(0, self)
-        sendit = False
+        sendit = True
         notification_list = []
 
         if self.request.get('t') == "score":
@@ -1529,28 +1559,35 @@ class Notify(webapp2.RequestHandler):
                 logging.info("%s scores have been entered today." % sr)
                 if sr < 3:  # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
                     logging.info("Sending email reminder to enter scores.")
-                    subject = "Reminder to submit scores"
-                    content = Content("text/html",
-                                      "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard.")
+                    message.subject = "Reminder to submit scores"
+                    message.body = "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the Score Page (http://hpsandvolleyball.appspot.com/day) and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard."
+                    message.html = "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard."
                     sendit = True
                     for s in schedule_data:
                         # pass
                         notification_list.append(player_data[s.id].email)
+                else:
+                    logging.info("The scores were already entered today.")
+                    sendit = False
             else:
                 logging.info("There are no games scheduled for today.")
+                sendit = False
 
-        elif self.request.get('t') == "fto":
-            subject = "Reminder to check and update your FTO/Conflicts for next week"
-            content = Content("text/html", """Next week's schedule will be generated at 2:00pm. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure your schedule is up-to-date for next week.
-            If that link doesn't work, please log in with the Google account used when you signed up.""")
+        elif self.request.get('t') == "fto" and week >= 0 and week < numWeeks:
+            message.subject = "Reminder to check and update your FTO/Conflicts for next week"
+            message.body = """Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon, please go to the FTO Page (http://hpsandvolleyball.appspot.com/fto) and check to make sure those days are checked off as unavailable.
+            If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the FTO link at the top of the page. Then click the checkbox for any days that you cannot play at noon."""
+            message.html = """Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon, please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure those days are checked off as unavailable.
+            If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the FTO link at the top of the page. Then click the checkbox for any days that you cannot play at noon."""
             sendit = True
             for p in player_data:
-                # logging.info("%s - %s" % (player_data[p].name,player_data[p].email))
+                logging.info("%s - %s" % (player_data[p].name,player_data[p].email))
                 if player_data[p].email:
                     # pass
                     notification_list.append(player_data[p].email)
 
         elif self.request.get('t') == "test":
+            sendit = False
             week = 2
             slot = 4
             email_list = ["brian.bartlow@hp.com"]
@@ -1583,20 +1620,26 @@ class Notify(webapp2.RequestHandler):
                                             body=event, sendNotifications=True).execute()
 
         elif self.request.get('t') == "log":
+            sendit = False
             logging.info('This is an info log message')
             self.response.out.write('Logging example.')
 
         if sendit:
-            mail = Mail(from_email, subject, to_email, content)
-            if len(notification_list):
-                personalization = Personalization()
-                for e in notification_list:
-                    personalization.add_to(Email(e))
-                mail.add_personalization(personalization)
-            response = sg.client.mail.send.post(request_body=mail.get())
-            print(response.status_code)
-            print(response.body)
-            print(response.headers)
+#            mail = Mail(from_email, subject, to_email, content)
+            for e in notification_list:
+                message.to.append(str(e))
+                
+            logging.info(message.to)
+#                personalization = Personalization()
+#                for e in notification_list:
+#                    personalization.add_to(Email(e))
+#                mail.add_personalization(personalization)
+#            response = sg.client.mail.send.post(request_body=mail.get())
+#            print(response.status_code)
+#            print(response.body)
+#            print(response.headers)
+            message.check_initialized()
+            message.send()
 
 
 app = webapp2.WSGIApplication([
