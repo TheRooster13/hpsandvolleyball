@@ -55,26 +55,48 @@
             opacity: 0; /* Fix to make div clickable in IE */
             filter: alpha(opacity=1); /* Fix to make div clickable in IE */
         }
-        .cell {
-            border: 1px solid black;
-            cursor: pointer;
+        
+        .btn-highlight,.btn-highlight:focus,.btn-highlight:hover,.btn-highlight:active {
+            color: #333;
+            background-color: #ffcc00;
+            border-color: #e6b800;
+            background-image:-webkit-linear-gradient(top,#ffcc00 0,#ffcc00 100%);
+            background-image: none;
         }
+    
+    .cell {
+        border: 1px solid #ccc; /* Add a 1-pixel border */
+        padding: 5px; /* Add some padding for better appearance */
+        text-align: center; /* Center the text within the cells */
+        cursor: pointer;
+    }
 
-        .red {
-          background-color: red;
-        }
+    .cal-green,
+    .cal-green:focus,
+    .cal-green:hover {
+        color: #fff;
+        background-image: -webkit-linear-gradient(top, #5cb85c, #449d44);
+        background-image: linear-gradient(to bottom, #5cb85c, #449d44);
+//        border-color: #4cae4c;
+    }
 
-        .green {
-          background-color: green;
-        }
+    .cal-red,
+    .cal-red:focus,
+    .cal-red:hover {
+        color: #fff;
+        background-image: -webkit-linear-gradient(top, #d9534f, #c9302c);
+        background-image: linear-gradient(to bottom, #d9534f, #c9302c);
+//        border-color: #d43f3a;
+    }
 
-        .highlight-red {
-          background-color: rgba(255, 0, 0, 0.5); /* 50% desaturated red */
-        }
-
-        .highlight-green {
-          background-color: rgba(0, 255, 0, 0.5); /* 50% desaturated green */
-        }
+    .cal-highlight,
+    .cal-highlight:focus,
+    .cal-highlight:hover {
+        color: #333;
+        background-image: -webkit-linear-gradient(top, #ffcc00, #ffdd33);
+        background-image: linear-gradient(to bottom, #ffcc00, #ffdd33);
+//        border-color: #e6b800;
+    }
     </style>
 
     <!-- JQuery must appear before bootstrap javascript -->
@@ -134,10 +156,10 @@
             <li><a href="/day">Scores</a></li>
             {% endif %}
             {% if is_signed_up %}
-            {% if page == "fto" %}
-            <li class="active"><a href="/fto">FTO<span class="sr-only">(current)</span></a></li> 
+            {% if page == "availability" %}
+            <li class="active"><a href="/availability">Availability<span class="sr-only">(current)</span></a></li> 
             {% else %}
-            <li><a href="/fto">FTO</a></li>
+            <li><a href="/availability">Availability</a></li>
             {% endif %}
             {% endif %}
             {% if page == "info" %}
@@ -147,6 +169,13 @@
             {% endif %}
            </ul>
           <ul class="nav navbar-nav navbar-right">
+            {% if is_admin%}
+            {% if page == "admin" %}
+            <li class="active"><a href="/admin">Admin<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/admin">Admin</a></li>
+            {% endif %}
+            {% endif %}
             <li><a href="{{ login.url }}">{{ login.linktext }}</a></li>
           </ul>
         </div>
@@ -167,6 +196,23 @@
       <p>HP Sand Volleyball | &copy; {{ year }}</p>
       </center>
     </div>
+
+    <div id="successModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Success!</h4>
+                </div>
+                <div class="modal-body">
+                    <p id="modalMessage"></p> <!-- Empty element for success message -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
   </body>
 

@@ -33,7 +33,7 @@
             <th>Name</th>
             <th>Email</th>
             <th>Rank</th>
-            <th>Score</th>
+            <th>ELO</th>
             <th>Points</th>
             <th>Wins</th>
             <th>Games</th>
@@ -43,28 +43,28 @@
           <tr>
             <td><a href="fto?pid={{player.id}}">{{loop.index}}</a></td>
             <td>
-                <input type="text" class="form-control" id="name-{{player.id}}" name="name-{{player.id}}" value="{{player.name}}"></input>
+                <input type="text" class="form-control" id="name-{{player.id}}" name="name-{{player.id}}" value="{{player.name}}" style="padding: 3px;"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="email-{{player.id}}" name="email-{{player.id}}" value="{{player.email}}"></input>
+                <input type="text" class="form-control" id="email-{{player.id}}" name="email-{{player.id}}" value="{{player.email}}" style="padding: 3px;"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="rank-{{player.id}}" name="rank-{{player.id}}" value="{{loop.index}}"></input>
+                <input type="text" class="form-control" id="rank-{{player.id}}" name="rank-{{player.id}}" value="{{loop.index}}" style="padding: 3px; width: 3ch;"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="score-{{player.id}}" name="score-{{player.id}}" value="{{player.elo_score}}"></input>
+                <input type="text" class="form-control" id="score-{{player.id}}" name="score-{{player.id}}" value="{{player.elo_score}}" style="padding: 3px; width: 5ch;"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="points-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}"></input>
+                <input type="text" class="form-control" id="points-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}" style="padding: 3px; width: 6ch;"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="wins-{{player.id}}" name="wins-{{player.id}}" value="{{player.wins}}"></input>
+                <input type="text" class="form-control" id="wins-{{player.id}}" name="wins-{{player.id}}" value="{{player.wins}}" style="padding: 3px; width: 3ch;"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="games-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}"></input>
+                <input type="text" class="form-control" id="games-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}" style="padding: 3px; width: 3ch;"></input>
             </td>
             <td>
-                <input type="text" class="form-control" id="points_per_game-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}"></input>
+                <input type="text" class="form-control" id="points_per_game-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}" style="padding: 3px; width: 6ch;"></input>
             </td>
           </tr>
         {% endfor %}

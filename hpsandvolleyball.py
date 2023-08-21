@@ -7,6 +7,7 @@ import math
 import random
 import sys
 import json
+import re
 
 # For Google Calendar
 from apiclient.discovery import build
@@ -212,6 +213,19 @@ def remove_conflicts(player_ids, player_data, self, count=1):
     random.shuffle(slots)  # randomize the order of the available slots
     return slots
 
+# Define a function to get the list of workdays in a week
+def get_workdays(start_date):
+    workdays = []
+    current_date = start_date
+    for _ in range(5):  # Five workdays in a week (Mon to Fri)
+        workdays.append(current_date)
+        current_date += datetime.timedelta(days=1)
+    return workdays
+
+def links2text(html_content):
+    link_pattern = re.compile(r'<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>', re.IGNORECASE)
+    converted_text = re.sub(link_pattern, r'\2 (\1)', html_content)
+    return converted_text
 
 class Player(object):
     def __init__(self):
@@ -304,6 +318,7 @@ class MainPage(webapp2.RequestHandler):
             'is_signed_up': player is not None,
             'player': player,
             'login': login_info,
+            'is_admin': users.is_current_user_admin(),
         }
 
         os = self.request.headers.get('x-api-os')
@@ -383,6 +398,7 @@ class Signup(webapp2.RequestHandler):
             'active_schedule': active_schedule,
             'player': player,
             'login': login_info,
+            'is_admin': users.is_current_user_admin(),
         }
 
         os = self.request.headers.get('x-api-os')
@@ -424,6 +440,7 @@ class Info(webapp2.RequestHandler):
             'page': 'info',
             'login': login_info,
             'is_signed_up': get_player(self) is not None,
+            'is_admin': users.is_current_user_admin(),
         }
 
         os = self.request.headers.get('x-api-os')
@@ -458,6 +475,7 @@ class Ftolog(webapp2.RequestHandler):
             'login': login_info,
             'entries': entries,
             'is_signed_up': player is not None,
+            'is_admin': users.is_current_user_admin(),
         }
 
         os = self.request.headers.get('x-api-os')
@@ -469,7 +487,7 @@ class Ftolog(webapp2.RequestHandler):
             self.response.write(template.render(template_values))
 
 
-class FTO(webapp2.RequestHandler):
+class Availability(webapp2.RequestHandler):
     """
     Renders Schedule page
     """
@@ -491,16 +509,19 @@ class FTO(webapp2.RequestHandler):
         qry_f = qry_f.filter(Fto.user_id == pid)
         fto_data = qry_f.fetch(100)
 
-        # Add new slot entries
-        for week in range(numWeeks):
-            for slot in range(5):
-                checkbox_name = str(week + 1) + "-" + str(slot + 1)
-                if self.request.get(checkbox_name):
+        # Add new slot entries by iterating through the form
+        for week in range(1, numWeeks + 1):
+            for slot in range(1, 5+1):
+                cell_name = str(week)+"-"+str(slot)
+#                logging.info(cell_name)
+                cell_value = self.request.get(cell_name)
+#                logging.info(cell_value)
+                if cell_value == "True":
                     fto = Fto(parent=db_key(year))
                     fto.user_id = pid
                     fto.name = player.name
-                    fto.week = int(week + 1)
-                    fto.slot = int(slot + 1)
+                    fto.week = week
+                    fto.slot = slot
 
                     match_found = False
                     for fto_entry in fto_data:
@@ -510,16 +531,23 @@ class FTO(webapp2.RequestHandler):
                         fto.put()
         # delete removed slot entries
         for fto_entry in fto_data:
-            checkbox_name = str(fto_entry.week) + "-" + str(fto_entry.slot)
-            if self.request.get(checkbox_name):
+            cell_name = str(fto_entry.week)+"-"+str(fto_entry.slot)
+            cell_value = self.request.get(cell_name)
+            if cell_value == "True":
                 pass
             else:
                 fto_entry.key.delete()
-        if pid == user.user_id():
-            url = "fto"
-        else:
-            url = "fto?pid=%s" % pid
-        self.redirect(str(url))
+
+        response_data = {'status': 'success', 'message': 'Availability saved successfully'}
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(response_data))
+
+
+#        if pid == user.user_id():
+#            url = "availability?saved=true"
+#        else:
+#            url = "availability?pid=%s&saved=true" % pid
+#        self.redirect(str(url))
 
     def get(self):
         # Filter for this year only
@@ -528,6 +556,8 @@ class FTO(webapp2.RequestHandler):
         # See if user is logged in and signed up
         login_info = get_login_info(self)
         user = users.get_current_user()
+        if not user:
+            self.redirect(users.create_login_url(self.request.uri))
 
         if self.request.get('pid'):
             pid = self.request.get('pid')
@@ -541,24 +571,21 @@ class FTO(webapp2.RequestHandler):
 
         if player is None:
             print("Redirecting")
-            self.redirect('/')
+            self.redirect("/signup")
 
         set_holidays(self)
 
-        # Fill an array with the weeks of the season
-        weeks = list()
-        for x in range(numWeeks):
-            date1 = startdate + datetime.timedelta(days=(7 * x))
-            date2 = startdate + datetime.timedelta(days=(4 + 7 * x))
-            weeks.append(date1.strftime("%b %d") + " - " + date2.strftime("%b %d"))
+        # Fill a list with the workdays for each week of the season
+        weeks = []
+        for week_index in range(numWeeks):
+            week_dates = []
+            for date_index in range(5):  # 5 workdays in a week
+                date1 = startdate + datetime.timedelta(days=(7 * week_index) + date_index)
+                week_dates.append((week_index, date_index, date1.strftime("%b %d")))
+            weeks.append(week_dates)
 
-        # build a 2D array for the weeks and slots (all False)
-        fto_week = list()
-        fto_slot = list()
-        for w in range(numWeeks):
-            for s in range(5):
-                fto_slot.append(False)
-            fto_week.append(list(fto_slot))
+        # Initialize the 2D array with False values
+        fto_week = [[False for _ in range(5)] for _ in range(numWeeks)]
 
         # Get FTO data
         if pid:
@@ -572,15 +599,20 @@ class FTO(webapp2.RequestHandler):
                 # logging.info("Week: "+str(entry.week)+
                 # " Slot: "+str(entry.slot)+" = "+str(fto_week[(entry.week-1)][(entry.slot-1)]))
 
+        saved = self.request.get('saved')
+        logging.info("save=" + saved)
+
         template_values = {
             'year': get_year_string(),
-            'page': 'fto',
+            'page': 'availability',
             'user': user,
             'player': player,
             'is_signed_up': player is not None,
             'login': login_info,
             'weeks': weeks,
             'fto_week': fto_week,
+            'saved': saved,
+            'is_admin': users.is_current_user_admin(),
         }
 
         os = self.request.headers.get('x-api-os')
@@ -588,7 +620,7 @@ class FTO(webapp2.RequestHandler):
             json_data = json.dumps(template_values, indent=4)
             self.response.write(json_data)
         else:
-            template = JINJA_ENVIRONMENT.get_template('fto.html')
+            template = JINJA_ENVIRONMENT.get_template('availability.html')
             self.response.write(template.render(template_values))
 
 
@@ -662,6 +694,7 @@ class Admin(webapp2.RequestHandler):
             'player_list': player_list,
             'is_signed_up': True,
             'login': login_info,
+            'is_admin': users.is_current_user_admin(),
         }
 
         os = self.request.headers.get('x-api-os')
@@ -1124,12 +1157,13 @@ class Standings(webapp2.RequestHandler):
         template_values = {
             'current_year': now.year,
             'year': year,
-            'page': 'admin',
+            'page': 'standings',
             'player_list': player_list,
             'win_percentage': win_percentage,
             'min_games': int(3*week/2),
             'is_signed_up': player is not None,
             'login': login_info,
+            'is_admin': users.is_current_user_admin(),
         }
 
         os = self.request.headers.get('x-api-os')
@@ -1144,6 +1178,9 @@ class Standings(webapp2.RequestHandler):
 class Sub(webapp2.RequestHandler):
     def get(self):
         user = users.get_current_user()
+        if not user:
+            self.redirect(users.create_login_url(self.request.uri))
+            
         now = datetime.datetime.today()
         get_login_info(self)
         get_player(self)
@@ -1218,10 +1255,11 @@ class Sub(webapp2.RequestHandler):
             message.sender = "noreply@hpsandvolleyball.appspotmail.com"
             message.to = [str(player_data[sub_id].email), str(player_data[swap_id].email), "brian.bartlow@hp.com"]
             message.subject = "Substitution Successful"
-            message.body = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to %s at %s." % (
-                            player_data[sub_id].name, player_data[swap_id].name, player_data[swap_id].email)
+#            message.body = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to %s at %s." % (
+#                            player_data[sub_id].name, player_data[swap_id].name, player_data[swap_id].email)
             message.html = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (
                             player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name)
+            message.body = links2text(message.html)
             message.check_initialized()
             message.send()
             
@@ -1280,9 +1318,10 @@ class WeeklySchedule(webapp2.RequestHandler):
             message.sender = "noreply@hpsandvolleyball.appspotmail.com"
             message.to = ["brian.bartlow@hp.com"]
             message.subject = "%s needs a Sub" % player_data[sub_id].name
-            message.body = """%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click this link http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.
-                                NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.""" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id)
+#            message.body = """%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click this link http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.
+#                                NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.""" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id)
             message.html = "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id)
+            message.body = links2text(message.html)
 
             if sendit:
                 logging.info(message.subject)
@@ -1364,6 +1403,7 @@ class WeeklySchedule(webapp2.RequestHandler):
             'player': player,
             'is_signed_up': player is not None,
             'login': login_info,
+            'is_admin': users.is_current_user_admin(),
         }
 
         if os is not None:
@@ -1508,6 +1548,7 @@ class DailySchedule(webapp2.RequestHandler):
             'game_team': game_team,
             'is_signed_up': player is not None,
             'login': login_info,
+            'is_admin': users.is_current_user_admin(),
         }
 
         if os is not None:
@@ -1533,8 +1574,9 @@ class Notify(webapp2.RequestHandler):
         message.sender = "noreply@hpsandvolleyball.appspotmail.com"
         message.to = ["brian.bartlow@hp.com"]
         message.subject = "Please Ignore"
-        message.body = "Please ignore this email. I am testing new functionality on the website."
+#        message.body = "Please ignore this email. I am testing new functionality on the website."
         message.html = "<p>Please ignore this email.</p><p>I am testing new functionality on the website.</p>"
+        message.body = links2text(message.html)
 
 #        from_email = Email("noreply@hpsandvolleyball.appspot.com")
 #        # to_email = Email("")
@@ -1563,8 +1605,9 @@ class Notify(webapp2.RequestHandler):
                 if sr < 3:  # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
                     logging.info("Sending email reminder to enter scores.")
                     message.subject = "Reminder to submit scores"
-                    message.body = "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the Score Page (http://hpsandvolleyball.appspot.com/day) and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard."
+#                    message.body = "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the Score Page (http://hpsandvolleyball.appspot.com/day) and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard."
                     message.html = "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard."
+                    message.body = links2text(message.html)
                     sendit = True
                     for s in schedule_data:
                         # pass
@@ -1578,10 +1621,11 @@ class Notify(webapp2.RequestHandler):
 
         elif self.request.get('t') == "fto" and week >= 0 and week < numWeeks:
             message.subject = "Reminder to check and update your FTO/Conflicts for next week"
-            message.body = """Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon, please go to the FTO Page (http://hpsandvolleyball.appspot.com/fto) and check to make sure those days are checked off as unavailable.
+#            message.body = """Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon, please go to the FTO Page (http://hpsandvolleyball.appspot.com/availability) and check to make sure those days are checked off as unavailable.
+#            If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the FTO link at the top of the page. Then click the checkbox for any days that you cannot play at noon."""
+            message.html = """Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon, please go to the <a href=\"http://hpsandvolleyball.appspot.com/availability\">FTO Page</a> and check to make sure those days are checked off as unavailable.
             If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the FTO link at the top of the page. Then click the checkbox for any days that you cannot play at noon."""
-            message.html = """Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon, please go to the <a href=\"http://hpsandvolleyball.appspot.com/fto\">FTO Page</a> and check to make sure those days are checked off as unavailable.
-            If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the FTO link at the top of the page. Then click the checkbox for any days that you cannot play at noon."""
+            message.body = links2text(message.html)
             sendit = True
             for p in player_data:
                 logging.info("%s - %s" % (player_data[p].name,player_data[p].email))
@@ -1651,7 +1695,7 @@ app = webapp2.WSGIApplication([
     ('/unsignup', Unsignup),
     ('/info', Info),
     ('/ftolog', Ftolog),
-    ('/fto', FTO),
+    ('/availability', Availability),
     ('/week', WeeklySchedule),
     ('/day', DailySchedule),
     ('/standings', Standings),
