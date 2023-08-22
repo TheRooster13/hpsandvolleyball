@@ -17,33 +17,33 @@
 		<div class="panel-heading">
 			On Bye
 		</div>
-		<ul class="left-aligned">{% for p in schedule_data %}{% if p.tier == 0 and p.position == 0 %}
+		<ul class="left-aligned">{% for p in schedule_data %}{% if p.slot == 0 and p.position == 0 %}
 			<li>{{p.name}}</li>{% endif %}{% endfor %}
 		</ul>
 	</div>
 	</div>
-	{% for x in range(5) %}<div class="col-sm-2">
+	{% for x in range(1,5+1) %}<div class="col-sm-2">
 	<div class="panel linked panel-success">
 		<div class="panel-heading" align="center">
-			{{slots[x].strftime("%a %m/%d")}}
+			{{slots[x-1].strftime("%a %m/%d")}}
 		</div>
-		<a href="day?w={{week}}&d={{x+1}}{% if year != current_year %}&y={{year}}{% endif %}"></a>
+		<a href="day?w={{week}}&d={{x}}{% if year != current_year %}&y={{year}}{% endif %}"></a>
 		<center><strong>Players</strong></center>
-		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == x+1 %}
+		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == x %}
 			<li>{{p.name}}</li>{% endif %}{% endfor %}
 		</ol>
 		<center><strong>Alternates</strong></center>
-		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == 0 and p.position == x+1 %}
+		<ol class="left-aligned">{% for p in schedule_data %}{% if p.slot == 0 and p.position == x %}
 			<li>{{p.name}}</li>{% endif %}{% endfor %}
 		</ol>
 
 	</div>
-	{% if is_signed_up and (x+1) in active %}
+	{% if is_signed_up and (x) in active %}
 	<div align="center">
 		<form class="form-horizontal" action="week" method="post">
 		<input type="hidden" name="y" value={{year}}></input>
 		<input type="hidden" name="w" value={{week}}></input>
-		<input type="hidden" name="s" value={{x+1}}></input>
+		<input type="hidden" name="s" value={{x}}></input>
 		<input type="hidden" name="id" value={{player.id}}></input>
 		<button class="btn btn-block btn-danger" type="submit" name="action" value="Sub">I need a sub!</button>
 	</div>{% endif %}	</div>{% endfor %}
