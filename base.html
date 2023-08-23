@@ -197,22 +197,45 @@
       </center>
     </div>
 
+    <!-- Modal -->
     <div id="successModal" class="modal fade" role="dialog">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title">Success!</h4>
+                    <h4 class="modal-title" id="modalTitle">Success!</h4>
                 </div>
                 <div class="modal-body">
-                    <p id="modalMessage"></p> <!-- Empty element for success message -->
+                    <p id="modalMessage"></p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="modalButton">Close</button>
                 </div>
             </div>
         </div>
     </div>
-
+    
+<script>
+    function showModalBase(title, message, button, url) {
+        $('#modalTitle').text(title);
+        $('#modalMessage').text(message);
+        $('#modalButton').text(button);
+        
+        $('#modalButton').off('click');// Remove any previous click event handlers
+        if (url) {
+            $('#modalButton').on('click', function() {
+                console.log("Close button clicked with URL:", url);
+                window.location.href = url;
+            });
+        } else {
+            $('#modalButton').on('click', function() {
+                console.log("Close button clicked without a URL:");
+                $('#successModal').modal('hide');
+            });
+        }
+        console.log("URL:", url);
+        $('#successModal').modal('show');
+    }
+</script>
 
   </body>
 

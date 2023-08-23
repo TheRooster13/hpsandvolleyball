@@ -1,6 +1,94 @@
 {% extends "base.html" %}
 {% block title %}Week {{week}} Schedule{% endblock %}
 {% block content %}
+<script>
+$(document).ready(function() {
+    // Function to display modal
+    function showModal(title, message, button) {
+        var modalHtml = `
+            <div class="modal" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="modalTitle">Substitution</h4>
+                        </div>
+                        <div class="modal-body">
+                            <p>${message}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <!-- Conditional rendering of buttons -->
+                            ${button === 'Confirm' ? '<button type="button" class="btn btn-default" id="confirm-button">' : '<button type="button" class="btn btn-default" id="cancel-button">'}${button}</button>
+                            ${button === 'Confirm' ? '<button type="button" class="btn btn-default" id="cancel-button">Cancel</button>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('body').append(modalHtml);
+        $('.modal').show();
+        
+        // Handle Confirm button click
+        $('#confirm-button').on('click', function() {
+            $('.modal').hide();
+            
+            // Make AJAX post request
+            $.ajax({
+                url: 'week',  // Update with your server endpoint
+                method: 'POST',  // Use the appropriate HTTP method
+                data: {
+                    action: 'Confirm',
+                    id: "{{ sub_id }}",
+                    w: {{ week }},
+                    s: {{ slot }}
+                },
+                success: function(response) {
+                    showModalBase(response.title, response.message, response.button, response.url);
+                },
+                error: function(xhr, status, error) {
+                    // Handle error response from server
+                    console.error(error);
+                }
+            });
+        });
+
+        // Handle Cancel and Close button click
+        $('#cancel-button, #close-button').on('click', function() {
+            $('.modal').hide();
+            window.location.href = "week";
+        });
+    }
+
+    {% if slot and sub_id %}
+        showModal("{{ modal_data.title }}", "{{ modal_data.message }}", "{{ modal_data.button }}");
+    {% endif %}
+
+    // Form for substitute request submission AJAX code
+    $('form').submit(function(e) {
+        e.preventDefault();  // Prevent the default form submission
+        console.log("Submit button clicked.")
+        // Serialize form data
+        var formData = $(this).serialize();
+        // Capture the value of the clicked button
+        formData += '&action=' + encodeURIComponent($(document.activeElement).val());
+
+        // Send AJAX request to server
+        $.ajax({
+            url: 'week',  // Update with your server endpoint
+            method: 'POST',  // Use the appropriate HTTP method
+            data: formData,
+            success: function(response) {
+                showModalBase(response.title, response.message, response.button, response.url);
+            },
+            error: function(xhr, status, error) {
+                // Handle error response from server
+                console.error(error);
+            }
+        });
+    });
+
+});
+</script>
+
 <div class="col-md-2">
 </div>
 

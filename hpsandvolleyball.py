@@ -207,30 +207,6 @@ def find_smallest_set(set_list):
     return smallest_set_pos
 
 
-def remove_conflicts(player_ids, player_data, self, count=1):
-    if count > 20:
-        return []
-    slots = range(1, 6)
-    y = 0
-    for p in player_ids:
-        y += 1
-        if y > 8:
-            break  # use the data from the first 8 players in the tier
-        for s in player_data[p].conflicts:
-            if s in slots:
-                slots.remove(s)
-        # for z in player_ids:
-        # logging.info(" %s - %s" % (player_data[z].name, player_data[z].conflicts))
-    # If there are no valid slots for this group of 8 to play,
-    # and there are more than 8 people in the tier,
-    # randomly shuffle the players and try again.
-    if (len(slots) == 0) and (len(player_ids) > 8):
-        logging.info("No slot for this tier, shuffling and trying again. Count=%s" % count)
-        random.shuffle(player_ids)
-        return remove_conflicts(player_ids, player_data, self, count + 1)
-    random.shuffle(slots)  # randomize the order of the available slots
-    return slots
-
 # Define a function to get the list of workdays in a week
 def get_workdays(start_date):
     workdays = []
@@ -578,7 +554,7 @@ class Availability(webapp2.RequestHandler):
             else:
                 fto_entry.key.delete()
 
-        response_data = {'status': 'success', 'message': 'Availability saved successfully'}
+        response_data = {'title': 'Success', 'message': 'Availability saved successfully', 'button': 'Close'}
         self.response.headers['Content-Type'] = 'application/json'
         self.response.write(json.dumps(response_data))
 
@@ -639,9 +615,6 @@ class Availability(webapp2.RequestHandler):
                 # logging.info("Week: "+str(entry.week)+
                 # " Slot: "+str(entry.slot)+" = "+str(fto_week[(entry.week-1)][(entry.slot-1)]))
 
-        saved = self.request.get('saved')
-        logging.info("save=" + saved)
-
         template_values = {
             'year': get_year_string(),
             'page': 'availability',
@@ -651,7 +624,6 @@ class Availability(webapp2.RequestHandler):
             'login': login_info,
             'weeks': weeks,
             'fto_week': fto_week,
-            'saved': saved,
             'is_admin': users.is_current_user_admin(),
         }
 
@@ -672,6 +644,8 @@ class Admin(webapp2.RequestHandler):
             year = int(self.request.get('y'))
         else:
             year = now.year
+            
+        response_data = {'title': 'Success', 'button':'Close', 'message':'Success'}
 
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(year))
@@ -690,6 +664,7 @@ class Admin(webapp2.RequestHandler):
                 player.points_per_game = float(self.request.get('points_per_game-' + player.id))
 #                print("%s is now rank %s" % (player.name, player.schedule_rank))
                 player.put()
+            response_data['message'] = 'Data saved successfully'
 
 
         if self.request.get('action') == "Holidays":
@@ -711,8 +686,11 @@ class Admin(webapp2.RequestHandler):
                             match_found = True
                     if match_found is False:
                         fto.put()
-
-        self.redirect('admin')
+            response_data['message'] = 'Holidays updated successfully'
+            
+#        response_data = {'title': 'Success', 'message': 'Data saved successfully', 'button': 'Close'}
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(response_data))
 
     def get(self):
         # Filter for this year only
@@ -770,7 +748,8 @@ def split_people_into_tiers(player_data, num_tiers):
         highest_elo_lower = lower_tier[0].score
         cutoff_elo = (lowest_elo_upper + highest_elo_lower) / 2
         cutoff_elo_scores.append(cutoff_elo)
-        
+     
+    logging.info(cutoff_elo_scores)
     # Add players to multiple tiers based on the cutoff ELO scores
     for i, cutoff_elo in enumerate(cutoff_elo_scores):
         upper_bound = cutoff_elo + ELO_MARGIN
@@ -806,6 +785,7 @@ def find_valid_schedule(tiers, day_permutations):
                 valid = False
                 break
             else:
+                random.shuffle(available_people)
                 available_people.sort(key=lambda x: x.byes, reverse=True)
                 invited_people = []
                 for j in range(8):
@@ -989,32 +969,31 @@ class Elo(webapp2.RequestHandler):
         logging.info("Week %s Elo Update" % week)
         player_data = get_player_data(week, self)
 
-        qry = Schedule.query(ancestor=db_key(year))
-        qry = qry.filter(Schedule.week == (week - 1))
-        # Order based on decending tier so we can get a count of how many tiers there were this week.
-        qry = qry.order(-Schedule.tier, Schedule.position)
+        qry = Schedule.query(ancestor=db_key(year)).filter(Schedule.week == (week - 1)).order(Schedule.position)
         schedule_results = qry.fetch()
-        if schedule_results:
-            tiers = schedule_results[0].tier  # The number of tiers is equal to the highest tier from the schedule.
+        matches = len(set(schedule.slot for schedule in schedule_results))
+        player_data = get_player_data(week, self)
+        if matches > 0:
+            player_scores = {player.id: player.score for player in player_data}
 
             # Set up lists to store the average team Elo and scores for each game(3) in each tier(variable).
             team_elo = []
             scores = []
             player_count = []
-            for x in range(tiers + 1):
+            for x in range(matches + 1):
                 team_elo.append([[0, 0], [0, 0], [0, 0]])
                 scores.append([[0, 0], [0, 0], [0, 0]])
                 player_count.append(0)
 
             # Calculate the average Elo scores for each team
             for p in schedule_results:
-                if p.tier > 0:
-                    player_count[p.tier] += 1
+                if p.slot > 0:
+                    player_count[p.slot] += 1
                     for x in range(3):
                         # Add elo_score to team_elo[tier][game][team]
-                        team_elo[p.tier][x][team_map[x][p.position - 1]] += float(player_data[p.id].score)
+                        team_elo[p.slot][x][team_map[x][p.position - 1]] += float(player_scores[p.id])
             # logging.info("team_elo = %s (tier %s, game %s, team %s)" % (team_elo[p.tier][x][team_map[x][p.position-1]], p.tier, x+1, team_map[x][p.position-1]+1))
-            for x in range(tiers + 1):
+            for x in range(matches + 1):
                 for y in range(3):
                     for z in range(2):
                         if player_count[x]:
@@ -1024,44 +1003,44 @@ class Elo(webapp2.RequestHandler):
         # Grab the scores from the database and store them in a list.
         qry = Scores.query(ancestor=db_key(year))
         qry = qry.filter(Scores.week == (week - 1))
-        qry = qry.order(Scores.tier, Scores.game)
+        qry = qry.order(Scores.slot, Scores.game)
         results = qry.fetch()
         if results:
             for score in results:
-                scores[score.tier][score.game - 1][0] = float(score.score1)
-                scores[score.tier][score.game - 1][1] = float(score.score2)
+                scores[score.slot][score.game - 1][0] = float(score.score1)
+                scores[score.slot][score.game - 1][1] = float(score.score2)
 
-        # Now iterate through each player on the schedule and calculate their new Elo score based on
+        # Now iterate through each player and calculate their new Elo score based on
         # their old Elo score, the game scores, and the teams' average Elo scores.
         new_elo = {}
         new_points = {}
         new_wins = {}
         new_games = {}
-        for p in schedule_results:
-            if p.tier > 0:
-                if p.id not in new_elo:
-                    new_elo[p.id] = player_data[p.id].score
-                    new_points[p.id] = player_data[p.id].points
-                    new_wins[p.id] = player_data[p.id].wins
-                    new_games[p.id] = player_data[p.id].games
-                for g in range(3):
-                    my_team_elo = float(team_elo[p.tier][g][team_map[g][p.position - 1]])
-                    other_team_elo = float(team_elo[p.tier][g][1 - team_map[g][p.position - 1]])
-                    my_team_score = float(scores[p.tier][g][team_map[g][p.position - 1]])
-                    other_team_score = float(scores[p.tier][g][1 - team_map[g][p.position - 1]])
-                    logging.info("%s - %s vs %s" % (player_data[p.id].name, my_team_score, other_team_score))
-                    # Take the old Elo score and add the modifier to it. We'll store it later.
-                    if my_team_score > 0 or other_team_score > 0:
-                        new_elo[p.id] += int(round(float(kfactor * (
-                                (my_team_score / (my_team_score + other_team_score)) - (
-                                my_team_elo / (my_team_elo + other_team_elo))))))  # Elo magic here
-                        logging.info("%s's Elo score(%s) is now %s" % (
-                            player_data[p.id].name, player_data[p.id].score, new_elo[p.id]))
-                        new_games[p.id] += 1
-                    # If this player's team won, add the ELO score of the losing team
-                    if my_team_score > other_team_score:
-                        new_points[p.id] += other_team_elo
-                        new_wins[p.id] += 1
+        for p in player_data:
+            new_elo[p.id] = p.score
+            new_points[p.id] = p.points
+            new_wins[p.id] = p.wins
+            new_games[p.id] = p.games
+            for s in schedule_results:
+                if s.id == p.id and s.slot > 0:
+                    for g in range(3):
+                        my_team_elo = float(team_elo[s.slot][g][team_map[g][s.position - 1]])
+                        other_team_elo = float(team_elo[s.slot][g][1 - team_map[g][s.position - 1]])
+                        my_team_score = float(scores[s.slot][g][team_map[g][s.position - 1]])
+                        other_team_score = float(scores[s.slot][g][1 - team_map[g][s.position - 1]])
+                        logging.info("%s - %s vs %s" % (p.name, my_team_score, other_team_score))
+                        # Take the old Elo score and add the modifier to it. We'll store it later.
+                        if my_team_score > 0 or other_team_score > 0:
+                            new_elo[p.id] += int(round(float(kfactor * (
+                                    (my_team_score / (my_team_score + other_team_score)) - (
+                                    my_team_elo / (my_team_elo + other_team_elo))))))  # Elo magic here
+                            logging.info("%s's Elo score(%s) is now %s" % (
+                                p.name, p.score, new_elo[p.id]))
+                            new_games[p.id] += 1
+                        # If this player's team won, add the ELO score of the losing team
+                        if my_team_score > other_team_score:
+                            new_points[p.id] += other_team_elo
+                            new_wins[p.id] += 1
                         
         # Store the new Elo scores, PPG, and ranks in the database
         qry = Player_List.query(ancestor=db_key(year))
@@ -1099,13 +1078,13 @@ class Standings(webapp2.RequestHandler):
 
         # Get player list
         qry_p = Player_List.query(ancestor=db_key(year))
-        if self.request.get('sort') == 'ppg':
-            qry_p = qry_p.filter(Player_List.games >= int(3*week/2))
-            player_list = qry_p.fetch()
-            player_list = sorted(player_list, key=lambda k: k.points_per_game, reverse=True)
-        else:
+        if self.request.get('sort') == 'elo':
             qry_p = qry_p.order(-Player_List.elo_score)
             player_list = qry_p.fetch()
+        else:
+            qry_p = qry_p.filter(Player_List.games >= int(3 * math.floor(week/2)))
+            player_list = qry_p.fetch()
+            player_list = sorted(player_list, key=lambda k: k.points_per_game, reverse=True)
 
         win_percentage = {}
         for p in player_list:
@@ -1120,7 +1099,7 @@ class Standings(webapp2.RequestHandler):
             'page': 'standings',
             'player_list': player_list,
             'win_percentage': win_percentage,
-            'min_games': int(3*week/2),
+            'min_games': int(3 * math.floor(week/2)),
             'is_signed_up': player is not None,
             'login': login_info,
             'is_admin': users.is_current_user_admin(),
@@ -1136,7 +1115,7 @@ class Standings(webapp2.RequestHandler):
 
 
 class Sub(webapp2.RequestHandler):
-    def get(self):
+    def post(self):
         user = users.get_current_user()
         if not user:
             self.redirect(users.create_login_url(self.request.uri))
@@ -1146,13 +1125,13 @@ class Sub(webapp2.RequestHandler):
         get_player(self)
         week = int(self.request.get('w'))
         slot = int(self.request.get('s'))
-        tier = int(self.request.get('t'))
+#        tier = int(self.request.get('t'))
         sub_id = self.request.get('id')
         player_data = get_player_data(week, self)
         player = get_player(self)
 
         qry = Schedule.query(ancestor=db_key(now.year))
-        qry = qry.filter(Schedule.week == week)
+        qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
         sr = qry.fetch()
         swap_id = None
         player_list = []
@@ -1161,25 +1140,18 @@ class Sub(webapp2.RequestHandler):
         # Check to make sure the sub_id is a currently active player
         # (otherwise, someone else may have already accepted the sub request.)
         for x in sr:
-            if x.id == sub_id and x.slot == slot and x.tier == tier:
-                if x.slot != 0:
-                    if player:
-                        # Make the swap
-                        swap_id = player.id
-        if swap_id is not None:
-            success = "y"
+            if x.id == sub_id:
+                if player:
+                    # Make the swap
+                    swap_id = player.id
+        if swap_id is not None and self.request.get('action') == Confirm:
             for x in sr:
-                if x.slot == slot and x.id != sub_id:
+                if x.id != sub_id:
                     # Add everyone already in this slot to a list except the player being subbed out.
                     player_list.append(x.id)
+                x.key.delete()
             player_list.append(swap_id)  # Then add the player being swapped in.
             player_list = sorted(player_list, key=lambda k: player_data[k].score, reverse=True)  # Sort the list by elo
-            # delete the existing schedule for this slot
-            qry = Schedule.query(ancestor=db_key(now.year))
-            qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
-            results = qry.fetch()
-            for r in results:
-                r.key.delete()
             # Then save the new slot schedule.
             z = 0
             for p in player_list:
@@ -1189,7 +1161,7 @@ class Sub(webapp2.RequestHandler):
                 s.name = player_data[p].name
                 s.week = week
                 s.slot = slot
-                s.tier = tier
+                s.tier = 0
                 s.position = z  # 1-8
                 s.put()  # Stores the schedule data in the database
 
@@ -1209,98 +1181,198 @@ class Sub(webapp2.RequestHandler):
             s.position = slot
             s.put()
 
-#            sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
             # Send an email confirmation out to the admin and the substituting players
             message = mail.EmailMessage()
             message.sender = "noreply@hpsandvolleyball.appspotmail.com"
             message.to = [str(player_data[sub_id].email), str(player_data[swap_id].email), "brian.bartlow@hp.com"]
             message.subject = "Substitution Successful"
-#            message.body = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to %s at %s." % (
-#                            player_data[sub_id].name, player_data[swap_id].name, player_data[swap_id].email)
-            message.html = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (
-                            player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name)
+            message.html = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name)
             message.body = links2text(message.html)
             message.check_initialized()
             message.send()
             
-#            from_email = Email("noreply@hpsandvolleyball.appspotmail.com")
-#            to_email = Email("brian.bartlow@hp.com")
-#            subject = "Substitution Successful"
-#            content = Content("text/html",
-#                              "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (
-#                                  player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name))
-#            mail = Mail(from_email, subject, to_email, content)
-#            personalization = Personalization()
-#            personalization.add_to(Email(player_data[sub_id].email))
-#            personalization.add_to(Email(player_data[swap_id].email))
-#            mail.add_personalization(personalization)
-#            sg.client.mail.send.post(request_body=mail.get())
+        else:
+            response_data = {'title': 'Failure', 'message': 'Substitution unsuccessful. It is possible someone else already accepted the substitution request.', 'button': 'Close'}
+            self.response.headers['Content-Type'] = 'application/json'
+            self.response.write(json.dumps(response_data))
 
-        self.redirect("week?w=%s&m=%s" % (week, success))
+    def get(self):
+        user = users.get_current_user()
+        if not user:
+            self.redirect(users.create_login_url(self.request.uri))
+        
+        now = datetime.datetime.today()
+        get_login_info(self)
+        get_player(self)
+        week = int(self.request.get('w'))
+        slot = int(self.request.get('s'))
+        tier = int(self.request.get('t'))
+        sub_id = self.request.get('id')
+        player_data = get_player_data(week, self)
+        player = get_player(self)
+
+        qry = Schedule.query(ancestor=db_key(now.year))
+        qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
+        sr = qry.fetch()
+        swap_id = None
+        player_list = []
+        
+        # Check to make sure the sub_id is a currently active player
+        # (otherwise, someone else may have already accepted the sub request.)
+        if any(s.id == sub_id for s in sr):
+            for p in sr:
+                player_list.append(p.id)
+                
+
+        else:
+            # show a modal saying that someone else may have already accepted the sub request.
+            response_data = {'title': 'Notice', 'message': 'Player no longer needs a sub. It is possible someone else already accepted the substitution request.', 'button': 'Close'}
+
+        qry = Schedule.query(ancestor=db_key(now.year))
+        qry = qry.filter(Schedule.week == week)
+        qry = qry.order(Schedule.slot, Schedule.position)
+        schedule_data = qry.fetch()
+        
+        
+        active = []
+        template_values = {
+            'current_year': today.year,
+            'year': now.year,
+            'page': 'week',
+            'week': week,
+            'numWeeks': numWeeks,
+            'slots': slots,
+            'schedule_data': schedule_data,
+            'active': active,
+            'player': player,
+            'is_signed_up': player is not None,
+            'login': login_info,
+            'is_admin': users.is_current_user_admin(),
+        }
+        template = JINJA_ENVIRONMENT.get_template('week.html')
+        self.response.write(template.render(template_values))
+#        self.redirect("week?w=%s&m=%s" % (week, success))
 
 
 class WeeklySchedule(webapp2.RequestHandler):
     def post(self):
-#        sg = sendgrid.SendGridAPIClient(apikey=keys.API_KEY)
         user = users.get_current_user()
         now = datetime.datetime.today()
         get_login_info(self)
         player = get_player(self)
         week = int(self.request.get('w'))
         slot = int(self.request.get('s'))
+        sub_id = self.request.get('id')
         player_data = get_player_data(week, self)
+        swap_id = None
+        player_list = []
+        qry = Schedule.query(ancestor=db_key(now.year))
+        qry = qry.filter(Schedule.week == week)
+        sr = qry.fetch()        
+        logging.info("sanity check")
 
-
-#        from_email = Email("noreply@hpsandvolleyball.appspot.com")
-#        to_email = Email("brian.bartlow@hp.com")
-
+        # if a user is requesting a substitute
         if self.request.get('action') == "Sub" and user and player is not None:
             sub_id = user.user_id()
-            qry = Schedule.query(ancestor=db_key(now.year))
-            qry = qry.filter(Schedule.week == week)
-            sr = qry.fetch()
             notification_list = []
             sendit = False
 
             for x in sr:
                 if x.id == sub_id:
                     if x.slot == slot:
-                        tier = x.tier
-                        notification_list.append(player_data[x.id].email)
-                        for y in sr:
-                            # send to everyone not already playing in this slot or on a bye week
-                            if y.slot != slot and y.position != 0 and player_data[y.id].email not in notification_list:
-                                notification_list.append(player_data[y.id].email)
-                                sendit = True
+                        # add everyone not playing in the match or on a full week bye to a notification list.
+                        notification_list = [p.email for p in player_data if p.id not in {s.id for s in sr if s.slot == slot or (s.slot == 0 and s.position == 0)}]
+                        sendit = True
                         break
 
             message = mail.EmailMessage()
             message.sender = "noreply@hpsandvolleyball.appspotmail.com"
             message.to = ["brian.bartlow@hp.com"]
-            message.subject = "%s needs a Sub" % player_data[sub_id].name
-#            message.body = """%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click this link http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.
-#                                NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.""" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id)
-            message.html = "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&t=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player_data[sub_id].name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, tier, sub_id)
+            message.subject = "%s needs a Sub" % player.name
+            message.html = "<p>%s needs a sub on %s. This email is sent to everyone not already scheduled to play on that date. If you are an alternate for this match and can play, please click <a href = \"http://hpsandvolleyball.appspot.com/sub?w=%s&s=%s&id=%s\">this link</a>. If you are not an alternate for this match, you can still sub, but you should wait long enough for the alternates to be able to accept first. If there are no alternates for this match, and you can play, go ahead and click the link. The first to accept the invitation will get to play.</p><strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>" % (player.name, (startdate + datetime.timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, sub_id)
             message.body = links2text(message.html)
 
             if sendit:
                 logging.info(message.subject)
                 logging.info(message.html)
                 logging.info("sending to: %s" % notification_list)
-#                mail = Mail(from_email, subject, to_email, content)
                 for e in notification_list:
                     message.to.append(str(e))
-#                    personalization = Personalization()
-#                    for e in notification_list:
-#                        personalization.add_to(Email(e))
-#                    mail.add_personalization(personalization)
                 message.check_initialized()
                 message.send()
-#                response = sg.client.mail.send.post(request_body=mail.get())
-#                print(response.status_code)
-#                print(response.body)
-#                print(response.headers)
-        self.redirect("week?w=%s&m=rs" % week)
+            response_data = {'title': 'Success', 'message': 'Sub request sent successfully', 'button': 'Close'}
+
+        # if a user is responding and confirming they will substitute
+        if self.request.get('action') == "Confirm" and user and player is not None:
+            logging.info("executing substitution.")
+            # Check to make sure the sub_id is a currently active player
+            # (otherwise, someone else may have already accepted the sub request.)
+            for x in sr:
+                if x.id == sub_id and x.slot == slot:
+                    if player:
+                        # Make the swap
+                        swap_id = player.id
+            if swap_id is not None:
+                for x in sr:
+                    if x.id != sub_id and x.slot == slot:
+                        # Add everyone already in this slot to a list except the player being subbed out.
+                        player_list.append(x.id)
+                    logging.info("Deleting old schedule for slot %s." % (slot))
+                    if x.slot == slot:
+                        x.key.delete()
+                player_list.append(swap_id)  # Then add the player being swapped in.
+#                player_list = sorted(player_list, key=lambda player_id: next(player for player in player_data if player.id == player_id).score, reverse=True)# Sort the list by elo
+                player_data.sort(key=lambda p: p.score, reverse=True)
+                # Then save the new slot schedule.
+                z = 0
+                for p in player_data:
+                    if p.id in player_list:
+                        z += 1
+                        s = Schedule(parent=db_key(now.year))  # database entry
+                        s.id = p.id
+                        s.name = p.name
+                        s.week = week
+                        s.slot = slot
+                        s.tier = 0
+                        s.position = z  # 1-8
+                        s.put()  # Stores the schedule data in the database
+
+                # delete the swapping player from the schedule where it shows as alternate.
+                qry = Schedule.query(ancestor=db_key(now.year))
+                qry = qry.filter(Schedule.week == week, Schedule.id == swap_id, Schedule.slot == 0)
+                results = qry.fetch()
+                if results:
+                    results[0].key.delete()
+                # add the subbed out player to the alternate list.
+                sub = next((player for player in player_data if player.id == sub_id), None)
+                swap = next((player for player in player_data if player.id == swap_id), None)
+                s = Schedule(parent=db_key(now.year))
+                s.id = sub_id
+                s.name = sub.name
+                s.week = week
+                s.slot = 0
+                s.tier = 0
+                s.position = slot
+                s.put()
+
+                # Send an email confirmation out to the admin and the substituting players
+                logging.info("Sending confirmation email to: %s(%s) and %s(%s)." % (sub.name, sub.email, swap.name, swap.email))
+                message = mail.EmailMessage()
+                message.sender = "noreply@hpsandvolleyball.appspotmail.com"
+                message.to = ["brian.bartlow@hp.com"] + [e for e in (sub.email, swap.email) if e]
+                message.subject = "Substitution Successful"
+                message.html = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (sub.name, swap.email, swap.name)
+                message.body = links2text(message.html)
+                message.check_initialized()
+                message.send()
+                
+                response_data = {'title': 'Success', 'message': 'Substitution successful', 'button': 'Close & Reload', 'url': 'week'}
+                
+            else:
+                response_data = {'title': 'Failure', 'message': 'Substitution unsuccessful. It is possible someone else already accepted the substitution request.', 'button': 'Close', 'url': 'week'}
+        
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(response_data))
 
     def get(self):
         today = datetime.date.today()
@@ -1313,7 +1385,9 @@ class WeeklySchedule(webapp2.RequestHandler):
         user = users.get_current_user()
         player = get_player(self)
         success = self.request.get('m')
-
+        swap_id = None
+        player_list = []
+        
         # Calculate what week# next week will be
         if self.request.get('w'):
             week = int(self.request.get('w'))
@@ -1324,22 +1398,43 @@ class WeeklySchedule(webapp2.RequestHandler):
         if week > numWeeks:
             week = numWeeks
 
-        os = self.request.headers.get('x-api-os')
+        player_data = get_player_data(week, self)
+ 
         slots = []
         for d in range(SLOTS_IN_WEEK):
-            if os is None:
-                slots.append(startdate + datetime.timedelta(days=(7 * (week - 1) + d)))
-            else:
-                slots.append((startdate + datetime.timedelta(days=(7 * (week - 1) + d))).strftime('%m/%d/%Y'))
+            slots.append(startdate + datetime.timedelta(days=(7 * (week - 1) + d)))
+            
+        modal_data = {}
+        slot = int(self.request.get('s')) if self.request.get('s') else 0
+        sub_id = self.request.get('id')
+        if slot > 0 and sub_id: # This is a sub accepting case
+            user = users.get_current_user()
+            if not user: # If the user is not logged in, they need to. Returning to this page when complete.
+                self.redirect(users.create_login_url(self.request.uri))
+            # Check to make sure the sub_id is a currently active player
+            # (otherwise, someone else may have already accepted the sub request.)
+            qry = Schedule.query(ancestor=db_key(today.year))
+            qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
+            sr = qry.fetch()
+            day = slots[slot-1].strftime("%A, %b %d")
+            sub_name = next((player.name for player in player_data if player.id == sub_id), None)
+            if any(s.id == sub_id for s in sr):
+                for p in sr:
+                    player_list.append(p.id)
+                # When the page loads, show a modal asking for confirmation for substitution
 
+                modal_data = {'title': 'Confirmation', 'message': "Please confirm you would like to sub for %s on %s. " % (sub_name, day), 'button': 'Confirm'}
+            else:
+                # When the page loads, show a modal saying that someone else may have already accepted the sub request.
+                modal_data = {'title': 'Notice', 'message': "%s is not currently scheduled to play on %s. It is possible someone else already accepted the substitution request." % (sub_name, day), 'button': 'Close', 'url': 'week'}
+            
         qry = Schedule.query(ancestor=db_key(year))
         qry = qry.filter(Schedule.week == week)
         qry = qry.order(Schedule.slot, Schedule.position)
 
-        if os is None:
-            schedule_data = qry.fetch()
-        else:
-            schedule_data = ""
+
+        schedule_data = qry.fetch()
+
 
         active = []
         if user and year == today.year:
@@ -1355,6 +1450,9 @@ class WeeklySchedule(webapp2.RequestHandler):
             'year': year,
             'page': 'week',
             'week': week,
+            'slot': slot,
+            'sub_id': sub_id,
+            'modal_data': modal_data,
             'numWeeks': numWeeks,
             'slots': slots,
             'schedule_data': schedule_data,
@@ -1366,12 +1464,8 @@ class WeeklySchedule(webapp2.RequestHandler):
             'is_admin': users.is_current_user_admin(),
         }
 
-        if os is not None:
-            json_data = json.dumps(template_values, indent=4)
-            self.response.write(json_data)
-        else:
-            template = JINJA_ENVIRONMENT.get_template('week.html')
-            self.response.write(template.render(template_values))
+        template = JINJA_ENVIRONMENT.get_template('week.html')
+        self.response.write(template.render(template_values))
 
 
 class DailySchedule(webapp2.RequestHandler):
@@ -1418,7 +1512,9 @@ class DailySchedule(webapp2.RequestHandler):
                     logging.info("Game %s: %s - %s" % (g, score.score1, score.score2))
                     score.put()  # Save the new scores
 
-        self.redirect("day?w=%s&d=%s" % (week, day))
+        response_data = {'title': 'Success', 'message': 'Scores saved successfully', 'button': 'Close'}
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(response_data))
 
     def get(self):
         today = datetime.date.today()
@@ -1565,13 +1661,12 @@ class Notify(webapp2.RequestHandler):
                 if sr < 3:  # If no scores have been entered for today's match, email all of today's players to remind them to enter the score.
                     logging.info("Sending email reminder to enter scores.")
                     message.subject = "Reminder to submit scores"
-#                    message.body = "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the Score Page (http://hpsandvolleyball.appspot.com/day) and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard."
                     message.html = "At the moment this email was generated, the scores haven't been entered for today's games. Please go to the <a href=\"http://hpsandvolleyball.appspot.com/day\">Score Page</a> and enter the scores. If someone has entered the scores by the time you check, or the games were not actually played, please disregard."
                     message.body = links2text(message.html)
                     sendit = True
-                    for s in schedule_data:
-                        # pass
-                        notification_list.append(player_data[s.id].email)
+                    for p in player_data:
+                        if any(s.id == p.id for s in schedule_data):
+                            notification_list.append(p.email)
                 else:
                     logging.info("The scores were already entered today.")
                     sendit = False
@@ -1588,10 +1683,10 @@ class Notify(webapp2.RequestHandler):
             message.body = links2text(message.html)
             sendit = True
             for p in player_data:
-                logging.info("%s - %s" % (player_data[p].name,player_data[p].email))
-                if player_data[p].email:
+                logging.info("%s - %s" % (p.name,p.email))
+                if p.email:
                     # pass
-                    notification_list.append(player_data[p].email)
+                    notification_list.append(p.email)
 
         elif self.request.get('t') == "test":
             sendit = False

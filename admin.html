@@ -2,6 +2,33 @@
 {% block title %}Admin{% endblock %}
 {% block content %}
 
+<script>
+$(document).ready(function() {
+    $('form').submit(function(e) {
+        e.preventDefault();  // Prevent the default form submission
+
+        // Serialize form data
+        var formData = $(this).serialize();
+        // Capture the value of the clicked button
+        formData += '&action=' + encodeURIComponent($(document.activeElement).val());
+
+        // Send AJAX request to server
+        $.ajax({
+            url: 'admin',  // Update with your server endpoint
+            method: 'POST',  // Use the appropriate HTTP method
+            data: formData,
+            success: function(response) {
+                showModalBase(response.title, response.message, response.button);
+            },
+            error: function(xhr, status, error) {
+                // Handle error response from server
+                console.error(error);
+            }
+        });
+    });
+});
+</script>
+
 <div class="col-md-2">
 </div>
 

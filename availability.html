@@ -53,22 +53,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-
-document.addEventListener("DOMContentLoaded", function () {
-  const urlParams = new URLSearchParams(window.location.search);
-  const saved = urlParams.get('saved');
-
-  if (saved === "true") {
-    $('#successModal').modal('show');
-  }
-});
-
 $(document).ready(function() {
     $('form').submit(function(e) {
         e.preventDefault();  // Prevent the default form submission
 
         // Serialize form data
         var formData = $(this).serialize();
+        // Capture the value of the clicked button
+        formData += '&action=' + encodeURIComponent($(document.activeElement).val());
 
         // Send AJAX request to server
         $.ajax({
@@ -76,11 +68,11 @@ $(document).ready(function() {
             method: 'POST',  // Use the appropriate HTTP method
             data: formData,
             success: function(response) {
-                $('#modalMessage').text(response.message);
-                $('#successModal').modal('show');
+                showModalBase(response.title, response.message, response.button);
             },
             error: function(xhr, status, error) {
                 // Handle error response from server
+                console.error(error);
             }
         });
     });
