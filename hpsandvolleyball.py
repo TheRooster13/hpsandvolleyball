@@ -705,6 +705,13 @@ class Admin(webapp2.RequestHandler):
         qry_p = Player_List.query(ancestor=db_key(year))
         qry_p = qry_p.order(Player_List.schedule_rank)
         player_list = qry_p.fetch()
+        
+        # Extract non-blank emails from player_data
+        valid_emails = [player.email for player in player_list if player.email]
+        # Create a comma-separated list of emails for the mailto link
+        email_list = ",".join(valid_emails)
+        # Create the mailto hyperlink
+        mailto_link = "mailto:" + email_list
 
         template_values = {
             'year': year,
@@ -713,6 +720,7 @@ class Admin(webapp2.RequestHandler):
             'is_signed_up': True,
             'login': login_info,
             'is_admin': users.is_current_user_admin(),
+            'mailto_link': mailto_link,
         }
 
         os = self.request.headers.get('x-api-os')
@@ -1114,146 +1122,6 @@ class Standings(webapp2.RequestHandler):
             self.response.write(template.render(template_values))
 
 
-class Sub(webapp2.RequestHandler):
-    def post(self):
-        user = users.get_current_user()
-        if not user:
-            self.redirect(users.create_login_url(self.request.uri))
-            
-        now = datetime.datetime.today()
-        get_login_info(self)
-        get_player(self)
-        week = int(self.request.get('w'))
-        slot = int(self.request.get('s'))
-#        tier = int(self.request.get('t'))
-        sub_id = self.request.get('id')
-        player_data = get_player_data(week, self)
-        player = get_player(self)
-
-        qry = Schedule.query(ancestor=db_key(now.year))
-        qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
-        sr = qry.fetch()
-        swap_id = None
-        player_list = []
-        success = "n"
-
-        # Check to make sure the sub_id is a currently active player
-        # (otherwise, someone else may have already accepted the sub request.)
-        for x in sr:
-            if x.id == sub_id:
-                if player:
-                    # Make the swap
-                    swap_id = player.id
-        if swap_id is not None and self.request.get('action') == Confirm:
-            for x in sr:
-                if x.id != sub_id:
-                    # Add everyone already in this slot to a list except the player being subbed out.
-                    player_list.append(x.id)
-                x.key.delete()
-            player_list.append(swap_id)  # Then add the player being swapped in.
-            player_list = sorted(player_list, key=lambda k: player_data[k].score, reverse=True)  # Sort the list by elo
-            # Then save the new slot schedule.
-            z = 0
-            for p in player_list:
-                z += 1
-                s = Schedule(parent=db_key(now.year))  # database entry
-                s.id = p
-                s.name = player_data[p].name
-                s.week = week
-                s.slot = slot
-                s.tier = 0
-                s.position = z  # 1-8
-                s.put()  # Stores the schedule data in the database
-
-            # delete the swapping player from the schedule where it shows as alternate.
-            qry = Schedule.query(ancestor=db_key(now.year))
-            qry = qry.filter(Schedule.week == week, Schedule.id == swap_id, Schedule.slot == 0)
-            results = qry.fetch()
-            if results:
-                results[0].key.delete()
-            # add the subbed out player to the alternate list.
-            s = Schedule(parent=db_key(now.year))
-            s.id = sub_id
-            s.name = player_data[sub_id].name
-            s.week = week
-            s.slot = 0
-            s.tier = 0
-            s.position = slot
-            s.put()
-
-            # Send an email confirmation out to the admin and the substituting players
-            message = mail.EmailMessage()
-            message.sender = "noreply@hpsandvolleyball.appspotmail.com"
-            message.to = [str(player_data[sub_id].email), str(player_data[swap_id].email), "brian.bartlow@hp.com"]
-            message.subject = "Substitution Successful"
-            message.html = "This notice is to inform you that the substitution has been completed successfully. Since the system doesn't automatically update the meeting invites, %s, please forward your meeting invitation to <a href=\"mailto:%s\">%s</a>." % (player_data[sub_id].name, player_data[swap_id].email, player_data[swap_id].name)
-            message.body = links2text(message.html)
-            message.check_initialized()
-            message.send()
-            
-        else:
-            response_data = {'title': 'Failure', 'message': 'Substitution unsuccessful. It is possible someone else already accepted the substitution request.', 'button': 'Close'}
-            self.response.headers['Content-Type'] = 'application/json'
-            self.response.write(json.dumps(response_data))
-
-    def get(self):
-        user = users.get_current_user()
-        if not user:
-            self.redirect(users.create_login_url(self.request.uri))
-        
-        now = datetime.datetime.today()
-        get_login_info(self)
-        get_player(self)
-        week = int(self.request.get('w'))
-        slot = int(self.request.get('s'))
-        tier = int(self.request.get('t'))
-        sub_id = self.request.get('id')
-        player_data = get_player_data(week, self)
-        player = get_player(self)
-
-        qry = Schedule.query(ancestor=db_key(now.year))
-        qry = qry.filter(Schedule.week == week, Schedule.slot == slot)
-        sr = qry.fetch()
-        swap_id = None
-        player_list = []
-        
-        # Check to make sure the sub_id is a currently active player
-        # (otherwise, someone else may have already accepted the sub request.)
-        if any(s.id == sub_id for s in sr):
-            for p in sr:
-                player_list.append(p.id)
-                
-
-        else:
-            # show a modal saying that someone else may have already accepted the sub request.
-            response_data = {'title': 'Notice', 'message': 'Player no longer needs a sub. It is possible someone else already accepted the substitution request.', 'button': 'Close'}
-
-        qry = Schedule.query(ancestor=db_key(now.year))
-        qry = qry.filter(Schedule.week == week)
-        qry = qry.order(Schedule.slot, Schedule.position)
-        schedule_data = qry.fetch()
-        
-        
-        active = []
-        template_values = {
-            'current_year': today.year,
-            'year': now.year,
-            'page': 'week',
-            'week': week,
-            'numWeeks': numWeeks,
-            'slots': slots,
-            'schedule_data': schedule_data,
-            'active': active,
-            'player': player,
-            'is_signed_up': player is not None,
-            'login': login_info,
-            'is_admin': users.is_current_user_admin(),
-        }
-        template = JINJA_ENVIRONMENT.get_template('week.html')
-        self.response.write(template.render(template_values))
-#        self.redirect("week?w=%s&m=%s" % (week, success))
-
-
 class WeeklySchedule(webapp2.RequestHandler):
     def post(self):
         user = users.get_current_user()
@@ -1384,7 +1252,6 @@ class WeeklySchedule(webapp2.RequestHandler):
         login_info = get_login_info(self)
         user = users.get_current_user()
         player = get_player(self)
-        success = self.request.get('m')
         swap_id = None
         player_list = []
         
@@ -1456,7 +1323,6 @@ class WeeklySchedule(webapp2.RequestHandler):
             'numWeeks': numWeeks,
             'slots': slots,
             'schedule_data': schedule_data,
-            'success': success,
             'active': active,
             'player': player,
             'is_signed_up': player is not None,
@@ -1754,7 +1620,6 @@ app = webapp2.WSGIApplication([
     ('/week', WeeklySchedule),
     ('/day', DailySchedule),
     ('/standings', Standings),
-    ('/sub', Sub),
     ('/admin', Admin),
     ('/tasks/notify', Notify),
     ('/tasks/scheduler', Scheduler),

@@ -96,7 +96,6 @@ $(document).ready(function() {
 	<div class="row">
 	<h2 class="page-header">Week {{week}} Schedule</h2>
 	</div>
-	{% if success == 'y' %}<div class="row"><h3>Substitution Successful</h3></div>{% elif success == 'n' %}<div class="row"><h3>Substitution Unsuccessful (Are you logged in? Maybe someone else accepted first.)</h3></div>{% elif success == 'rs'%}<div class="row"><h3>Request Sent</h3></div>{% endif %}
 	<div class="row" align="center">
 		<H3>{% if week>1 %}<a href="?w={{week-1}}{% if year != current_year %}&y={{year}}{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-left" aria-hidden="true"></span></a>{% endif %} Week {{week}}{% if week < numWeeks %}<a href="?w={{week+1}}{% if year != current_year %}&y={{year}}{% endif %}"><span class="glyphicon glyphicon glyphicon-menu-right" aria-hidden="true"></span></a>{% endif %}</H3>
 	</div>
