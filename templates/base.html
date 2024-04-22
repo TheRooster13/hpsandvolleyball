@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en">
+
+  <head>
+
+    {% block head %}
+
+    <title>HP Sand Volleyball :: {% block title %}{% endblock %}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/png" href="favicon.png" />
+	<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">
+    <!--
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="https://bootswatch.com/cerulean/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/cosmo/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/cyborg/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/darkly/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/flatly/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/journal/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/lumen/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/paper/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/readable/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/sandstone/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/simplex/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/slate/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/spacelab/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/superhero/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/united/bootstrap.css">
+    <link rel="stylesheet" href="https://bootswatch.com/yeti/bootstrap.css">
+    -->
+
+    <style>
+        body {
+            padding-top: 30px; /* to make the container go all the way to the bottom of the topbar */
+        }
+        .left-aligned { padding-left:0.5em; list-style-position:inside; }
+        div.linked {
+            position: relative;
+        }
+
+        div.linked a {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            text-decoration: none; /* No underlines on the link */
+            z-index: 10; /* Places the link above everything else in the div */
+            background-color: #FFF; /* Fix to make div clickable in IE */
+            opacity: 0; /* Fix to make div clickable in IE */
+            filter: alpha(opacity=1); /* Fix to make div clickable in IE */
+        }
+        
+        .btn-highlight,.btn-highlight:focus,.btn-highlight:hover,.btn-highlight:active {
+            color: #333;
+            background-color: #ffcc00;
+            border-color: #e6b800;
+            background-image:-webkit-linear-gradient(top,#ffcc00 0,#ffcc00 100%);
+            background-image: none;
+        }
+    
+    .cell {
+        border: 1px solid #ccc; /* Add a 1-pixel border */
+        padding: 5px; /* Add some padding for better appearance */
+        text-align: center; /* Center the text within the cells */
+        cursor: pointer;
+    }
+
+    .cal-green,
+    .cal-green:focus,
+    .cal-green:hover {
+        color: #fff;
+        background-image: -webkit-linear-gradient(top, #5cb85c, #449d44);
+        background-image: linear-gradient(to bottom, #5cb85c, #449d44);
+//        border-color: #4cae4c;
+    }
+
+    .cal-red,
+    .cal-red:focus,
+    .cal-red:hover {
+        color: #fff;
+        background-image: -webkit-linear-gradient(top, #d9534f, #c9302c);
+        background-image: linear-gradient(to bottom, #d9534f, #c9302c);
+//        border-color: #d43f3a;
+    }
+
+    .cal-highlight,
+    .cal-highlight:focus,
+    .cal-highlight:hover {
+        color: #333;
+        background-image: -webkit-linear-gradient(top, #ffcc00, #ffdd33);
+        background-image: linear-gradient(to bottom, #ffcc00, #ffdd33);
+//        border-color: #e6b800;
+    }
+    </style>
+
+    <!-- JQuery must appear before bootstrap javascript -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+
+    <!-- Web application icons -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon"                 href="ios/AppIcon.appiconset/Icon-App-60x60@2x.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="ios/AppIcon.appiconset/Icon-App-60x60@3x.png" />
+    <link rel="apple-touch-icon" sizes="76x76"   href="ios/AppIcon.appiconset/Icon-App-76x76@1x.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="ios/AppIcon.appiconset/Icon-App-76x76@2x.png" />
+    <link rel="apple-touch-icon" sizes="58x58"   href="ios/AppIcon.appiconset/Icon-App-29x29@2x.png" />
+
+    {% endblock %}
+
+  </head>
+
+  <body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">HP Sand Volleyball {{ year }}</a>
+        </div>
+    
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav">
+            {% if page == "signup" %}
+            <li class="active"><a href="/signup">Signup<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/signup">Signup</a></li>
+            {% endif %}
+            {% if page == "standings" %}
+            <li class="active"><a href="/standings">Standings<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/standings">Standings</a></li>
+            {% endif %}
+            {% if page == "week" %}
+            <li class="active"><a href="/week">Schedule<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/week">Schedule</a></li>
+            {% endif %}
+            {% if page == "day" %}
+            <li class="active"><a href="/day">Scores<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/day">Scores</a></li>
+            {% endif %}
+            {% if is_signed_up %}
+            {% if page == "availability" %}
+            <li class="active"><a href="/availability">Availability<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/availability">Availability</a></li>
+            {% endif %}
+            {% endif %}
+            {% if page == "info" %}
+            <li class="active"><a href="/info">Info<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/info">Info</a></li>
+            {% endif %}
+           </ul>
+          <ul class="nav navbar-nav navbar-right">
+            {% if is_admin%}
+            {% if page == "admin" %}
+            <li class="active"><a href="/admin">Admin<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/admin">Admin</a></li>
+            {% endif %}
+            {% endif %}
+            <li><a href="{{ login.url }}">{{ login.linktext }}</a></li>
+          </ul>
+        </div>
+
+      </div>
+    </nav>
+
+    <!-- Main page content -->
+    <div id="content" class="container-fluid" role="main">
+    {% block content %}{% endblock %}
+    </div>
+    </div> <!-- Content -->
+
+    <!-- Footer -->
+    <div class="footer">
+      <center>
+      <hr />
+      <p>HP Sand Volleyball | &copy; {{ year }}</p>
+      </center>
+    </div>
+
+    <!-- Modal -->
+    <div id="successModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="modalTitle">Success!</h4>
+                </div>
+                <div class="modal-body">
+                    <p id="modalMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="modalButton">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+<script>
+    function showModalBase(title, message, button, url) {
+        $('#modalTitle').text(title);
+        $('#modalMessage').text(message);
+        $('#modalButton').text(button);
+        
+        $('#modalButton').off('click');// Remove any previous click event handlers
+        if (url) {
+            $('#modalButton').on('click', function() {
+                console.log("Close button clicked with URL:", url);
+                window.location.href = url;
+            });
+        } else {
+            $('#modalButton').on('click', function() {
+                console.log("Close button clicked without a URL:");
+                $('#successModal').modal('hide');
+            });
+        }
+        console.log("URL:", url);
+        $('#successModal').modal('show');
+    }
+</script>
+
+  </body>
+
+</html>
+
+{% endautoescape %}

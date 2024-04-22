@@ -59,8 +59,7 @@ docs/_build/
 # PyBuilder
 target/
 
-#SendGrid
-sendgrid.env
+#old files
+*.old
 
-#contains the SendGrid API Key
-keys.py
+*.gcloudignore

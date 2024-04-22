@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+
+<script>
+$(document).ready(function() {
+    $('form.ajax-form').submit(function(e) {
+        e.preventDefault();  // Prevent the default form submission
+
+        // Serialize form data
+        var formData = $(this).serialize();
+        // Capture the value of the clicked button
+        formData += '&action=' + encodeURIComponent($(document.activeElement).val());
+
+        // Send AJAX request to server
+        $.ajax({
+            url: 'admin',  // Update with your server endpoint
+            method: 'POST',  // Use the appropriate HTTP method
+            data: formData,
+            success: function(response) {
+                showModalBase(response.title, response.message, response.button);
+            },
+            error: function(xhr, status, error) {
+                // Handle error response from server
+                console.error(error);
+            }
+        });
+    });
+});
+</script>
+
+<div class="col-md-2">
+</div>
+
+<div class="container">
+  <!-- Flash messages display area -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <h2 class="page-header text-center">HP Sand Volleyball {{ year }}</h2>
+
+  <div class="row">
+    <div class="col-md-6"> <!-- Left column for import -->
+      <form action="/import_csv" method="post" enctype="multipart/form-data" class="form-horizontal">
+        <div class="form-group">
+          <label>Select Database for Import:</label>
+          <select name="kind" class="form-control">
+            <option value="Player_List">Player List</option>
+            <option value="Availability">Availability</option>
+            <option value="Schedule">Schedule</option>
+            <option value="Scores">Scores</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>File to Import:</label>
+          <input type="file" name="file" required class="form-control">
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary btn-block">Import CSV</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="col-md-6"> <!-- Right column for export -->
+        <form action="/export_csv" method="post" class="form-horizontal">
+            <div class="form-group">
+                <label>Select Database for Export:</label>
+                <select name="kind" class="form-control">
+                    <option value="Player_List">Player List</option>
+                    <option value="Availability">Availability</option>
+                    <option value="Schedule">Schedule</option>
+                    <option value="Scores">Scores</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Year(s) to Export (Leave blank for all.):</label>
+                <input type="text" name="years" placeholder="2024, 2020-2022" class="form-control">
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-success btn-block">Export CSV</button>
+            </div>
+        </form>
+    </div>
+  </div> <!-- End row for forms -->
+
+  <div class="row">
+  <form class="form-horizontal ajax-form" action="admin" method="post">
+  <div class="col-sm-12">
+    <button id="holidays" name="action" type="submit" class="btn btn-primary btn-block" value="Holidays">Set Holidays
+    </button>
+    <!-- Committed -->
+    <div class="panel panel-success">
+      <div class="panel-heading">
+        Players (<a href="{{ mailto_link }}">Email Group</a>)
+        <span class="badge pull-right">{{ player_list|length }}</span> 
+      </div>
+      <table class="table table-hover">
+      {% if player_list|length %}
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>ELO</th>
+            <th>Points</th>
+            <th>Wins</th>
+            <th>Games</th>
+            <th>Points Per Game</th>
+            <th>Byes</th>
+          </tr>
+          {% for player in player_list %}
+          <tr>
+            <td><a href="availability?pid={{player.id}}">{{loop.index}}</a></td>
+            <td>
+                <input type="text" class="form-control" id="name-{{player.id}}" name="name-{{player.id}}" value="{{player.name}}" style="padding: 3px;"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="email-{{player.id}}" name="email-{{player.id}}" value="{{player.email}}" style="padding: 3px;"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="elo_score-{{player.id}}" name="elo_score-{{player.id}}" value="{{player.elo_score}}" style="padding: 3px; width: 5ch;"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="points-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}" style="padding: 3px; width: 6ch;"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="wins-{{player.id}}" name="wins-{{player.id}}" value="{{player.wins}}" style="padding: 3px; width: 3ch;"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="games-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}" style="padding: 3px; width: 3ch;"></input>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="points_per_game-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}" style="padding: 3px; width: 6ch;"></input>
+            </td>
+            <td>
+                {{player.byes}}</input>
+            </td>
+            </tr>
+        {% endfor %}
+      {% else %}
+          <tr>
+            <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>
+          </tr>
+      {% endif %}
+      </table>
+    	<div class="panel-body">
+			<button id="submit" name="action" type="submit" class="btn btn-success btn-block" value="Submit">
+				<span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Submit Changes
+			</button>
+     	</div>
+    </div>
+  </div>
+	<input type="hidden" name="y" value={{year}}></input>
+  </form>
+  </div> <!-- row -->
+
+
+
+
+</div> <!-- center col -->
+
+<div class="col-md-2">
+</div>
+
+{% endblock %}

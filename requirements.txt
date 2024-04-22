@@ -1,0 +1,13 @@
+flask
+Werkzeug
+Authlib
+mailjet-rest
+
+# Google Cloud Libraries
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-cloud-datastore
+google-cloud-secret-manager
+google-cloud-resource-manager
+google-api-python-client
