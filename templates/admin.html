@@ -27,6 +27,62 @@ $(document).ready(function() {
         });
     });
 });
+
+function sortTable(colIndex) {
+    var table = document.getElementById("sortableTable");
+    var tbody = table.tBodies[0];
+    var rows = Array.from(tbody.rows);
+    var isNumeric = true;
+
+    // Check if all entries in this column are numeric or input-based
+    for (var i = 0; i < rows.length; i++) {
+        var cellContent = getTextFromCell(rows[i].cells[colIndex]);
+        if (isNaN(cellContent) || isNaN(parseFloat(cellContent))) {
+            isNumeric = false;
+            break;
+        }
+    }
+
+    // Determine sorting direction
+    var dir = table.dataset.lastSortCol === colIndex.toString() && table.dataset.lastDir ? (table.dataset.lastDir === 'asc' ? 'desc' : 'asc') : (isNumeric ? 'desc' : 'asc');
+    table.dataset.lastSortCol = colIndex.toString(); // Track last sorted column
+    table.dataset.lastDir = dir; // Track last sorting direction
+
+    // Sorting logic
+    rows.sort(function(a, b) {
+        var aValue = getTextFromCell(a.cells[colIndex]);
+        var bValue = getTextFromCell(b.cells[colIndex]);
+        aValue = isNumeric ? parseFloat(aValue) : aValue.toLowerCase();
+        bValue = isNumeric ? parseFloat(bValue) : bValue.toLowerCase();
+        return (aValue < bValue) ? (dir === 'asc' ? -1 : 1) : (aValue > bValue) ? (dir === 'asc' ? 1 : -1) : 0;
+    });
+
+    // Reattach rows in sorted order
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+
+    // Update arrow directions
+    var headers = table.getElementsByTagName("TH");
+    for (var i = 0; i < headers.length; i++) {
+        var arrows = headers[i].getElementsByClassName("sort-arrows")[0];
+        arrows.children[0].className = 'up-arrow'; // Reset to inactive
+        arrows.children[1].className = 'down-arrow'; // Reset to inactive
+    }
+    var activeArrows = headers[colIndex].getElementsByClassName("sort-arrows")[0];
+    if (dir === 'asc') {
+        activeArrows.children[0].className = 'up-arrow active'; // Up-arrow active
+        activeArrows.children[1].className = 'down-arrow inactive';
+    } else {
+        activeArrows.children[0].className = 'up-arrow inactive';
+        activeArrows.children[1].className = 'down-arrow active'; // Down-arrow active
+    }
+}
+function getTextFromCell(cell) {
+    // Check if the cell contains an input element and extract text accordingly
+    var input = cell.querySelector('input');
+    return input ? input.value : cell.textContent.trim();
+}
 </script>
 
 <div class="col-md-2">
@@ -99,48 +155,52 @@ $(document).ready(function() {
         Players (<a href="{{ mailto_link }}">Email Group</a>)
         <span class="badge pull-right">{{ player_list|length }}</span> 
       </div>
-      <table class="table table-hover">
+      <table id="sortableTable" class="table table-hover sortable-table">
       {% if player_list|length %}
-          <tr>
-            <th></th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>ELO</th>
-            <th>Points</th>
-            <th>Wins</th>
-            <th>Games</th>
-            <th>Points Per Game</th>
-            <th>Byes</th>
-          </tr>
+          <thead>
+              <tr>
+                <th onclick="sortTable(0)">Index <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(1)">Name <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(2)">Email <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(3)">ELO <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(4)">Points <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(5)">Wins <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(6)">Games <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(7)">PPG <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+                <th onclick="sortTable(8)">Byes <div class="sort-arrows"><div class="up-arrow">&#9650;</div><div class="down-arrow">&#9660;</div></div></th>
+              </tr>
+          </thead>
+          <tbody>
           {% for player in player_list %}
-          <tr>
-            <td><a href="availability?pid={{player.id}}">{{loop.index}}</a></td>
-            <td>
-                <input type="text" class="form-control" id="name-{{player.id}}" name="name-{{player.id}}" value="{{player.name}}" style="padding: 3px;"></input>
-            </td>
-            <td>
-                <input type="text" class="form-control" id="email-{{player.id}}" name="email-{{player.id}}" value="{{player.email}}" style="padding: 3px;"></input>
-            </td>
-            <td>
-                <input type="text" class="form-control" id="elo_score-{{player.id}}" name="elo_score-{{player.id}}" value="{{player.elo_score}}" style="padding: 3px; width: 5ch;"></input>
-            </td>
-            <td>
-                <input type="text" class="form-control" id="points-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}" style="padding: 3px; width: 6ch;"></input>
-            </td>
-            <td>
-                <input type="text" class="form-control" id="wins-{{player.id}}" name="wins-{{player.id}}" value="{{player.wins}}" style="padding: 3px; width: 3ch;"></input>
-            </td>
-            <td>
-                <input type="text" class="form-control" id="games-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}" style="padding: 3px; width: 3ch;"></input>
-            </td>
-            <td>
-                <input type="text" class="form-control" id="points_per_game-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}" style="padding: 3px; width: 6ch;"></input>
-            </td>
-            <td>
-                {{player.byes}}</input>
-            </td>
+            <tr>
+                <td><a href="profile?pid={{player.id}}">{{loop.index}}</a></td>
+                <td>
+                    <input type="text" class="form-control" id="name-{{player.id}}" name="name-{{player.id}}" value="{{player.name}}" style="padding: 3px;"></input>
+                </td>
+                <td>
+                    <input type="text" class="form-control" id="email-{{player.id}}" name="email-{{player.id}}" value="{{player.email}}" style="padding: 3px;"></input>
+                </td>
+                <td>
+                    <input type="text" class="form-control" id="elo_score-{{player.id}}" name="elo_score-{{player.id}}" value="{{player.elo_score}}" style="padding: 3px; width: 5ch;"></input>
+                </td>
+                <td>
+                    <input type="text" class="form-control" id="points-{{player.id}}" name="points-{{player.id}}" value="{{player.points}}" style="padding: 3px; width: 6ch;"></input>
+                </td>
+                <td>
+                    <input type="text" class="form-control" id="wins-{{player.id}}" name="wins-{{player.id}}" value="{{player.wins}}" style="padding: 3px; width: 3ch;"></input>
+                </td>
+                <td>
+                    <input type="text" class="form-control" id="games-{{player.id}}" name="games-{{player.id}}" value="{{player.games}}" style="padding: 3px; width: 3ch;"></input>
+                </td>
+                <td>
+                    <input type="text" class="form-control" id="points_per_game-{{player.id}}" name="points_per_game-{{player.id}}" value="{{player.points_per_game}}" style="padding: 3px; width: 6ch;"></input>
+                </td>
+                <td>
+                    {{player.byes}}</input>
+                </td>
             </tr>
-        {% endfor %}
+          {% endfor %}
+          </tbody>
       {% else %}
           <tr>
             <td class="text-center" colspan="2"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></td>

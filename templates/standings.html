@@ -22,7 +22,7 @@
           <tr>
             <th>Rank</th>
             <th>Name (<a href="?sort=elo">Elo</a>)</th>
-              <th><a href="?sort=ppg" data-toggle="tooltip" title="When you win, you get points equal to the combined ELO score of your oppenents. When you lose you get zero points. This is your average points per game.">Points Per Game (Min={{min_games}})</a></th>
+              <th><a href="?sort=ppg" data-toggle="tooltip" title="When you win, you get points equal to the average ELO score of your opponent. When you lose you get zero points. This is your average points per game.">Points Per Game (Min={{min_games}})</a></th>
               <th>Win-Loss (Win%)</th>
           </tr>{%
 		for player in player_list %}

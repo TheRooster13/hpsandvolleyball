@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Availability{% endblock %}
+{% block title %}Profile{% endblock %}
 {% block content %}
 
 <script>
@@ -84,7 +84,7 @@ $(document).ready(function() {
 
         // Send AJAX request to server
         $.ajax({
-            url: 'availability',  // Update with your server endpoint
+            url: 'profile',  // Update with your server endpoint
             method: 'POST',  // Use the appropriate HTTP method
             data: formData,
             success: function(response) {
@@ -122,7 +122,7 @@ $(document).ready(function() {
     <!-- Committed -->
     <div class="panel panel-default">
       <div class="panel-heading">
-        <H4>{{ player.name }}'s Availability</H4>
+        <H4>{{ player.name }}'s Profile: (Email and Availability)</H4>
       </div>
 	  <div>
 		<p>Please verify your availability to play on the below dates. Games start at noon, and may not finish by 1:00. Make sure the days you can play are green and the days you cannot play are red. The system will automatically add holidays and global conflicts to your calendar.</p>
@@ -155,6 +155,23 @@ $(document).ready(function() {
 	  <input type="hidden" name="pid" value="{{player.id}}"></input>{%
 	  endif %}{%
 	  endif %}
+      <hr>
+      <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="{{ player.email }}"> You can update your email address here. This is where notification emails and calendar invites will be sent.
+        <hr>
+      </div>
+      <div>
+        <p>If you need to quit the league:</p>
+        <ol>
+        <li>Set the remaining days to red/unavailable.
+        <li>Delete your email address.
+        <li>Click the Save button.
+        <li>You will no longer be scheduled or receive emails.
+        <li>If you have already been scheduled for an upcoming match and cannot play, please utilize the "Request a Sub" button on the <a href="/week">Schedule</a> page.
+        </ol>
+      </div>
+      <hr>
       <button id="save" name="action" type="submit" class="btn btn-success btn-block" value="Save">
             <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> Save
       </button>

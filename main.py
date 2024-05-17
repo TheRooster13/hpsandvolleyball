@@ -38,7 +38,7 @@ PLAYERS_PER_GAME = 8
 SLOTS_IN_WEEK = 5
 ELO_MARGIN = 75
 
-SEND_INVITES = False
+SEND_INVITES = True
 # How to team up the players for each of the three games
 ms = ((0, 1, 0, 1, 1, 0, 1, 0), (0, 1, 1, 0, 0, 1, 1, 0), (0, 1, 1, 0, 1, 0, 0, 1))
 
@@ -77,10 +77,17 @@ google = oauth.register(
     client_kwargs={'scope': 'openid email profile'}
 )
 
+@app.before_request
+def before_request():
+    if request.url.startswith('http://'):
+        url = request.url.replace('http://', 'https://', 1)
+        code = 301
+        return redirect(url, code=code)
+
 @app.route('/login')
 def login():
     session['next_url'] = request.args.get('next') or request.referrer or url_for('main_page')
-    redirect_uri = url_for('authorize', _external=True)
+    redirect_uri = url_for('authorize', _external=True, _scheme='https')
     return google.authorize_redirect(redirect_uri, prompt='select_account')
 
 @app.route('/authorize')
@@ -159,7 +166,7 @@ class Player:
         self.points_per_game = player_data.get('points_per_game', 0)
 
 
-def get_player_data(client, year=datetime.today().year, current_week=0):
+def get_player_data(client, year=datetime.today().year, current_week=None):
     playerlist = []
     conflict_count = {}
 
@@ -173,7 +180,7 @@ def get_player_data(client, year=datetime.today().year, current_week=0):
         playerlist.append(player)
         conflict_count[player.id] = [0] * numWeeks  # Initialize conflict counts
 
-    if current_week:
+    if current_week is not None:
         # Process past byes if applicable
         if current_week > 1:
             bye_query = client.query(kind='Schedule')
@@ -415,7 +422,6 @@ def signup_post():
             'id': player_id,
             'name': player_name,
             'email': player_email,
-#            'rank': int(request.form['count']),
             'elo_score': 800,  # Default ELO score
             'points': 0,
             'games': 0,
@@ -821,8 +827,8 @@ def post_day():
             print("Scores updated or added successfully.")
             return jsonify(title='Success', message='Scores saved successfully', button='Close')
 
-@app.route('/availability', methods=['GET'])
-def get_availability():
+@app.route('/profile', methods=['GET'])
+def get_profile():
     client = datastore.Client()
     now = datetime.today()
     year = now.year
@@ -833,7 +839,7 @@ def get_availability():
     pid = request.args.get('pid', user.id)
     player = get_player(client, pid, year)
     if player is None:
-        return redirect(url_for('signup'))
+        return redirect(url_for('signup_get'))
 
     weeks = []
     for week_index in range(numWeeks):
@@ -855,7 +861,7 @@ def get_availability():
 
     template_values = {
         'year': year,
-        'page': 'availability',
+        'page': 'profile',
         'user': user,
         'player': player,
         'is_signed_up': player is not None,
@@ -864,15 +870,25 @@ def get_availability():
         'fto_week': fto_week,
         'is_admin': user.admin if user else False,
     }
-    return render_template('availability.html', **template_values)
+    return render_template('profile.html', **template_values)
 
-@app.route('/availability', methods=['POST'])
-def post_availability():
+@app.route('/profile', methods=['POST'])
+def post_profile():
     client = datastore.Client()
     year = datetime.today().year
     user = get_current_user()
     pid = request.form.get('pid', user.id)
     player = get_player(client, pid, year)
+
+    # Update player name and/or email
+    new_name = request.form.get('name', player.name)
+    new_email = request.form.get('email', player.email)
+    player_entity = client.get(client.key('Player_List', f"year-{year}_player-{pid}"))
+    player_entity.update({
+        'name': new_name,
+        'email': new_email
+    })
+    client.put(player_entity)
 
     # Fetch all existing entities for this year and player
     query = client.query(kind='Availability')
@@ -913,7 +929,7 @@ def post_availability():
         client.delete_multi(to_delete)
     set_holidays(client, pid)
 
-    return jsonify({'title': 'Success', 'message': 'Availability updated successfully', 'button': 'Close'})
+    return jsonify({'title': 'Success', 'message': 'Profile updated successfully', 'button': 'Close'})
 
 @app.route('/info')
 def info():
@@ -950,7 +966,7 @@ def admin_get():
     today = date.today()
     year = int(request.args.get('y', today.year))
     week = int(request.args.get('w', math.floor((today - startdate).days / 7) + 1))
-    week = max(1, min(week, numWeeks))
+    week = max(0, min(week, numWeeks))
     players = get_player_data(client, year, week)
 
     valid_emails = [player.email for player in players if player.email]
@@ -1560,8 +1576,8 @@ def notify():
 
     elif request_type == "availability" and 0 <= week < numWeeks:
         subject = "Reminder to check and update your Availability/Conflicts for next week"
-        html = """<p>Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon and possibly a bit beyond 1:00, please go to the <a href=\"http://hpsandvolleyball.appspot.com/availability\">Availability Page</a> and make sure those days are shown as unavailable (red).
-        If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the Availability link at the top of the page. Then click the day(s) for any days that you cannot play and make sure they are red. NOTE: For those involved in the team league, this includes days you are scheduled to play with your team.</p>"""
+        html = """<p>Next week's schedule will be generated at 2:00pm. If there are any days next week where you cannot play at noon and possibly a bit beyond 1:00, please go to the <a href=\"http://hpsandvolleyball.appspot.com/profile\">Profile Page</a> and make sure those days are shown as unavailable (red).
+        If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the Profile link at the top of the page. Then click the day(s) for any days that you cannot play and make sure they are red. NOTE: For those involved in the team league, this includes days you are scheduled to play with your team.</p>"""
         notification_list = [p.email for p in player_data if p.email]
         
     if request.args.get('t') == "test":

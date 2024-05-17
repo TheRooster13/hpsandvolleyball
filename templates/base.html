@@ -64,53 +64,90 @@
             background-image: none;
         }
     
-    .cell {
-        border: 1px solid #ccc; /* Add a 1-pixel border */
-        padding: 5px; /* Add some padding for better appearance */
-        text-align: center; /* Center the text within the cells */
-        cursor: pointer;
-    }
+        .cell {
+            border: 1px solid #ccc; /* Add a 1-pixel border */
+            padding: 5px; /* Add some padding for better appearance */
+            text-align: center; /* Center the text within the cells */
+            cursor: pointer;
+        }
 
-    .cal-green,
-    .cal-green:focus,
-    .cal-green:hover {
-        color: #fff;
-        background-image: -webkit-linear-gradient(top, #5cb85c, #449d44);
-        background-image: linear-gradient(to bottom, #5cb85c, #449d44);
-//        border-color: #4cae4c;
-    }
+        .cal-green,
+        .cal-green:focus,
+        .cal-green:hover {
+            color: #fff;
+            background-image: -webkit-linear-gradient(top, #5cb85c, #449d44);
+            background-image: linear-gradient(to bottom, #5cb85c, #449d44);
+    //        border-color: #4cae4c;
+        }
 
-    .cal-red,
-    .cal-red:focus,
-    .cal-red:hover {
-        color: #fff;
-        background-image: -webkit-linear-gradient(top, #d9534f, #c9302c);
-        background-image: linear-gradient(to bottom, #d9534f, #c9302c);
-//        border-color: #d43f3a;
-    }
+        .cal-red,
+        .cal-red:focus,
+        .cal-red:hover {
+            color: #fff;
+            background-image: -webkit-linear-gradient(top, #d9534f, #c9302c);
+            background-image: linear-gradient(to bottom, #d9534f, #c9302c);
+    //        border-color: #d43f3a;
+        }
 
-    .cal-highlight,
-    .cal-highlight:focus,
-    .cal-highlight:hover {
-        color: #333;
-        background-image: -webkit-linear-gradient(top, #ffcc00, #ffdd33);
-        background-image: linear-gradient(to bottom, #ffcc00, #ffdd33);
-//        border-color: #e6b800;
-    }
+        .cal-highlight,
+        .cal-highlight:focus,
+        .cal-highlight:hover {
+            color: #333;
+            background-image: -webkit-linear-gradient(top, #ffcc00, #ffdd33);
+            background-image: linear-gradient(to bottom, #ffcc00, #ffdd33);
+    //        border-color: #e6b800;
+        }
+            .sortable-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .sortable-table th, .sortable-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .sortable-table th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+            position: relative;
+            padding-right: 20px; /* Space for the arrow */
+        }
+        .sortable-table tr:nth-child(even){background-color: #f9f9f9;}
+        .sortable-table tr:hover {background-color: #ddd;}
+        .sort-arrows {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Ensures horizontal center alignment of the arrows */
+            justify-content: center;
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .up-arrow, .down-arrow {
+            transition: all 0.1s; /* Smooth transition for size changes */
+            display: block; /* Stack vertically */
+            font-size: 12px; /* Standard font size for inactive state */
+            color: gray; /* Default color for inactive state */
+        }
+        .up-arrow {
+            margin-bottom: -5px;
+        }
+        .down-arrow {
+            margin-bottom: -4px;
+        }
+        .active {
+            color: black;
+            font-size: 13px; /* Active arrow size */
+        }
+        .inactive {
+            font-size: 11px; /* Inactive arrow size */
+        }
     </style>
 
     <!-- JQuery must appear before bootstrap javascript -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-
-
-    <!-- Web application icons -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="apple-touch-icon"                 href="ios/AppIcon.appiconset/Icon-App-60x60@2x.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="ios/AppIcon.appiconset/Icon-App-60x60@3x.png" />
-    <link rel="apple-touch-icon" sizes="76x76"   href="ios/AppIcon.appiconset/Icon-App-76x76@1x.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="ios/AppIcon.appiconset/Icon-App-76x76@2x.png" />
-    <link rel="apple-touch-icon" sizes="58x58"   href="ios/AppIcon.appiconset/Icon-App-29x29@2x.png" />
 
     {% endblock %}
 
@@ -141,10 +178,10 @@
             {% else %}
             <li><a href="/signup">Signup</a></li>
             {% endif %}
-            {% if page == "standings" %}
-            <li class="active"><a href="/standings">Standings<span class="sr-only">(current)</span></a></li> 
+            {% if page == "info" %}
+            <li class="active"><a href="/info">Info<span class="sr-only">(current)</span></a></li> 
             {% else %}
-            <li><a href="/standings">Standings</a></li>
+            <li><a href="/info">Info</a></li>
             {% endif %}
             {% if page == "week" %}
             <li class="active"><a href="/week">Schedule<span class="sr-only">(current)</span></a></li> 
@@ -156,17 +193,10 @@
             {% else %}
             <li><a href="/day">Scores</a></li>
             {% endif %}
-            {% if is_signed_up %}
-            {% if page == "availability" %}
-            <li class="active"><a href="/availability">Availability<span class="sr-only">(current)</span></a></li> 
+            {% if page == "standings" %}
+            <li class="active"><a href="/standings">Standings<span class="sr-only">(current)</span></a></li> 
             {% else %}
-            <li><a href="/availability">Availability</a></li>
-            {% endif %}
-            {% endif %}
-            {% if page == "info" %}
-            <li class="active"><a href="/info">Info<span class="sr-only">(current)</span></a></li> 
-            {% else %}
-            <li><a href="/info">Info</a></li>
+            <li><a href="/standings">Standings</a></li>
             {% endif %}
            </ul>
           <ul class="nav navbar-nav navbar-right">
@@ -175,6 +205,13 @@
             <li class="active"><a href="/admin">Admin<span class="sr-only">(current)</span></a></li> 
             {% else %}
             <li><a href="/admin">Admin</a></li>
+            {% endif %}
+            {% endif %}
+            {% if is_signed_up %}
+            {% if page == "profile" %}
+            <li class="active"><a href="/profile">Profile<span class="sr-only">(current)</span></a></li> 
+            {% else %}
+            <li><a href="/profile">Profile</a></li>
             {% endif %}
             {% endif %}
             <li><a href="{{ login.url }}">{{ login.linktext }}</a></li>
@@ -194,6 +231,7 @@
     <div class="footer">
       <center>
       <hr />
+      <p>If you have any comments or questions, please send an email to <a href="mailto:brian.bartlow@hp.com">brian.bartlow@hp.com</a>.</p>
       <p>HP Sand Volleyball | &copy; {{ year }}</p>
       </center>
     </div>
