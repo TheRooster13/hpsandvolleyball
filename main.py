@@ -762,7 +762,7 @@ def post_week():
         else:
             response_data = {'title': 'Failure', 'message': 'Substitution unsuccessful. It is possible someone else already accepted the substitution request.', 'button': 'Close', 'url': 'week'}
 
-    print(message)
+    print(response_data)
     return jsonify(response_data)
 
 @app.route('/day', methods=['GET'])
