@@ -46,6 +46,8 @@ random.seed(datetime.now())
 
 google = None
 
+calendar_service = build('calendar', 'v3')
+
 # Google Cloud Secret Manager client
 secret_client = secretmanager.SecretManagerServiceClient()
 
@@ -79,10 +81,14 @@ google = oauth.register(
 
 @app.before_request
 def before_request():
+    # Allow cron jobs to bypass HTTP to HTTPS redirection
+    if request.headers.get('X-Appengine-Cron'):
+        return
+    
+    # Redirect HTTP to HTTPS
     if request.url.startswith('http://'):
         url = request.url.replace('http://', 'https://', 1)
-        code = 301
-        return redirect(url, code=code)
+        return redirect(url, code=301)
 
 @app.route('/login')
 def login():
@@ -366,13 +372,23 @@ def send_email(subject, html, to):
 def admin_or_cron_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+       # Check for cron job header
         if request.headers.get('X-Appengine-Cron'):
+            print("Cron job detected, executing task.")
             return f(*args, **kwargs)
+        
+        # Check for user profile in session
         if 'profile' not in session:
+            print("User profile not in session, redirecting to login.")
             return redirect(url_for('login', next=request.url))
+        
+        # Check if user is an admin
         if not session.get('is_admin'):
+            print("User is not admin, redirecting to main page.")
             return redirect(url_for('main_page'))
+        
         return f(*args, **kwargs)
+    
     return decorated_function
 
 
@@ -380,6 +396,8 @@ def admin_or_cron_required(f):
 def main_page():
     login_info = get_login_info()
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     year = datetime.today().year
     client = datastore.Client()
 
@@ -407,6 +425,8 @@ def main_page():
 @app.post('/signup')
 def signup_post():
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     now = datetime.today()
     year = now.year
     
@@ -459,6 +479,8 @@ def signup_get():
     client = datastore.Client()
     login_info = get_login_info()
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     player = get_player(client, user.id, year) if user else None
     player_list = get_player_data(client, year)
     active_schedule = check_for_active_schedule(client, year)
@@ -495,6 +517,7 @@ def check_for_active_schedule(client, year):
 def un_signup():
     user = get_current_user()
     if user:
+        print(f"user={user.name}({user.id})")
         client = datastore.Client()
         year = datetime.today().year
         player_id = user.id
@@ -507,6 +530,8 @@ def un_signup():
 @app.route('/standings')
 def standings():
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     now = datetime.now()
     today = date.today()
     week = int(math.floor((today - startdate).days + 3) / 7)
@@ -544,12 +569,41 @@ def standings():
     else:
         return render_template('standings.html', **template_values)
 
+def update_calendar_event(week, slot, player_out, player_in):
+    calendar_id = 'aidl2j9o0310gpp2allmil37ak@group.calendar.google.com'
+
+    # Calculate the start time for the match
+    match_date = startdate + timedelta(days=(7 * (week - 1) + (slot - 1)))
+    start_time = datetime.combine(match_date, time(12, 0, 0))
+    start_time_iso = start_time.isoformat()
+
+    # Find the calendar event for the given week and slot
+    events_result = calendar_service.events().list(calendarId=calendar_id).execute()
+    events = events_result.get('items', [])
+    for event in events:
+        event_start_time = event['start'].get('dateTime') or event['start'].get('date')
+        if event_start_time == start_time_iso:
+            # Found the event, update it
+            attendees = event.get('attendees', [])
+            new_attendees = [att for att in attendees if att['email'] != player_out.email]
+            new_attendees.append({'email': player_in.email})
+            event['attendees'] = new_attendees
+
+            # Update the event description
+            event['description'] += f"\n\nSubstitution:\nOut: {player_out.name}\nIn: {player_in.name}"
+
+            # Update the event in the calendar
+            calendar_service.events().update(calendarId=calendar_id, eventId=event['id'], body=event, sendUpdates='all').execute()
+            break
+
 @app.route('/week', methods=['GET'])
 def get_week():
     client = datastore.Client()
     today = date.today()
     year = int(request.args.get('y', today.year))
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     login_info = get_login_info()
     player = get_player(client, user.id, year) if user else None
 
@@ -564,12 +618,7 @@ def get_week():
     sub_id = request.args.get('id')
     if slot > 0 and sub_id:
         if not user:
-            modal_data = {
-                'title': 'Notice',
-                'message': f"You must be logged in before you can accept a sub request.",
-                'button': 'Close',
-                'url': 'login'
-            }
+            return redirect(url_for('login', next=request.url))
         else:
             # Fetch schedule data for the specific slot
             query = client.query(kind='Schedule')
@@ -579,7 +628,7 @@ def get_week():
             sr = list(query.fetch())
             sub_name = next((p.name for p in player_data if p.id == sub_id), None)
             day = slots[slot - 1].strftime("%A, %b %d")
-            if any(s.id == sub_id for s in sr):
+            if any(s['id'] == sub_id for s in sr):
                 modal_data = {
                     'title': 'Confirmation',
                     'message': f"Please confirm you would like to sub for {sub_name} on {day}.",
@@ -603,10 +652,10 @@ def get_week():
     active = []
     if user and year == today.year:
         for s in schedule_data:
-            if s.id == user.id and s.slot != 0:
-                deadline = startdate + timedelta(days=(7 * (week - 1)) + (s.slot - 1))
-                if datetime.now() < datetime(deadline.year, deadline.month, deadline.day, 18):
-                    active.append(s.slot)
+            if s['id'] == user.id and s['slot'] != 0:
+                deadline = startdate + timedelta(days=(7 * (week - 1)) + (s['slot'] - 1))
+                if datetime.now() < datetime(deadline.year, deadline.month, deadline.day, 12):
+                    active.append(s['slot'])
 
     template_values = {
         'current_year': today.year,
@@ -633,7 +682,8 @@ def post_week():
     user = get_current_user()
     if not user:
         return redirect(url_for('login', next=request.url))
-
+    print(f"user={user.name}({user.id})")
+    client = datastore.Client()
     now = datetime.now()
     week = int(request.form.get('w'))
     slot = int(request.form.get('s'))
@@ -648,36 +698,37 @@ def post_week():
     query.add_filter(filter=PropertyFilter('week', '=', week))
     sr = list(query.fetch())
     
-    if action == "Sub" and user and player is not None:
+    print(f"user={user}, player={player}")
+    print(f"week={week}, slot={slot}, sub_id={sub_id}, action={action}")
+    response_data = {'title': 'Error', 'message': "Something went wrong. Please contact the administrator.", 'button': 'Close'}
+    
+    if action == "Sub" and player is not None:
         sub_id = user.id
-        sendit = False
         notification_list = [
             p.email for p in player_data 
-            if p.id not in {s.id for s in sr if s.slot == slot or (s.slot == 0 and s.position == 0)}
+            if p.id not in {s['id'] for s in sr if s['slot'] == slot or (s['slot'] == 0 and s['position'] == 0)}
         ]
-        if any(x.id == sub_id and x.slot == slot for x in sr):
-            sendit = True
+        if any(x['id'] == sub_id and x['slot'] == slot for x in sr):
             subject = f"{player.name} needs a Sub"
             html = ("<p>{0} needs a sub on {1}. This email is sent to everyone not already scheduled to play on that date. "
-                    "If you are an alternate for this match and can play, please click <a href='http://hpsandvolleyball.appspot.com/sub?w={2}&s={3}&id={4}'>this link</a>. "
+                    "If you are an alternate for this match and can play, please click <a href='http://hpsandvolleyball.appspot.com/week?w={2}&s={3}&id={4}'>this link</a>. "
                     "If there are no alternates for this match, or the alternates haven't accepted the invitation, you can go ahead and click the link. The first to accept the invitation will get to play.</p>"
-                    "<strong>NOTE: The system is not able to update the calendar invitations, so please remember to check the website for the official schedule.</strong>"
                     ).format(player.name, (startdate + timedelta(days=(7 * (week - 1) + (slot - 1)))).strftime("%A %m/%d"), week, slot, sub_id)
-#            text = links2text(html)
             print(subject)
             print(html)
             print(f"sending to: {notification_list}")
             send_email(subject, html, ["brian.bartlow@hp.com"] + notification_list)
-#            send_email("noreply@hpsandvolleyball.appspotmail.com", ["brian.bartlow@hp.com"] + notification_list, subject, html, text)
             response_data = {'title': 'Success', 'message': 'Sub request sent successfully', 'button': 'Close'}
+        else:
+            response_data = {'title': 'Failure', 'message': "It looks like you're not scheduled to play on the day you're requesting a sub. You may need to contact the administrator.", 'button': 'Close'}
 
-    if action == "Confirm" and user and player is not None:
+    if action == "Confirm" and player is not None:
         print("executing substitution.")
-        swap_id = player.id if any(x.id == sub_id and x.slot == slot for x in sr) else None
+        swap_id = player.id if any(x['id'] == sub_id and x['slot'] == slot for x in sr) else None
         if swap_id:
-            player_list = [x.id for x in sr if x.id != sub_id and x.slot == slot]
+            player_list = [x['id'] for x in sr if x['id'] != sub_id and x['slot'] == slot]
             # Delete old schedule for slot because the positions may change based on the elo score of the swapping player
-            keys_to_delete = [x.key for x in sr if x.slot == slot]
+            keys_to_delete = [x['key'] for x in sr if x['slot'] == slot]
             client.delete_multi(keys_to_delete)
             player_list.append(swap_id)
             player_list = sorted(player_list, key=lambda player_id: next(p.elo_score for p in player_data if p.id == player_id), reverse=True)
@@ -693,10 +744,25 @@ def post_week():
                     'position': idx + 1
                 })
                 client.put(new_schedule)
+            player_in = next(p for p in player_data if p.id == swap_id)
+            player_out = next(p for p in player_data if p.id == sub_id)
+            
+            #notification_list = [player_in.email, player_out.email]
+            notification_list = [p.email for p in player_data if p.id in {s['id'] for s in sr if s['slot'] == slot}]
+            subject = f"Substitution Successful"
+            html = f"<p>{player_in.name} has successfully substituted for {player_out.name}. A calendar invitation update should arrive shortly.</p>"
+            print(subject)
+            print(html)
+            print(f"sending to: {notification_list}")
+            send_email(subject, html, ["brian.bartlow@hp.com"] + notification_list)
+
+            update_calendar_event(week, slot, player_out, player_in)
+            
             response_data = {'title': 'Success', 'message': 'Substitution successful', 'button': 'Close & Reload', 'url': 'week'}
         else:
             response_data = {'title': 'Failure', 'message': 'Substitution unsuccessful. It is possible someone else already accepted the substitution request.', 'button': 'Close', 'url': 'week'}
 
+    print(message)
     return jsonify(response_data)
 
 @app.route('/day', methods=['GET'])
@@ -709,6 +775,7 @@ def get_day():
     user = get_current_user()
     player = None
     if user:
+        print(f"user={user.name}({user.id})")
         player = get_player(client, user.id, year)
 
     week = int(request.args.get('w', math.floor((today - startdate).days / 7) + 1))
@@ -775,6 +842,8 @@ def post_day():
     client = datastore.Client()
     now = datetime.today()
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     player = get_player(client, user.id, now.year)
 
     year = int(request.form.get('y', now.year))
@@ -835,7 +904,7 @@ def get_profile():
     user = get_current_user()
     if not user:
         return redirect(url_for('login', next=request.url))
-
+    print(f"user={user.name}({user.id})")
     pid = request.args.get('pid', user.id)
     player = get_player(client, pid, year)
     if player is None:
@@ -877,6 +946,8 @@ def post_profile():
     client = datastore.Client()
     year = datetime.today().year
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     pid = request.form.get('pid', user.id)
     player = get_player(client, pid, year)
 
@@ -937,6 +1008,8 @@ def info():
     Renders the Info page.
     """
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
     client = datastore.Client()
     year = get_year_string()
 
@@ -958,6 +1031,8 @@ def info():
 def admin_get():
     client = datastore.Client()
     user = get_current_user()
+    if user:
+        print(f"user={user.name}({user.id})")
 #    if user is None:
 #        return redirect(url_for('login', next=request.url))
 #    if not user.admin:
@@ -970,7 +1045,7 @@ def admin_get():
     players = get_player_data(client, year, week)
 
     valid_emails = [player.email for player in players if player.email]
-    email_list = ",".join(valid_emails)
+    email_list = ";".join(valid_emails)
     mailto_link = "mailto:" + email_list
     login_info = get_login_info()
 
@@ -1142,7 +1217,7 @@ def export_csv():
     user = get_current_user()
     if user is None or not user.admin:
         return redirect(url_for('main_page'))
-
+    print(f"user={user.name}({user.id})")
     kind = request.form['kind']
     years_input = request.form.get('years', '')
     years = []
@@ -1316,7 +1391,7 @@ def Scheduler():
     num_available_players = len(player_data)
     schedule = None
     valid_schedule_found = False
-    for num_tiers in range(num_available_players // PLAYERS_PER_GAME, 0, -1):
+    for num_tiers in range(min(num_available_players // PLAYERS_PER_GAME, 5), 0, -1):
         #Not sure if we need to sort by ELO score every time through...
         player_data.sort(key=lambda p: p.elo_score, reverse=True)
         print("Trying to find a schedule with %d tiers." % num_tiers)
@@ -1390,11 +1465,10 @@ def Scheduler():
                 start_time = datetime.combine(match_date, time(12, 0, 0))
                 end_time = datetime.combine(match_date, time(13, 0, 0))
 
-                service = build('calendar', 'v3')
                 event = {
-                    'summary': 'Sand VolleyBall Match',
+                    'summary': f" Week {week} Sand Volleyball Match",
                     'location': 'N/S Sand Court',
-                    'description': "This is an automated invitation to your Week %s Sand Volleyball Match. If you cannot make the match, DO NOT DECLINE. Instead, please go to https://hpsandvolleyball.appspot.com/week (make sure you are logged in) and click the \"I need a sub\" button. You will need to forward this invitation to your sub. At that point, you can delete/decline the invitation." % week,
+                    'description': f"This is an automated invitation to your Week {week} Sand Volleyball Match. If you cannot make the match, DO NOT DECLINE. Instead, please go to https://hpsandvolleyball.appspot.com/week (make sure you are logged in) and click the \"I need a sub\" button. Once someone accepts the sub request, a new invitation will be sent and your invitation will be removed.",
                     'start': {
                         #						'dateTime': '2018-05-28T12:00:00-06:00',
                         'timeZone': 'America/Boise',
@@ -1414,7 +1488,7 @@ def Scheduler():
                 event['end']['dateTime'] = end_time.isoformat('T')
                 for e in email_list:
                     event['attendees'].append({'email': e})
-                event = service.events().insert(calendarId='primary', body=event, sendNotifications=True).execute()
+                event = calendar_service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
 
         # Use batch operation to put all new and updated entities
         if entities_to_store:
@@ -1589,9 +1663,6 @@ def notify():
         start_time = datetime.combine(match_date, time(12, 0))
         end_time = datetime.combine(match_date, time(13, 0))
 
-        # Setup the Google Calendar API
-        service = build('calendar', 'v3')
-
         # Create the calendar event
         event = {
             'summary': f"Week {week} Sand VolleyBall Match",
@@ -1612,7 +1683,7 @@ def notify():
         }
 
         # Insert the event
-        event = service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
+        event = calendar_service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
         
     if sendit:
         for e in notification_list:
@@ -1636,6 +1707,65 @@ def get_score_count(client, year, week, day):
     qry.add_filter('week', '=', week)
     qry.add_filter('slot', '=', day)
     return len(list(qry.fetch()))
+
+
+@app.route('/calendar', methods=['GET'])
+@admin_or_cron_required
+def calendar_get():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login', next=request.url))
+
+    calendar_id = 'aidl2j9o0310gpp2allmil37ak@group.calendar.google.com'
+
+    try:
+        calendar = calendar_service.calendars().get(calendarId=calendar_id).execute()
+        events_result = calendar_service.events().list(calendarId=calendar_id).execute()
+        events = events_result.get('items', [])
+
+        for event in events:
+            start_time = event.get('start', {}).get('dateTime') or event.get('start', {}).get('date')
+            start_year = str(datetime.fromisoformat(start_time).year) if start_time else 'Unknown'
+            event['start_year'] = start_year
+
+        calendar['events'] = events
+
+        template_values = {
+            'calendars': [calendar],
+            'login': get_login_info(),
+            'is_admin': user.admin if user else False,
+        }
+
+        return render_template('calendar.html', **template_values)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/calendar', methods=['POST'])
+@admin_or_cron_required
+def calendar_post():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login', next=request.url))
+
+    calendar_id = request.form.get('calendar_id')
+    event_id = request.form.get('event_id')
+    action = request.form.get('action', '')
+
+    if action == "Cancel" and calendar_id and event_id:
+        try:
+            calendar_service.events().delete(calendarId=calendar_id, eventId=event_id, sendUpdates='all').execute()
+            response_data = {'title': 'Success', 'message': 'Event cancelled successfully', 'button': 'Close'}
+        except Exception as e:
+            response_data = {'title': 'Error', 'message': str(e), 'button': 'Close'}
+    else:
+        response_data = {'title': 'Error', 'message': 'Invalid action', 'button': 'Close'}
+
+    return jsonify(response_data)
+
+
+
 
 if __name__ == '__main__':
     app.run()

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Calendar Management</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .collapsible {
+            cursor: pointer;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .content {
+            padding: 10px;
+            display: none;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+    </style>
+    <script>
+        function toggleContent(id) {
+            var content = document.getElementById(id);
+            if (content.style.display === "none") {
+                content.style.display = "block";
+            } else {
+                content.style.display = "none";
+            }
+        }
+
+        function cancelEvent(calendarId, eventId) {
+            $.post('/calendar', {action: 'Cancel', calendar_id: calendarId, event_id: eventId}, function(response) {
+                alert(response.message);
+                if (response.title === 'Success') {
+                    location.reload();
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Calendar Management</h1>
+    {% if is_admin %}
+        <h2>Calendars</h2>
+        {% for calendar in calendars %}
+            <div class="collapsible" onclick="toggleContent('calendar-{{ calendar.id }}')">
+                {{ calendar.summary }} (ID: {{ calendar.id }})
+            </div>
+            <div id="calendar-{{ calendar.id }}" class="content">
+                {% if calendar.events %}
+                    {% for year, events in calendar.events|groupby('start_year') %}
+                        <div class="collapsible" onclick="toggleContent('year-{{ calendar.id }}-{{ year }}')">
+                            {{ year }}
+                        </div>
+                        <div id="year-{{ calendar.id }}-{{ year }}" class="content">
+                            <ul>
+                                {% for event in events %}
+                                    <li>
+                                        {{ event.summary }}
+                                        {% if event.start %}
+                                            - {% if event.start.dateTime %}{{ event.start.dateTime }}{% else %}{{ event.start.date }}{% endif %}
+                                            to {% if event.end.dateTime %}{{ event.end.dateTime }}{% else %}{{ event.end.date }}{% endif %}
+                                        {% endif %}
+                                        <button onclick="cancelEvent('{{ calendar.id }}', '{{ event.id }}')">Cancel</button>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No events found.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>You do not have access to this page.</p>
+    {% endif %}
+</body>
+</html>
