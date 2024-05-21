@@ -2,6 +2,7 @@ flask
 Werkzeug
 Authlib
 mailjet-rest
+pytz
 
 # Google Cloud Libraries
 google-auth

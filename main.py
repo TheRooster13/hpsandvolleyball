@@ -12,6 +12,7 @@ from itertools import permutations
 import csv
 from werkzeug.utils import secure_filename
 from functools import wraps
+import pytz
 
 import mailjet_rest
 #from google.oauth2 import service_account
@@ -362,6 +363,32 @@ def send_email(subject, html, to):
     print(result.status_code)
     print(result.json())
 
+def update_calendar_event(week, slot, player_out, player_in):
+    calendar_id = 'aidl2j9o0310gpp2allmil37ak@group.calendar.google.com'
+    year = datetime.today().year
+
+    # Generate the unique ID for the event
+    event_id = f"{year}-{week}-{slot}"
+
+    # Fetch the event using the unique ID
+    try:
+        event = calendar_service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+    except googleapiclient.errors.HttpError as e:
+        print(f"An error occurred: {e}")
+        return
+
+    # Update the event attendees
+    attendees = event.get('attendees', [])
+    new_attendees = [att for att in attendees if att['email'] != player_out.email]
+    new_attendees.append({'email': player_in.email})
+    event['attendees'] = new_attendees
+
+    # Update the event description
+    event['description'] += f"\n\nSubstitution:\nOut: {player_out.name}\nIn: {player_in.name}"
+
+    # Update the event in the calendar
+    calendar_service.events().update(calendarId=calendar_id, eventId=event_id, body=event, sendUpdates='all').execute()
+
     
 ##########################
 ###                    ###
@@ -474,7 +501,7 @@ def signup_get():
     now = datetime.today()
     year = now.year
     today = date.today()
-    week = (today - startdate).days // 7 + 1
+    week = int((today - startdate).days // 7 + 1)
 
     client = datastore.Client()
     login_info = get_login_info()
@@ -534,7 +561,7 @@ def standings():
         print(f"user={user.name}({user.id})")
     now = datetime.now()
     today = date.today()
-    week = int(math.floor((today - startdate).days + 3) / 7)
+    week = int(((today - startdate).days + 2) // 7 + 1)
     week = max(1, min(week, numWeeks))
     year = int(request.args.get('y', now.year))
     login_info = get_login_info()
@@ -542,7 +569,7 @@ def standings():
     client = datastore.Client()
     player_list = get_player_data(client, year)
 
-    min_games = int(3 * math.ceil(week / 2))
+    min_games = int(3 * (week // 2))
     sort_method = request.args.get('sort')
     if sort_method == 'elo':
         player_list.sort(key=lambda x: x.elo_score, reverse=True)
@@ -569,33 +596,6 @@ def standings():
     else:
         return render_template('standings.html', **template_values)
 
-def update_calendar_event(week, slot, player_out, player_in):
-    calendar_id = 'aidl2j9o0310gpp2allmil37ak@group.calendar.google.com'
-
-    # Calculate the start time for the match
-    match_date = startdate + timedelta(days=(7 * (week - 1) + (slot - 1)))
-    start_time = datetime.combine(match_date, time(12, 0, 0))
-    start_time_iso = start_time.isoformat()
-
-    # Find the calendar event for the given week and slot
-    events_result = calendar_service.events().list(calendarId=calendar_id).execute()
-    events = events_result.get('items', [])
-    for event in events:
-        event_start_time = event['start'].get('dateTime') or event['start'].get('date')
-        if event_start_time == start_time_iso:
-            # Found the event, update it
-            attendees = event.get('attendees', [])
-            new_attendees = [att for att in attendees if att['email'] != player_out.email]
-            new_attendees.append({'email': player_in.email})
-            event['attendees'] = new_attendees
-
-            # Update the event description
-            event['description'] += f"\n\nSubstitution:\nOut: {player_out.name}\nIn: {player_in.name}"
-
-            # Update the event in the calendar
-            calendar_service.events().update(calendarId=calendar_id, eventId=event['id'], body=event, sendUpdates='all').execute()
-            break
-
 @app.route('/week', methods=['GET'])
 def get_week():
     client = datastore.Client()
@@ -607,7 +607,7 @@ def get_week():
     login_info = get_login_info()
     player = get_player(client, user.id, year) if user else None
 
-    week = int(request.args.get('w', math.ceil((today - startdate).days / 7) + 1))
+    week = int(request.args.get('w', ((today - startdate).days + 2) // 7 + 1))
     week = max(1, min(week, numWeeks))
 
     player_data = get_player_data(client, year)
@@ -685,16 +685,17 @@ def post_week():
     print(f"user={user.name}({user.id})")
     client = datastore.Client()
     now = datetime.now()
+    year = now.year
     week = int(request.form.get('w'))
     slot = int(request.form.get('s'))
     sub_id = request.form.get('id')
     action = request.form.get('action')
-    player = get_player(client, user.id, now.year)
-    player_data = get_player_data(client, now.year)
+    player = get_player(client, user.id, year)
+    player_data = get_player_data(client, year)
 
     # Query for the current schedule
     query = client.query(kind='Schedule')
-    query.add_filter(filter=PropertyFilter('year', '=', now.year))
+    query.add_filter(filter=PropertyFilter('year', '=', year))
     query.add_filter(filter=PropertyFilter('week', '=', week))
     sr = list(query.fetch())
     
@@ -728,24 +729,33 @@ def post_week():
         if swap_id:
             player_list = [x['id'] for x in sr if x['id'] != sub_id and x['slot'] == slot]
             # Delete old schedule for slot because the positions may change based on the elo score of the swapping player
-            keys_to_delete = [x['key'] for x in sr if x['slot'] == slot]
+            keys_to_delete = [x.key for x in sr if x['slot'] == slot or (x['id'] == swap_id and x['slot'] == 0)]
             client.delete_multi(keys_to_delete)
             player_list.append(swap_id)
             player_list = sorted(player_list, key=lambda player_id: next(p.elo_score for p in player_data if p.id == player_id), reverse=True)
             # Save new slot schedule
             for idx, player_id in enumerate(player_list):
-                new_schedule = datastore.Entity(client.key('Schedule'))
+                new_schedule = datastore.Entity(client.key('Schedule', f"year-{year}_player-{player_id}_week-{week}_slot-{slot}_position-{idx+1}"))
                 new_schedule.update({
                     'id': player_id,
                     'name': next(p.name for p in player_data if p.id == player_id),
                     'week': week,
                     'slot': slot,
-                    'tier': 0,
                     'position': idx + 1
                 })
                 client.put(new_schedule)
             player_in = next(p for p in player_data if p.id == swap_id)
             player_out = next(p for p in player_data if p.id == sub_id)
+            # Store the subbed out player in the schedule as an alternate
+            new_bye = datastore.Entity(client.key('Schedule', f"year-{year}_player-{player_out.id}_week-{week}_slot-{0}_position-{slot}"))
+            new_bye.update({
+                'id': player_out.id,
+                'name': player_out.name,
+                'week': week,
+                'slot': 0,
+                'position': slot
+            })
+            client.put(new_bye)
             
             #notification_list = [player_in.email, player_out.email]
             notification_list = [p.email for p in player_data if p.id in {s['id'] for s in sr if s['slot'] == slot}]
@@ -778,7 +788,7 @@ def get_day():
         print(f"user={user.name}({user.id})")
         player = get_player(client, user.id, year)
 
-    week = int(request.args.get('w', math.floor((today - startdate).days / 7) + 1))
+    week = int(request.args.get('w', ((today - startdate).days + 2) // 7 + 1))
     week = max(1, min(week, numWeeks))
     day = int(request.args.get('d', today.weekday() + 1))
     day = 1 if day > 5 else day
@@ -1040,7 +1050,7 @@ def admin_get():
 
     today = date.today()
     year = int(request.args.get('y', today.year))
-    week = int(request.args.get('w', math.floor((today - startdate).days / 7) + 1))
+    week = int(request.args.get('w', (((today - startdate).days + 2) / 7) + 1))
     week = max(0, min(week, numWeeks))
     players = get_player_data(client, year, week)
 
@@ -1354,12 +1364,8 @@ def Scheduler():
     year = today.year
 
     # Calculate what week# next week will be
-    if request.args.get('w'):
-        week = int(request.args.get('w'))
-    else:
-        week = int(math.floor(int(((today - startdate).days) + 3) / 7) + 1)
-    if week < 1:
-        week = 1
+    week = int(request.args.get('w', ((today - startdate).days + 3) // 7 + 1))
+    week = min(1, week)
     if week > numWeeks:
         return
     print("Week %s Scheduler" % week)
@@ -1460,34 +1466,34 @@ def Scheduler():
             
             if SEND_INVITES:
 
+                event_id = f"{year}-{week}-{slot}"
                 # Calculate the date for this match
                 match_date = startdate + timedelta(days=(7 * (week - 1) + (slot - 1)))
                 start_time = datetime.combine(match_date, time(12, 0, 0))
                 end_time = datetime.combine(match_date, time(13, 0, 0))
+                # Convert times to America/Boise time zone
+                boise_tz = pytz.timezone('America/Boise')
+                start_time_boise = boise_tz.localize(start_time)
+                end_time_boise = boise_tz.localize(end_time)
 
                 event = {
+                    'id': event_id,
                     'summary': f" Week {week} Sand Volleyball Match",
                     'location': 'N/S Sand Court',
                     'description': f"This is an automated invitation to your Week {week} Sand Volleyball Match. If you cannot make the match, DO NOT DECLINE. Instead, please go to https://hpsandvolleyball.appspot.com/week (make sure you are logged in) and click the \"I need a sub\" button. Once someone accepts the sub request, a new invitation will be sent and your invitation will be removed.",
                     'start': {
-                        #						'dateTime': '2018-05-28T12:00:00-06:00',
+                        'dateTime': start_time_boise.isoformat(),
                         'timeZone': 'America/Boise',
                     },
                     'end': {
-                        #						'dateTime': '2018-05-28T13:00:00-06:00',
+                        'dateTime': end_time_boise.isoformat(),
                         'timeZone': 'America/Boise',
                     },
-                    'attendees': [
-                        #					{'email': 'brian.bartlow@hp.com'},
-                    ],
+                    'attendees': [{'email': e} for e in email_list],
                     'reminders': {
                         'useDefault': True,
                     },
                 }
-                event['start']['dateTime'] = start_time.isoformat('T')
-                event['end']['dateTime'] = end_time.isoformat('T')
-                for e in email_list:
-                    event['attendees'].append({'email': e})
                 event = calendar_service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
 
         # Use batch operation to put all new and updated entities
@@ -1508,7 +1514,7 @@ def elo():
     kfactor = 400  # Update the K-factor as per year specifics if necessary
 
     # Calculate which week it currently is, ensuring it falls within the allowed range
-    week = int(request.args.get('w', math.floor((today - startdate).days + 3) / 7 + 1))
+    week = int(request.args.get('w', ((today - startdate).days + 3) // 7 + 1))
     if 1 < week <= NUM_WEEKS+1:
         print("Week %s Elo Update" % week)
 
@@ -1621,7 +1627,7 @@ def notify():
     today = date.today()
     year = today.year
 
-    week = int(math.floor((today - startdate).days / 7) + 1)
+    week = int(((today - startdate).days + 2)/ 7 + 1)
     day = today.isoweekday()
 
     to = ["brian.bartlow@hp.com"]
