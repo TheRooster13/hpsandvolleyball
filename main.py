@@ -749,8 +749,8 @@ def post_week():
             
             #notification_list = [player_in.email, player_out.email]
             notification_list = [p.email for p in player_data if p.id in {s['id'] for s in sr if s['slot'] == slot}]
-            subject = f"Substitution Successful"
-            html = f"<p>{player_in.name} has successfully substituted for {player_out.name}. A calendar invitation update should arrive shortly.</p>"
+            subject = f"Substitution Notification: OUT-{player_out.name}, IN-{player_in.name}"
+            html = f"<p>{player_in.name} has substituted in for {player_out.name}. Please keep an eye out for an updated calendar invitation.</p>"
             print(subject)
             print(html)
             print(f"sending to: {notification_list}")
