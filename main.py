@@ -744,7 +744,7 @@ def post_week():
                 key = client.key('Schedule', f"year-{year}_player-{player_id}_week-{week}_slot-{slot}_position-{idx+1}")
                 new_schedule = datastore.Entity(key=key)
                 new_schedule.update({
-                    'year': year
+                    'year': year,
                     'id': player_id,
                     'name': next(p.name for p in player_data if p.id == player_id),
                     'week': week,
@@ -758,7 +758,7 @@ def post_week():
             key = client.key('Schedule', f"year-{year}_player-{player_out.id}_week-{week}_slot-{0}_position-{slot}")
             new_bye = datastore.Entity(key=key)
             new_bye.update({
-                'year': year
+                'year': year,
                 'id': player_out.id,
                 'name': player_out.name,
                 'week': week,
