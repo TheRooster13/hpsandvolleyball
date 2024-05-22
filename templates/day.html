@@ -18,7 +18,7 @@ $(document).ready(function() {
             method: 'POST',  // Use the appropriate HTTP method
             data: formData,
             success: function(response) {
-                showModal(response.title, response.message, response.button);
+                showModalBase(response.title, response.message, response.button);
             },
             error: function(xhr, status, error) {
                 // Handle error response from server

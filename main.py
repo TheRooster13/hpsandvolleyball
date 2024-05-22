@@ -19,6 +19,7 @@ import mailjet_rest
 
 # For Google Calendar
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 #from google.oauth2 import id_token
 #from google_auth_oauthlib.flow import Flow
 #from google.oauth2.credentials import Credentials
@@ -373,7 +374,7 @@ def update_calendar_event(week, slot, player_out, player_in):
     # Fetch the event using the unique ID
     try:
         event = calendar_service.events().get(calendarId=calendar_id, eventId=event_id).execute()
-    except googleapiclient.errors.HttpError as e:
+    except HttpError as e:
         print(f"An error occurred: {e}")
         return
 
@@ -617,9 +618,12 @@ def get_week():
     slot = int(request.args.get('s', 0))
     sub_id = request.args.get('id')
     if slot > 0 and sub_id:
+        print("Someone is trying to accept a sub request.")
         if not user:
+            print("Redirecting for login.")
             return redirect(url_for('login', next=request.url))
         else:
+            print(f"Fetching Schedule Data for week {week} and slot {slot}.")
             # Fetch schedule data for the specific slot
             query = client.query(kind='Schedule')
             query.add_filter(filter=PropertyFilter('year', '=', year))
@@ -641,7 +645,8 @@ def get_week():
                     'button': 'Close',
                     'url': 'week'
                 }
-
+            print(modal_data)
+            
     # Fetch schedule data for the week
     query = client.query(kind='Schedule')
     query.add_filter(filter=PropertyFilter('year', '=', year))
@@ -681,6 +686,7 @@ def get_week():
 def post_week():
     user = get_current_user()
     if not user:
+        print("Redirecting for login.")
         return redirect(url_for('login', next=request.url))
     print(f"user={user.name}({user.id})")
     client = datastore.Client()
@@ -718,7 +724,7 @@ def post_week():
             print(subject)
             print(html)
             print(f"sending to: {notification_list}")
-            send_email(subject, html, ["brian.bartlow@hp.com"] + notification_list)
+            send_email(subject, html, ["brian.bartlow@hp.com"] + [player.email] + notification_list)
             response_data = {'title': 'Success', 'message': 'Sub request sent successfully', 'button': 'Close'}
         else:
             response_data = {'title': 'Failure', 'message': "It looks like you're not scheduled to play on the day you're requesting a sub. You may need to contact the administrator.", 'button': 'Close'}
@@ -735,8 +741,10 @@ def post_week():
             player_list = sorted(player_list, key=lambda player_id: next(p.elo_score for p in player_data if p.id == player_id), reverse=True)
             # Save new slot schedule
             for idx, player_id in enumerate(player_list):
-                new_schedule = datastore.Entity(client.key('Schedule', f"year-{year}_player-{player_id}_week-{week}_slot-{slot}_position-{idx+1}"))
+                key = client.key('Schedule', f"year-{year}_player-{player_id}_week-{week}_slot-{slot}_position-{idx+1}")
+                new_schedule = datastore.Entity(key=key)
                 new_schedule.update({
+                    'year': year
                     'id': player_id,
                     'name': next(p.name for p in player_data if p.id == player_id),
                     'week': week,
@@ -747,8 +755,10 @@ def post_week():
             player_in = next(p for p in player_data if p.id == swap_id)
             player_out = next(p for p in player_data if p.id == sub_id)
             # Store the subbed out player in the schedule as an alternate
-            new_bye = datastore.Entity(client.key('Schedule', f"year-{year}_player-{player_out.id}_week-{week}_slot-{0}_position-{slot}"))
+            key = client.key('Schedule', f"year-{year}_player-{player_out.id}_week-{week}_slot-{0}_position-{slot}")
+            new_bye = datastore.Entity(key=key)
             new_bye.update({
+                'year': year
                 'id': player_out.id,
                 'name': player_out.name,
                 'week': week,
@@ -758,15 +768,15 @@ def post_week():
             client.put(new_bye)
             
             #notification_list = [player_in.email, player_out.email]
-            notification_list = [p.email for p in player_data if p.id in {s['id'] for s in sr if s['slot'] == slot}]
+            notification_list = [p.email for p in player_data]
             subject = f"Substitution Notification: OUT-{player_out.name}, IN-{player_in.name}"
             html = f"<p>{player_in.name} has substituted in for {player_out.name}. Please keep an eye out for an updated calendar invitation.</p>"
             print(subject)
             print(html)
             print(f"sending to: {notification_list}")
-            send_email(subject, html, ["brian.bartlow@hp.com"] + notification_list)
+            send_email(subject, html, notification_list)
 
-            update_calendar_event(week, slot, player_out, player_in)
+            #update_calendar_event(week, slot, player_out, player_in)
             
             response_data = {'title': 'Success', 'message': 'Substitution successful', 'button': 'Close & Reload', 'url': 'week'}
         else:
@@ -874,7 +884,7 @@ def post_day():
 
     if request.form.get('action') == "Scores":
         if player:
-            print(f"{player['name']} is entering scores.")
+            print(f"{player.name} is entering scores.")
 
         # Process scores for the given week, day, and game
         for g in range(1, 4):
@@ -913,6 +923,7 @@ def get_profile():
     year = now.year
     user = get_current_user()
     if not user:
+        print("Redirecting for login.")
         return redirect(url_for('login', next=request.url))
     print(f"user={user.name}({user.id})")
     pid = request.args.get('pid', user.id)
@@ -1720,6 +1731,7 @@ def get_score_count(client, year, week, day):
 def calendar_get():
     user = get_current_user()
     if not user:
+        print("Redirecting for login.")
         return redirect(url_for('login', next=request.url))
 
     calendar_id = 'aidl2j9o0310gpp2allmil37ak@group.calendar.google.com'
@@ -1753,6 +1765,7 @@ def calendar_get():
 def calendar_post():
     user = get_current_user()
     if not user:
+        print("Redirecting for login.")
         return redirect(url_for('login', next=request.url))
 
     calendar_id = request.form.get('calendar_id')
