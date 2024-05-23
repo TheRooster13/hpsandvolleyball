@@ -3,6 +3,7 @@ Werkzeug
 Authlib
 mailjet-rest
 pytz
+msal
 
 # Google Cloud Libraries
 google-auth

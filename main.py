@@ -29,6 +29,14 @@ from google.cloud.datastore.query import PropertyFilter
 from google.auth.transport import requests
 from authlib.integrations.flask_client import OAuth
 
+# These are needed to send mail from hp.com using O365
+from msal import ConfidentialClientApplication
+import requests as standard_requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import base64
+
 from flask import Flask, request, render_template, jsonify, redirect, url_for, session, flash, make_response
 
 # Globals - I want these eventually to go into a datastore per year so things can be different and configured per year.
@@ -69,6 +77,9 @@ client_id = access_secret_version("client_id")
 client_secret = access_secret_version("client_secret")
 mailjet_api = access_secret_version("Mailjet_api")
 mailjet_secret = access_secret_version("Mailjet_secret")
+o365_tenant_id = access_secret_version("o365_tenant_id")
+o365_client_id = access_secret_version("o365_client_id")
+o365_client_secret = access_secret_version("o365_client_secret")
 
 oauth = OAuth(app)
 
@@ -389,6 +400,53 @@ def update_calendar_event(week, slot, player_out, player_in):
 
     # Update the event in the calendar
     calendar_service.events().update(calendarId=calendar_id, eventId=event_id, body=event, sendUpdates='all').execute()
+
+def send_email_via_o365(subject, body, recipient, mailbox_email="hpsandvolleyball@hp.com"):
+    # Function to get OAuth2 token
+    def get_oauth2_token():
+        app = ConfidentialClientApplication(
+            client_id=o365_client_id,
+            client_credential=o365_client_secret,
+            authority=f"https://login.microsoftonline.com/{o365_tenant_id}"
+        )
+
+        token_response = app.acquire_token_for_client(scopes=["https://outlook.office365.com/.default"])
+        if "access_token" in token_response:
+            return token_response['access_token']
+        else:
+            raise Exception(f"Failed to get access token: {token_response.get('error_description')}")
+
+    # Obtain the OAuth2 access token
+    access_token = get_oauth2_token()
+
+    # Create Email Content
+    msg = MIMEMultipart()
+    msg['From'] = mailbox_email
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    # SMTP Configuration
+    smtp_server = "smtp.office365.com"
+    smtp_port = 587
+
+    # Send Email
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+
+        # Authenticate using the OAuth2 access token
+        auth_string = f"user={mailbox_email}\1auth=Bearer {access_token}\1\1"
+        auth_string = base64.b64encode(auth_string.encode()).decode()
+
+        server.docmd("AUTH", "XOAUTH2 " + auth_string)
+        server.sendmail(msg['From'], msg['To'], msg.as_string())
+        server.quit()
+        print("Email sent successfully")
+        return "Email sent successfully"
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return f"Failed to send email: {e}"
 
     
 ##########################
@@ -1671,7 +1729,7 @@ def notify():
         If that link doesn't work, please verify you are logged in with the Google account used when you signed up. Log in, then click on the Profile link at the top of the page. Then click the day(s) for any days that you cannot play and make sure they are red. NOTE: For those involved in the team league, this includes days you are scheduled to play with your team.</p>"""
         notification_list = [p.email for p in player_data if p.email]
         
-    if request.args.get('t') == "test":
+    elif request_type == "test":
         sendit = False
         week = 2
         slot = 4
@@ -1701,7 +1759,15 @@ def notify():
 
         # Insert the event
         event = calendar_service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
-        
+
+    elif request_type == "o365":
+        sendit = False
+        subject = "Test Email from the App"
+        body = "This is the body of the email. If you can read this, it worked!"
+        recipient = "brian.bartlow@hp.com"
+        return send_email_via_o365(subject, body, recipient)
+
+    
     if sendit:
         for e in notification_list:
             to.append(str(e))
