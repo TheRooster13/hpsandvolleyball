@@ -949,8 +949,8 @@ def post_day():
             score_key = client.key('Scores', f"year-{year}_week-{week}_slot-{day}_game-{g}")
             score_entity = scores_dict.get(g)  # Get the existing score entity if it exists
 
-            score1 = int(request.form.get(f"score-{g}-1", 0))
-            score2 = int(request.form.get(f"score-{g}-2", 0))
+            score1 = int(request.form.get(f"score-{g}-1") or 0)
+            score2 = int(request.form.get(f"score-{g}-2") or 0)
 
             if not score_entity:
                 score_entity = datastore.Entity(key=score_key)  # Create a new entity if it doesn't exist
