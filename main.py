@@ -797,12 +797,13 @@ def post_week():
     query.add_filter(filter=PropertyFilter('week', '=', week))
     sr = list(query.fetch())
     
+    response_data = {'title': 'Error', 'message': "Something went wrong. Please contact the administrator.", 'button': 'Close'}
     if player:
         print(f"player={player.name}({player.id})")
     else:
         print(f"Current user ({user.name}) is not a registered player.")
+        response_data = {'title': 'Error', 'message': "You have logged in with a Google account that has not registered for the league. Please logout and try a different Google account.", 'button': 'Close'}
     print(f"week={week}, slot={slot}, sub_id={sub_id}, action={action}")
-    response_data = {'title': 'Error', 'message': "Something went wrong. Please contact the administrator.", 'button': 'Close'}
     
     if action == "Sub" and player is not None:
         sub_id = user.id
