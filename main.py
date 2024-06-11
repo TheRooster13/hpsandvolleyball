@@ -202,10 +202,11 @@ def get_player_data(client, year=datetime.today().year, current_week=None):
     if current_week is not None:
         # Process past byes if applicable
         if current_week > 1:
+            #print(f"The current week is {current_week}.")
             bye_query = client.query(kind='Schedule')
             bye_query.add_filter(filter=PropertyFilter('year', '=', year))
             bye_query.add_filter(filter=PropertyFilter('slot', '=', 0))
-            bye_query.add_filter(filter=PropertyFilter('week', '<', current_week))
+            #bye_query.add_filter(filter=PropertyFilter('week', '<', current_week))
             past_byes = list(bye_query.fetch())
 
             # Initialize a dictionary to track bye weeks per player
@@ -217,6 +218,7 @@ def get_player_data(client, year=datetime.today().year, current_week=None):
                 if player_id not in player_bye_weeks:
                     player_bye_weeks[player_id] = set()
                 player_bye_weeks[player_id].add(bye['week'])
+                #print(f"Adding week {bye['week']} to {bye['name']}'s bye list.")
 
             # Count the unique bye weeks for each player
             for p in playerlist:
@@ -242,6 +244,7 @@ def get_player_data(client, year=datetime.today().year, current_week=None):
             if conflict['week'] == current_week and conflict['id'] in conflict_count:
                 for player in playerlist:
                     if player.id == conflict['id']:
+                        print(f"{player.name} has a conflict on slot {conflict['slot']}")
                         player.conflicts.append(conflict['slot'])
 
     return playerlist
@@ -375,33 +378,62 @@ def send_email(subject, html, to):
     print(result.status_code)
     print(result.json())
 
-def update_calendar_event(week, slot, player_out, player_in):
+def update_calendar_event(week, slot, player_out=None, player_in=None):
     calendar_id = 'aidl2j9o0310gpp2allmil37ak@group.calendar.google.com'
-    year = datetime.today().year
 
-    # Generate the unique ID for the event
-    event_id = f"{year}-{week}-{slot}"
+    # Calculate the start time for the event
+    start_time = datetime.combine(startdate, datetime.min.time()) + timedelta(days=slot-1, weeks=week-1)
+    time_min = start_time.isoformat() + 'Z'
+    time_max = (start_time + timedelta(days=1)).isoformat() + 'Z'
 
-    # Fetch the event using the unique ID
+    print(f"timeMin: {time_min}")
+    print(f"timeMax: {time_max}")
+
     try:
-        event = calendar_service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+        # Fetch the specific event by matching the start time
+        events_result = calendar_service.events().list(
+            calendarId=calendar_id,
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+
+        events = events_result.get('items', [])
+        if not events:
+            print("No events found.")
+            return
+
+        # Assuming there's only one event at the specific start time
+        event = events[0]
+        print(f"startTime: {event['start'].get('dateTime', event['start'].get('date'))}")
+
+        # Update the event attendees if player_out and player_in are provided
+        if player_out or player_in:
+            attendees = event.get('attendees', [])
+            if player_out:
+                attendees = [att for att in attendees if att['email'] != player_out.email]
+            if player_in:
+                attendees.append({'email': player_in.email})
+            event['attendees'] = attendees
+
+        # Update the event description
+        if player_out or player_in:
+            substitutions = "\n\nSubstitution:"
+            if player_out:
+                substitutions += f"\nOut: {player_out.name}"
+            if player_in:
+                substitutions += f"\nIn: {player_in.name}"
+            event['description'] = event.get('description', '') + substitutions
+
+        # Update the event in the calendar
+        calendar_service.events().update(calendarId=calendar_id, eventId=event['id'], body=event, sendUpdates='all').execute()
+        print("Event updated successfully.")
+
     except HttpError as e:
         print(f"An error occurred: {e}")
-        return
 
-    # Update the event attendees
-    attendees = event.get('attendees', [])
-    new_attendees = [att for att in attendees if att['email'] != player_out.email]
-    new_attendees.append({'email': player_in.email})
-    event['attendees'] = new_attendees
-
-    # Update the event description
-    event['description'] += f"\n\nSubstitution:\nOut: {player_out.name}\nIn: {player_in.name}"
-
-    # Update the event in the calendar
-    calendar_service.events().update(calendarId=calendar_id, eventId=event_id, body=event, sendUpdates='all').execute()
-
-def send_email_via_o365(subject, body, recipient, mailbox_email="hpsandvolleyball@hp.com"):
+def send_email_via_SMTP(subject, body, recipient, mailbox_email="hpsandvolleyball@hp.com"):
     # Function to get OAuth2 token
     def get_oauth2_token():
         app = ConfidentialClientApplication(
@@ -717,7 +749,9 @@ def get_week():
         for s in schedule_data:
             if s['id'] == user.id and s['slot'] != 0:
                 deadline = startdate + timedelta(days=(7 * (week - 1)) + (s['slot'] - 1))
-                if datetime.now() < datetime(deadline.year, deadline.month, deadline.day, 12):
+                print(f"{datetime.now()} < {datetime(deadline.year, deadline.month, deadline.day, 18)}?")
+                if datetime.now() < datetime(deadline.year, deadline.month, deadline.day, 18):
+                    print(f"Adding an active slot.")
                     active.append(s['slot'])
 
     template_values = {
@@ -763,7 +797,10 @@ def post_week():
     query.add_filter(filter=PropertyFilter('week', '=', week))
     sr = list(query.fetch())
     
-    print(f"user={user}, player={player}")
+    if player:
+        print(f"player={player.name}({player.id})")
+    else:
+        print(f"Current user ({user.name}) is not a registered player.")
     print(f"week={week}, slot={slot}, sub_id={sub_id}, action={action}")
     response_data = {'title': 'Error', 'message': "Something went wrong. Please contact the administrator.", 'button': 'Close'}
     
@@ -834,7 +871,7 @@ def post_week():
             print(f"sending to: {notification_list}")
             send_email(subject, html, notification_list)
 
-            #update_calendar_event(week, slot, player_out, player_in)
+            update_calendar_event(week, slot, player_out, player_in)
             
             response_data = {'title': 'Success', 'message': 'Substitution successful', 'button': 'Close & Reload', 'url': 'week'}
         else:
@@ -1119,8 +1156,9 @@ def admin_get():
 
     today = date.today()
     year = int(request.args.get('y', today.year))
-    week = int(request.args.get('w', (((today - startdate).days + 2) / 7) + 1))
+    week = int(request.args.get('w', (((today - startdate).days + 3) / 7) + 1))
     week = max(0, min(week, numWeeks))
+    print(f"Admin page: week {week}")
     players = get_player_data(client, year, week)
 
     valid_emails = [player.email for player in players if player.email]
@@ -1434,7 +1472,7 @@ def Scheduler():
 
     # Calculate what week# next week will be
     week = int(request.args.get('w', ((today - startdate).days + 3) // 7 + 1))
-    week = min(1, week)
+    week = max(1, week)
     if week > numWeeks:
         return
     print("Week %s Scheduler" % week)
@@ -1535,27 +1573,26 @@ def Scheduler():
             
             if SEND_INVITES:
 
-                event_id = f"{year}-{week}-{slot}"
                 # Calculate the date for this match
                 match_date = startdate + timedelta(days=(7 * (week - 1) + (slot - 1)))
                 start_time = datetime.combine(match_date, time(12, 0, 0))
                 end_time = datetime.combine(match_date, time(13, 0, 0))
                 # Convert times to America/Boise time zone
-                boise_tz = pytz.timezone('America/Boise')
-                start_time_boise = boise_tz.localize(start_time)
-                end_time_boise = boise_tz.localize(end_time)
+                #boise_tz = pytz.timezone('America/Boise')
+                #start_time_boise = boise_tz.localize(start_time)
+                #end_time_boise = boise_tz.localize(end_time)
 
                 event = {
-                    'id': event_id,
+                    #'id': event_id,
                     'summary': f" Week {week} Sand Volleyball Match",
                     'location': 'N/S Sand Court',
                     'description': f"This is an automated invitation to your Week {week} Sand Volleyball Match. If you cannot make the match, DO NOT DECLINE. Instead, please go to https://hpsandvolleyball.appspot.com/week (make sure you are logged in) and click the \"I need a sub\" button. Once someone accepts the sub request, a new invitation will be sent and your invitation will be removed.",
                     'start': {
-                        'dateTime': start_time_boise.isoformat(),
+                        'dateTime': start_time.isoformat('T'),
                         'timeZone': 'America/Boise',
                     },
                     'end': {
-                        'dateTime': end_time_boise.isoformat(),
+                        'dateTime': end_time.isoformat('T'),
                         'timeZone': 'America/Boise',
                     },
                     'attendees': [{'email': e} for e in email_list],
@@ -1563,8 +1600,17 @@ def Scheduler():
                         'useDefault': True,
                     },
                 }
-                event = calendar_service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
-
+                try:
+                    event = calendar_service.events().insert(
+                        calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', 
+                        body=event, 
+                        sendNotifications=True
+                    ).execute()
+                    print(f"Event created: {event.get('htmlLink')}")
+                except HttpError as e:
+                    print(f"Failed to create event: {e.content.decode('utf-8')}")
+                    print(f"Request body: {event}")
+        
         # Use batch operation to put all new and updated entities
         if entities_to_store:
             print(f"Writing {len(entities_to_store)} entities to Schedule.")
@@ -1584,7 +1630,7 @@ def elo():
 
     # Calculate which week it currently is, ensuring it falls within the allowed range
     week = int(request.args.get('w', ((today - startdate).days + 3) // 7 + 1))
-    if 1 < week <= NUM_WEEKS+1:
+    if 1 < week <= numWeeks+1:
         print("Week %s Elo Update" % week)
 
         # Fetch player data for the given year
@@ -1628,8 +1674,8 @@ def elo():
             results.sort(key=lambda x: (x['slot'], x['game']))
             if results:
                 for score in results:
-                    game_scores[score['slot']][score['game'] - 1][0] = float(score.get('score1', 0))
-                    game_scores[score['slot']][score['game'] - 1][1] = float(score.get('score2', 0))
+                    game_scores[score['slot']-1][score['game'] - 1][0] = float(score.get('score1', 0))
+                    game_scores[score['slot']-1][score['game'] - 1][1] = float(score.get('score2', 0))
 
             # Now iterate through each player and calculate their new Elo score based on
             # their old Elo score, the game scores, and the teams' average Elo scores.
@@ -1643,15 +1689,16 @@ def elo():
             # Iterate through each scheduled match to update player stats
             for s in schedule_results:
                 if s['slot'] > 0:  # Ensure the player is not on a bye
+                    slot_index = s['slot'] - 1
                     for g in range(3):  # Iterate through each game
                         player_id = s['id']
                         player = next((p for p in player_data if p.id == player_id), None)
                         if player:
                             team_index = ms[g][s['position'] - 1]
-                            my_team_elo = team_elo[s['slot']][g][team_index]
-                            other_team_elo = team_elo[s['slot']][g][1 - team_index]
-                            my_team_score = game_scores[s['slot']][g][team_index]
-                            other_team_score = game_scores[s['slot']][g][1 - team_index]
+                            my_team_elo = team_elo[slot_index][g][team_index]
+                            other_team_elo = team_elo[slot_index][g][1 - team_index]
+                            my_team_score = game_scores[slot_index][g][team_index]
+                            other_team_score = game_scores[slot_index][g][1 - team_index]
                             
                             if my_team_score > 0 or other_team_score > 0:
                                 # Calculate the ELO change
@@ -1669,12 +1716,18 @@ def elo():
                                 if my_team_score > other_team_score:
                                     new_points[player_id] += other_team_elo
                                     new_wins[player_id] += 1
+                                    print(f"{player.name}'s new points total is {new_points[player_id]}.")
             updates = []
             for player in player_data:
                 if player.id in new_elo:
+                    print(f"{player.name} - {new_elo[player.id]} - ")
                     key = client.key('Player_List', f"year-{year}_player-{player.id}")
                     entity = datastore.Entity(key=key)
                     entity.update({
+                        'year': year,
+                        'id': player.id,
+                        'name': player.name,
+                        'email': player.email,
                         'elo_score': new_elo[player.id],
                         'points': int(new_points[player.id]),
                         'wins': new_wins[player.id],
@@ -1732,7 +1785,7 @@ def notify():
     elif request_type == "test":
         sendit = False
         week = 2
-        slot = 4
+        slot = 5
         email_list = ["brian.bartlow@hp.com"]
         match_date = startdate + timedelta(days=(7 * (week - 1) + (slot - 1)))
         start_time = datetime.combine(match_date, time(12, 0))
@@ -1744,11 +1797,11 @@ def notify():
             'location': 'N/S Sand Court',
             'description': f"Week {week} Sand Volleyball Match",
             'start': {
-                'dateTime': start_time.isoformat(),
+                'dateTime': start_time.isoformat('T'),
                 'timeZone': 'America/Boise',
             },
             'end': {
-                'dateTime': end_time.isoformat(),
+                'dateTime': end_time.isoformat('T'),
                 'timeZone': 'America/Boise',
             },
             'attendees': [{'email': e} for e in email_list],
@@ -1759,13 +1812,18 @@ def notify():
 
         # Insert the event
         event = calendar_service.events().insert(calendarId='aidl2j9o0310gpp2allmil37ak@group.calendar.google.com', body=event, sendNotifications=True).execute()
-
-    elif request_type == "o365":
+        return "Test calendar created."
+        
+    elif request_type == "sub":
+        update_calendar_event(2, 5, Player({'email': 'brian.bartlow@hp.com', 'name': 'Brian Bartlow'}), Player({'email': 'brian.bartlow@gmail.com', 'name': 'Brian Bartlow'}))
+        return "Substitution executed."
+    
+    elif request_type == "smtp":
         sendit = False
         subject = "Test Email from the App"
         body = "This is the body of the email. If you can read this, it worked!"
         recipient = "brian.bartlow@hp.com"
-        return send_email_via_o365(subject, body, recipient)
+        return send_email_via_SMTP(subject, body, recipient)
 
     
     if sendit:
