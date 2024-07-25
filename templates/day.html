@@ -9,8 +9,6 @@ $(document).ready(function() {
 
         // Serialize form data
         var formData = $(this).serialize();
-        // Capture the value of the clicked button
-        formData += '&action=' + encodeURIComponent($(document.activeElement).val());
 
         // Send AJAX request to server
         $.ajax({
@@ -70,6 +68,7 @@ $(document).ready(function() {
 	<input type="hidden" name="y" value={{year}}></input>
     <input type="hidden" name="w" value={{week}}></input>
     <input type="hidden" name="d" value={{day}}></input>
+	<input type="hidden" name="action" value="Scores"></input>
     </form>
 </div>
 

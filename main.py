@@ -13,6 +13,7 @@ import csv
 from werkzeug.utils import secure_filename
 from functools import wraps
 import pytz
+from threading import Timer
 
 import mailjet_rest
 #from google.oauth2 import service_account
@@ -77,9 +78,8 @@ client_id = access_secret_version("client_id")
 client_secret = access_secret_version("client_secret")
 mailjet_api = access_secret_version("Mailjet_api")
 mailjet_secret = access_secret_version("Mailjet_secret")
-o365_tenant_id = access_secret_version("o365_tenant_id")
-o365_client_id = access_secret_version("o365_client_id")
-o365_client_secret = access_secret_version("o365_client_secret")
+smtp_username = access_secret_version("smtp_username")
+smtp_password = access_secret_version("smtp_password")
 
 oauth = OAuth(app)
 
@@ -126,6 +126,41 @@ def authorize():
 def logout():
     session.pop('profile', None)
     return redirect(url_for('main_page'))
+
+
+@app.route('/migrate_start')
+def migrate_start():
+    # Store the current user ID in the session
+    session['old_id'] = session['profile']['id']
+    redirect_uri = url_for('migrate_finish', _external=True, _scheme='https')
+    return google.authorize_redirect(redirect_uri, prompt='select_account')
+
+@app.route('/migrate_finish')
+def migrate_finish():
+    # Retrieve the new user information from Google OAuth
+    token = google.authorize_access_token()
+    user_info = google.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
+    
+    # Update the session with the new profile information
+    session['profile'] = {
+        'id': user_info['id'],
+        'email': user_info['email'],
+        'name': user_info.get('name', '')
+    }
+    old_id = session.pop('old_id', None)
+    new_id = session['profile']['id']
+
+    if old_id and new_id:
+        # Perform the ID migration
+        migrate_user_id_in_datastore(old_id, new_id)
+        # Wait 10 seconds before redirecting to the profile page
+        Timer(10, redirect(url_for('profile'))).start()
+        return "Migration successful. You will be redirected shortly."
+    else:
+        Timer(10, redirect(url_for('login'))).start()
+        return "Migration error. Login with your original Google account, then try again. Make sure you can see your availability when you refresh the web page. You will be redirected shortly."
+
+
 
 class User:
     def __init__(self, id, email, name):
@@ -433,52 +468,41 @@ def update_calendar_event(week, slot, player_out=None, player_in=None):
     except HttpError as e:
         print(f"An error occurred: {e}")
 
-def send_email_via_SMTP(subject, body, recipient, mailbox_email="hpsandvolleyball@hp.com"):
-    # Function to get OAuth2 token
-    def get_oauth2_token():
-        app = ConfidentialClientApplication(
-            client_id=o365_client_id,
-            client_credential=o365_client_secret,
-            authority=f"https://login.microsoftonline.com/{o365_tenant_id}"
-        )
-
-        token_response = app.acquire_token_for_client(scopes=["https://outlook.office365.com/.default"])
-        if "access_token" in token_response:
-            return token_response['access_token']
-        else:
-            raise Exception(f"Failed to get access token: {token_response.get('error_description')}")
-
-    # Obtain the OAuth2 access token
-    access_token = get_oauth2_token()
-
-    # Create Email Content
-    msg = MIMEMultipart()
-    msg['From'] = mailbox_email
-    msg['To'] = recipient
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    # SMTP Configuration
-    smtp_server = "smtp.office365.com"
+def send_email_via_SMTP(subject, body, to, mailbox_email="hpsandvolleyball@hp.com"):
+    # Ensure 'to' is a list, even if a single email is provided
+    if isinstance(to, str):
+        to = [to]
+    
+    # SMTP server configuration
+    smtp_server = "us-smtp-outbound-1.mimecast.com"
     smtp_port = 587
 
-    # Send Email
+    # Create the email message
+    msg = MIMEMultipart()
+    msg['From'] = mailbox_email
+    msg['To'] = ", ".join(to)  # Join list of emails into a single string
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'html'))
+
     try:
+        # Establish a secure session with the SMTP server
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
 
-        # Authenticate using the OAuth2 access token
-        auth_string = f"user={mailbox_email}\1auth=Bearer {access_token}\1\1"
-        auth_string = base64.b64encode(auth_string.encode()).decode()
+        # Login to the SMTP server using the credentials
+        server.login(smtp_username, smtp_password)
 
-        server.docmd("AUTH", "XOAUTH2 " + auth_string)
-        server.sendmail(msg['From'], msg['To'], msg.as_string())
+        # Send the email
+        server.sendmail(mailbox_email, to, msg.as_string())
+
+        # Terminate the SMTP session
         server.quit()
+
         print("Email sent successfully")
         return "Email sent successfully"
     except Exception as e:
-        print(f"Failed to send email: {e}")
-        return f"Failed to send email: {e}"
+        print(f"Failed to send email: {str(e)}")
+        return f"Failed to send email: {str(e)}"
 
     
 ##########################
@@ -652,7 +676,7 @@ def standings():
         print(f"user={user.name}({user.id})")
     now = datetime.now()
     today = date.today()
-    week = int(((today - startdate).days + 2) // 7 + 1)
+    week = int(((today - startdate).days + 2) // 7)
     week = max(1, min(week, numWeeks))
     year = int(request.args.get('y', now.year))
     login_info = get_login_info()
@@ -661,11 +685,11 @@ def standings():
     player_list = get_player_data(client, year)
 
     min_games = int(3 * (week // 2))
-    sort_method = request.args.get('sort')
+    sort_method = request.args.get('sort', 'ppg')
     if sort_method == 'elo':
         player_list.sort(key=lambda x: x.elo_score, reverse=True)
     else:
-        player_list = [p for p in player_list if p.games >= min_games]
+        #player_list = [p for p in player_list if p.games >= min_games]
         player_list.sort(key=lambda x: x.points_per_game, reverse=True)
 
     win_percentage = {p.id: round(100 * float(p.wins) / p.games, 1) if p.games > 0 else 0 for p in player_list}
@@ -677,6 +701,7 @@ def standings():
         'player_list': player_list,
         'win_percentage': win_percentage,
         'min_games': min_games,
+        'sort_method': sort_method,
         'is_signed_up': user is not None,
         'login': login_info,
         'is_admin': user.admin if user else False,
@@ -820,7 +845,7 @@ def post_week():
             print(subject)
             print(html)
             print(f"sending to: {notification_list}")
-            send_email(subject, html, ["brian.bartlow@hp.com"] + [player.email] + notification_list)
+            send_email_via_SMTP(subject, html, ["brian.bartlow@hp.com"] + [player.email] + notification_list)
             response_data = {'title': 'Success', 'message': 'Sub request sent successfully', 'button': 'Close'}
         else:
             response_data = {'title': 'Failure', 'message': "It looks like you're not scheduled to play on the day you're requesting a sub. You may need to contact the administrator.", 'button': 'Close'}
@@ -870,7 +895,7 @@ def post_week():
             print(subject)
             print(html)
             print(f"sending to: {notification_list}")
-            send_email(subject, html, notification_list)
+            send_email_via_SMTP(subject, html, notification_list)
 
             update_calendar_event(week, slot, player_out, player_in)
             
@@ -1010,7 +1035,10 @@ def post_day():
         if updates:
             client.put_multi(updates)
             print("Scores updated or added successfully.")
-            return jsonify(title='Success', message='Scores saved successfully', button='Close')
+        return jsonify(title='Success', message='Scores saved successfully', button='Close')
+    else:
+        print(f"request.form.action != Scores. Displaying error popup asking user to login and refresh page.")
+        return jsonify(title='Error', message='There was an error. Make sure you are logged in to the correct account, refresh the web page, and try again.', button='Close')
 
 @app.route('/profile', methods=['GET'])
 def get_profile():
@@ -1821,16 +1849,16 @@ def notify():
     
     elif request_type == "smtp":
         sendit = False
-        subject = "Test Email from the App"
+        subject = "Test Email from the App using Mimecast"
         body = "This is the body of the email. If you can read this, it worked!"
-        recipient = "brian.bartlow@hp.com"
-        return send_email_via_SMTP(subject, body, recipient)
+        to=["brian.bartlow@hp.com", "brianbartlow@gmail.com"]
+        return send_email_via_SMTP(subject, body, to)
 
     
     if sendit:
         for e in notification_list:
             to.append(str(e))
-        send_email(subject, html, to)
+        send_email_via_SMTP(subject, html, to)
 
     return "Notification sent successfully."
 
@@ -1907,6 +1935,71 @@ def calendar_post():
         response_data = {'title': 'Error', 'message': 'Invalid action', 'button': 'Close'}
 
     return jsonify(response_data)
+
+def migrate_user_id_in_datastore(old_id, new_id):
+    if old_id == new_id:
+        print(f"New and old ID are the same.")
+        return
+    if not new_id:
+        print(f"No new ID.")
+        return
+    client = datastore.Client()
+
+    # Define the entities and their key format patterns that need ID updates
+    entities_to_update = [
+        {
+            'kind': 'Player_List',
+            'key_format': 'year-{year}_player-{id}',
+            'properties_to_copy': ['elo_score', 'email', 'games', 'name', 'points', 'points_per_game', 'wins', 'year']
+        },
+        {
+            'kind': 'Schedule',
+            'key_format': 'year-{year}_player-{id}_week-{week}_slot-{slot}_position-{position}',
+            'properties_to_copy': ['name', 'position', 'slot', 'week', 'year']
+        },
+        {
+            'kind': 'Availability',
+            'key_format': 'year-{year}_player-{id}_week-{week}_slot-{slot}',
+            'properties_to_copy': ['name', 'slot', 'week', 'year']
+        }
+    ]
+
+    for entity_info in entities_to_update:
+        kind = entity_info['kind']
+        key_format = entity_info['key_format']
+        properties_to_copy = entity_info['properties_to_copy']
+
+        # Query to fetch entities with the old ID
+        query = client.query(kind=kind)
+        query.add_filter('id', '=', old_id)
+
+        results = list(query.fetch())
+
+        if not results:
+            print(f"No entries found for the old ID: {old_id} in {kind}")
+            continue
+
+        for entity in results:
+            # Extract current key components based on the entity properties
+            key_components = {}
+            for prop in properties_to_copy:
+                key_components[prop] = entity[prop]
+
+            # Build the new key with the new ID
+            old_key = entity.key
+            new_key = client.key(kind, key_format.format(id=new_id, **key_components))
+
+            # Create a new entity with the new key and copy properties
+            new_entity = datastore.Entity(new_key)
+            for prop in properties_to_copy:
+                new_entity[prop] = entity[prop]
+            new_entity['id'] = new_id
+
+            # Save the new entity and delete the old one
+            client.put(new_entity)
+            client.delete(old_key)
+
+        print(f"Successfully migrated {len(results)} entries from old ID {old_id} to new ID {new_id} in {kind}")
 
 
 

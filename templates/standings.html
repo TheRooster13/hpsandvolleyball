@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Standings{% endblock %}
 {% block content %}
+<style>
+    .light-grey {
+        color: lightgrey;
+    }
+</style>
 
 <div class="col-md-2">
 </div>
@@ -22,11 +27,11 @@
           <tr>
             <th>Rank</th>
             <th>Name (<a href="?sort=elo">Elo</a>)</th>
-              <th><a href="?sort=ppg" data-toggle="tooltip" title="When you win, you get points equal to the average ELO score of your opponent. When you lose you get zero points. This is your average points per game.">Points Per Game (Min={{min_games}})</a></th>
-              <th>Win-Loss (Win%)</th>
+            <th><a href="?sort=ppg" data-toggle="tooltip" title="When you win, you get points equal to the average ELO score of your opponent. When you lose you get zero points. This is your average points per game.">Points Per Game (Min={{min_games}})</a></th>
+            <th>Win-Loss (Win%)</th>
           </tr>{%
 		for player in player_list %}
-          <tr>
+          <tr class="{% if  sort_method == 'ppg' and player.games < min_games %}light-grey{% endif %}">
             <td>{{loop.index}}</td>
             <td>{{player.name}} ({{player.elo_score}})</td>
             <td>{{player.points_per_game}}</td>
